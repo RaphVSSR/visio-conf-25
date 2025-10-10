@@ -13,7 +13,22 @@ Application web de visioconférence inspirée de Discord/Teams, développée dan
 -   **Base de données** : MongoDB pour la persistance des données
 -   **Stockage** : Système de fichiers local pour les uploads
 
----
+
+<br>
+
+## Documentations du projet
+
+====== [Confort de développement 2025](./DEVELOPPEMENT_2025.md) ======
+
+[Démarage rapide détaillé](./QUICK_START.md)
+
+[Messages](./MESSAGES_DOCUMENTATION.md)
+
+[Setup des variables d'environnement](./ENV_SETUP.md)
+
+[Spécifications](./SPECIFICATION.md)
+
+<br>
 
 ## 🚀 Démarrage rapide
 
