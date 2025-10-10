@@ -1,0 +1,185 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalContainer {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modalHeader.success {
+  background-color: #ecfdf5;
+}
+
+.modalHeader.error {
+  background-color: #fef2f2;
+}
+
+.modalHeader.warning {
+  background-color: #fffbeb;
+}
+
+.modalHeader.info {
+  background-color: #eff6ff;
+}
+
+.titleContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.modalContent {
+  padding: 20px;
+  color: #4b5563;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancelButton, .confirmButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelButton {
+  background-color: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.cancelButton:hover {
+  background-color: #f3f4f6;
+}
+
+.confirmButton {
+  border: none;
+  color: white;
+}
+
+.confirmSuccess {
+  background-color: #10b981;
+}
+
+.confirmSuccess:hover {
+  background-color: #059669;
+}
+
+.confirmError {
+  background-color: #ef4444;
+}
+
+.confirmError:hover {
+  background-color: #dc2626;
+}
+
+.confirmWarning {
+  background-color: #f59e0b;
+}
+
+.confirmWarning:hover {
+  background-color: #d97706;
+}
+
+.confirmInfo {
+  background-color: #3b82f6;
+}
+
+.confirmInfo:hover {
+  background-color: #2563eb;
+}
+
+.iconSuccess {
+  color: #10b981;
+}
+
+.iconError {
+  color: #ef4444;
+}
+
+.iconWarning {
+  color: #f59e0b;
+}
+
+.iconInfo {
+  color: #3b82f6;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

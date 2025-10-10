@@ -1,0 +1,11 @@
+# Ignore all uploaded files
+*
+
+# But keep the directory structure and seed files
+!.gitignore
+!.gitkeep
+!README.md
+!profile-pictures/.gitkeep
+!team-pictures/.gitkeep
+!seed-files/
+!seed-files/*

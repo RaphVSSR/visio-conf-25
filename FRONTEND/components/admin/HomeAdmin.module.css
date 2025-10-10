@@ -1,0 +1,95 @@
+/*Author : Matthieu BIVILLE*/
+
+.container {
+  width: calc(100%-71px);
+  height: 100vh;
+  padding-inline: 48px;
+  padding-top: 52px;
+  padding-bottom: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.title{
+  color: #223A6A;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 40px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: normal;
+}
+
+.infosContainer{
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.infos{
+  width: 500px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 30px;
+  border-radius: 20px;
+  border-style: solid;
+  font-size: 20px;
+}
+
+.icons{
+  width: 64px;
+  height: 64px;
+  border-radius: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.emphasis{
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.tab{
+  width: 500px;
+  height: 150px;
+  border-style: solid;
+  padding-inline: 75px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 30px;
+  font-style: normal;
+  font-weight: 700;
+  border-radius: 20px;
+  border-left-width: 20px;
+  background-color: #EAEAEA;
+}
+
+.tab:hover{
+  cursor: pointer;
+}
+
+.tabsContainer{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  column-gap: 225px;
+  row-gap: 100px;
+}
+
+.forbiddenAccess{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  row-gap: 50px;
+  height: 100vh;
+}
+
+
+
+

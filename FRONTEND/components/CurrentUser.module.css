@@ -1,0 +1,22 @@
+.currentUser {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background: var(--gray-alpha-100);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Remove old image styling and add new class for Next.js Image */
+.profilePictureImg {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: contain;
+  margin-right: 16px;
+}

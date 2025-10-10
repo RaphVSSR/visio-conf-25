@@ -1,0 +1,139 @@
+/*Author : Matthieu BIVILLE*/
+
+.container {
+  width: 80%;
+  height: 100vh;
+  padding-inline: 25px;
+  padding-top: 52px;
+  padding-bottom: 52px;
+}
+
+.title {
+  color: #223A6A;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: normal;
+}
+
+.button:hover{
+  cursor: pointer;
+}
+
+.name{
+  width: 462px;
+  margin-top: 50px;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #F4F5F9;
+  margin-inline: auto;
+  text-align: center;
+  padding: 15px;
+  font-size: 25px;
+  border-radius: 20px;
+  color: #223A6A;
+  font-weight: 700;
+}
+
+.perms{
+  margin-top: 50px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  height: 40%;
+}
+
+.button{
+  margin-top: 50px;
+  width: 168px;
+  height: 44px;
+  border-radius: 34px;
+  color: #FFF;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  column-gap: 20px;
+  border: none;
+}
+
+.dropDown{
+  width: 464px;
+  height: 100%;
+  flex-shrink: 0;
+  border: 2px #EDEDED solid;
+}
+
+.addPerm{
+  height: 58px;
+  color: #223A6A;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: normal;
+  background-color: #EDEDED;
+  padding-inline: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.option{
+  height: 50px;
+  color: #223A6A;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  background-color: #EDEDED;
+  padding-inline: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.signupForm {
+  margin-top : 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 85%;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.formGroupRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.formGroup label {
+  margin-bottom: 0.5rem;
+  color: #223A6A;
+  font-weight: bold;
+  width: 100%;
+}
+
+.formGroupRow .formGroup{
+  width: 45%;
+}
+
+.formGroup input {
+  padding: 0.5rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background-color: #333; 
+  color: #e0e0e0; 
+  width: 100%;
+}
+
+.formGroup{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

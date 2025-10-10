@@ -1,0 +1,109 @@
+.skeletonContainer {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  animation: pulse 1.5s infinite ease-in-out;
+  padding: 16px;
+}
+
+.skeletonContainer.grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 160px;
+  height: 160px;
+}
+
+.skeletonContainer.list {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 60px;
+}
+
+.iconSkeleton {
+  background-color: #e0e0e0;
+  border-radius: 8px;
+}
+
+.iconSkeleton.grid,
+.skeletonContainer.grid .iconSkeleton {
+  width: 80px;
+  height: 80px;
+}
+
+.iconSkeleton.list,
+.skeletonContainer.list .iconSkeleton {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.contentSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.skeletonContainer.grid .contentSkeleton {
+  align-items: center;
+}
+
+.nameSkeleton {
+  height: 16px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeletonContainer.grid .nameSkeleton {
+  width: 80%;
+}
+
+.skeletonContainer.list .nameSkeleton {
+  width: 40%;
+}
+
+.dateSkeleton {
+  height: 12px;
+  width: 20%;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+}
+
+.sizeSkeleton {
+  height: 12px;
+  width: 15%;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+}
+
+.listContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+}
+
+.listContainer.grid {
+  justify-content: flex-start;
+}
+
+.listContainer.list {
+  flex-direction: column;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+

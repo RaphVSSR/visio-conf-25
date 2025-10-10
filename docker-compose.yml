@@ -1,0 +1,60 @@
+services: # Service MongoDB
+    mongodb:
+        image: mongo:8.0
+        container_name: mongodb
+        restart: always
+        volumes:
+            - mongodb_data:/data/db
+        ports:
+            - "27017:27017"
+        networks:
+            - app_network
+        environment:
+            - MONGO_INITDB_DATABASE=visioconf
+
+    # Service Backend
+    backend:
+        build:
+            context: ./BACKEND
+            dockerfile: Dockerfile
+        container_name: backend
+        restart: always
+        depends_on:
+            - mongodb
+        ports:
+            - "3220:3220"
+        networks:
+            - app_network
+        environment:
+            - MONGO_URI=mongodb://mongodb:27017/visioconf
+        volumes:
+            - ./BACKEND:/app
+            - /app/node_modules
+
+    # Service Frontend
+    frontend:
+        build:
+            context: ./FRONTEND
+            dockerfile: Dockerfile
+        container_name: frontend
+        restart: always
+        depends_on:
+            - backend
+        ports:
+            - "3000:3000"
+        networks:
+            - app_network
+        volumes:
+            - ./FRONTEND:/app
+            - /app/node_modules
+            - /app/.next
+
+# Définition des volumes
+volumes:
+    mongodb_data:
+        driver: local
+
+# Définition des réseaux
+networks:
+    app_network:
+        driver: bridge
