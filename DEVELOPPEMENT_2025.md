@@ -56,6 +56,10 @@
 >```git
 > > git switch nom-de-la-branche-visée
 >```
+> Envoyer des commits sur une branche pas encore liée au repo lors du push
+>```git
+> > git push --set-upstream origin nom-de-la-branche-a-envoyer-au-repo
+>```
 
 ## Gestion des tâches (issues)
 Toutes les modifications passent par une issue : aucune branche ne doit être créée sans une tâche associée.

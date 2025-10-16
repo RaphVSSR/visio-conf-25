@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,10 +12,6 @@
 
 # testing
 /coverage
-
-# next.js
-/.next/
-/out/
 
 # production
 /build
@@ -34,22 +30,8 @@ yarn-error.log*
 .env
 !.env.example
 
-# uploaded files and profile pictures
-uploads/files/*
-!uploads/files/.gitkeep
-uploads/profile-pictures/*
-!uploads/profile-pictures/default_profile_picture.png
-!uploads/profile-pictures/.gitkeep
-uploads/team-pictures/*
-!uploads/team-pictures/default-team.png
-!uploads/team-pictures/.gitkeep
-
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # bun
 *.lockb

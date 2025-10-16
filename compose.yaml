@@ -47,7 +47,6 @@ services: # Service MongoDB
         volumes:
             - ./FRONTEND:/app
             - /app/node_modules
-            - /app/.next
 
 # Définition des volumes
 volumes:
