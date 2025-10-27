@@ -1,0 +1,109 @@
+# NOTES DE COURS - DÉVELOPPEMENT WEB
+**Étudiant :** [Nom de l'étudiant]
+**Date :** Juin 2025
+**Module :** Développement Web Avancé
+
+---
+
+## Séance 1 - Introduction aux frameworks JavaScript
+
+### Points clés à retenir :
+- React.js : Bibliothèque pour interfaces utilisateur
+- Vue.js : Framework progressif et accessible
+- Angular : Framework complet pour applications complexes
+
+### Notes personnelles :
+Le professeur a insisté sur l'importance de maîtriser d'abord JavaScript vanilla avant d'apprendre un framework.
+
+**Exemples de code :**
+```javascript
+// Fonction fléchée ES6
+const saluer = (nom) => {
+    return `Bonjour ${nom}!`;
+};
+
+// Destructuration d'objet
+const utilisateur = { nom: 'Jean', age: 25 };
+const { nom, age } = utilisateur;
+```
+
+---
+
+## Séance 2 - APIs et requêtes asynchrones
+
+### Fetch API :
+```javascript
+fetch('https://api.exemple.com/users')
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(error => console.error('Erreur:', error));
+```
+
+### Async/Await (plus moderne) :
+```javascript
+async function recupererUtilisateurs() {
+    try {
+        const response = await fetch('https://api.exemple.com/users');
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+```
+
+### À réviser :
+- Gestion des erreurs HTTP
+- Authentification avec tokens JWT
+- CORS et sécurité
+
+---
+
+## Séance 3 - CSS Grid et Flexbox
+
+### Flexbox pour les alignements :
+```css
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+```
+
+### CSS Grid pour les layouts complexes :
+```css
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+```
+
+### Questions à poser au prochain cours :
+1. Comment optimiser les performances CSS ?
+2. Quand utiliser Grid vs Flexbox ?
+3. Variables CSS (custom properties) vs Sass ?
+
+---
+
+## Projet de fin de module
+**Objectif :** Créer une application web de gestion de tâches
+**Technologies :** HTML5, CSS3, JavaScript ES6+, API REST
+**Date limite :** Fin juin 2025
+
+### Fonctionnalités requises :
+- [ ] Authentification utilisateur
+- [ ] CRUD des tâches
+- [ ] Interface responsive
+- [ ] Gestion des erreurs
+- [ ] Tests unitaires
+
+### Ressources utiles :
+- MDN Web Docs : https://developer.mozilla.org
+- Can I Use : https://caniuse.com
+- CSS Grid Generator : https://grid.layoutit.com
+
+---
+
+**Note importante :** Revoir les concepts de closure et hoisting en JavaScript pour l'examen final.

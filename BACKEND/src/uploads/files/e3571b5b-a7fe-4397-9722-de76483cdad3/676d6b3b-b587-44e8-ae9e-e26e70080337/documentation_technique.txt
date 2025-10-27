@@ -1,0 +1,328 @@
+# DOCUMENTATION TECHNIQUE - VisioConf
+## Version 1.0 - Juin 2025
+
+---
+
+## ARCHITECTURE DU SYSTÈME
+
+### Vue d'ensemble
+VisioConf est une plateforme de communication collaborative développée avec une architecture moderne client-serveur utilisant les technologies suivantes :
+
+**Frontend :**
+- Next.js 14 (React 18)
+- TypeScript
+- CSS Modules
+- Socket.io Client
+
+**Backend :**
+- Node.js + Express
+- MongoDB avec Mongoose
+- Socket.io Server
+- JWT pour l'authentification
+- Multer pour l'upload de fichiers
+
+### Structure des dossiers
+```
+visio-conf/
+├── FRONTEND/
+│   ├── app/                 # Pages Next.js (App Router)
+│   ├── components/          # Composants réutilisables
+│   ├── context/            # Contextes React
+│   ├── services/           # Services API
+│   ├── types/              # Types TypeScript
+│   └── utils/              # Utilitaires
+├── BACKEND/
+│   ├── models/             # Modèles MongoDB
+│   ├── routes/             # Routes Express
+│   ├── services/           # Services métier
+│   ├── uploads/            # Fichiers uploadés
+│   └── initDb.js           # Initialisation BDD
+└── docker-compose.yml      # Configuration Docker
+```
+
+---
+
+## MODÈLES DE DONNÉES
+
+### User (Utilisateur)
+```javascript
+{
+  uuid: String,           // Identifiant unique
+  firstname: String,      // Prénom
+  lastname: String,       // Nom
+  email: String,          // Email (unique)
+  phone: String,          // Téléphone
+  job: String,            // Fonction
+  desc: String,           // Description
+  password: String,       // Hash du mot de passe
+  status: String,         // active, inactive, blocked
+  roles: [ObjectId],      // Références vers Role
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Team (Équipe)
+```javascript
+{
+  name: String,           // Nom de l'équipe
+  description: String,    // Description
+  createdBy: ObjectId,    // Référence vers User
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### File (Fichier)
+```javascript
+{
+  id: String,             // UUID du fichier
+  name: String,           // Nom du fichier
+  type: String,           // 'file' ou 'folder'
+  size: Number,           // Taille en octets (si fichier)
+  mimeType: String,       // Type MIME
+  extension: String,      // Extension du fichier
+  ownerId: String,        // UUID du propriétaire
+  parentId: String,       // UUID du dossier parent
+  path: String,           // Chemin physique
+  isShared: Boolean,      // Fichier partagé
+  sharedWith: [String],   // UUIDs des utilisateurs
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Discussion
+```javascript
+{
+  discussion_uuid: String,
+  discussion_creator: ObjectId,
+  discussion_members: [ObjectId],
+  discussion_name: String,
+  discussion_isGroup: Boolean,
+  discussion_messages: [{
+    message_uuid: String,
+    message_content: String,
+    message_sender: ObjectId,
+    message_date_create: Date
+  }],
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+---
+
+## API ENDPOINTS
+
+### Authentification
+- `POST /api/auth/login` - Connexion utilisateur
+- `POST /api/auth/logout` - Déconnexion
+- `POST /api/auth/refresh` - Renouvellement du token
+
+### Utilisateurs
+- `GET /api/users` - Liste des utilisateurs
+- `GET /api/users/:id` - Détails d'un utilisateur
+- `PUT /api/users/:id` - Modification d'un utilisateur
+- `DELETE /api/users/:id` - Suppression d'un utilisateur
+
+### Équipes
+- `GET /api/teams` - Liste des équipes
+- `POST /api/teams` - Création d'une équipe
+- `GET /api/teams/:id` - Détails d'une équipe
+- `PUT /api/teams/:id` - Modification d'une équipe
+- `DELETE /api/teams/:id` - Suppression d'une équipe
+
+### Fichiers
+- `GET /api/files` - Liste des fichiers utilisateur
+- `POST /api/files/upload` - Upload de fichier
+- `GET /api/files/:id` - Téléchargement de fichier
+- `DELETE /api/files/:id` - Suppression de fichier
+- `POST /api/files/:id/share` - Partage de fichier
+
+### Discussions
+- `GET /api/discussions` - Liste des discussions
+- `POST /api/discussions` - Création d'une discussion
+- `GET /api/discussions/:id/messages` - Messages d'une discussion
+- `POST /api/discussions/:id/messages` - Envoi d'un message
+
+---
+
+## WEBSOCKETS (Socket.io)
+
+### Événements côté client
+```javascript
+// Connexion
+socket.emit('join_user', { userId });
+
+// Messages
+socket.emit('send_message', { 
+  discussionId, 
+  content, 
+  senderId 
+});
+
+// Appels vidéo
+socket.emit('call_user', { targetUserId, offer });
+socket.emit('answer_call', { callId, answer });
+socket.emit('ice_candidate', { callId, candidate });
+```
+
+### Événements côté serveur
+```javascript
+// Réception de message
+socket.on('receive_message', (messageData) => {
+  // Traitement du message
+});
+
+// Notifications d'appel
+socket.on('incoming_call', (callData) => {
+  // Gestion de l'appel entrant
+});
+
+// Statut utilisateur
+socket.on('user_status', (statusData) => {
+  // Mise à jour du statut
+});
+```
+
+---
+
+## SÉCURITÉ
+
+### Authentification JWT
+- Tokens avec expiration (1h pour l'access token)
+- Refresh tokens pour le renouvellement
+- Stockage sécurisé côté client (httpOnly cookies recommandés)
+
+### Autorisation
+- Système de rôles et permissions granulaires
+- Vérification des autorisations à chaque requête
+- Isolation des données par utilisateur/équipe
+
+### Upload de fichiers
+- Validation des types MIME autorisés
+- Limitation de taille (50MB par défaut)
+- Isolation des fichiers par utilisateur
+- Scan antivirus recommandé en production
+
+### Protection CORS
+```javascript
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
+```
+
+---
+
+## DÉPLOIEMENT
+
+### Variables d'environnement
+```bash
+# Base de données
+MONGO_URI=mongodb://localhost:27017/visioconf
+MONGO_USER=admin
+MONGO_PASSWORD=password
+
+# JWT
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=1h
+
+# Administrateur par défaut
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
+
+# Configuration serveur
+PORT=3000
+NODE_ENV=production
+FRONTEND_URL=http://localhost:3001
+```
+
+### Docker Compose
+Le projet inclut une configuration Docker Compose pour faciliter le déploiement :
+
+```bash
+# Démarrage des services
+docker-compose up -d
+
+# Arrêt des services
+docker-compose down
+
+# Rebuild des images
+docker-compose up --build
+```
+
+### Initialisation de la base de données
+```bash
+# Installation des dépendances
+cd BACKEND && npm install
+
+# Initialisation des données
+node initDb.js
+```
+
+---
+
+## TESTS
+
+### Tests unitaires
+```bash
+# Frontend
+cd FRONTEND && npm test
+
+# Backend
+cd BACKEND && npm test
+```
+
+### Tests d'intégration
+- Tests des endpoints API avec Jest/Supertest
+- Tests des composants React avec Testing Library
+- Tests E2E avec Cypress
+
+---
+
+## MONITORING ET LOGS
+
+### Logs applicatifs
+- Winston pour la gestion des logs
+- Rotation automatique des fichiers de log
+- Niveaux : error, warn, info, debug
+
+### Métriques
+- Monitoring des performances avec PM2
+- Statistiques d'utilisation MongoDB
+- Métriques Socket.io (connexions, messages)
+
+---
+
+## MAINTENANCE
+
+### Sauvegarde
+- Sauvegarde quotidienne MongoDB
+- Sauvegarde des fichiers uploadés
+- Scripts de restauration automatisés
+
+### Mises à jour
+- Mise à jour sécuritaire des dépendances npm
+- Tests de régression avant déploiement
+- Rollback automatique en cas d'erreur
+
+---
+
+## CONTACT ET SUPPORT
+
+**Équipe de développement :**
+- Email : dev@mmi.univ-tln.fr
+- Documentation : https://docs.visioconf.univ-tln.fr
+- Issues GitHub : https://github.com/univ-tln/visioconf/issues
+
+**Support utilisateur :**
+- Email : support@mmi.univ-tln.fr
+- FAQ : https://help.visioconf.univ-tln.fr
+- Téléphone : 04 94 14 XX XX
+
+---
+
+*Documentation mise à jour le : Juin 2025*
+*Version : 1.0*

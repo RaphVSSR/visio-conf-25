@@ -1,10 +1,13 @@
 {
   "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js",
-    "init-db": "node initDb.js",
-    "clear-uploads": "node clearUploads.js"
+    "dev": "NODE_ENV=dev ts-node src/index.ts",
+    "init-db:dev": "NODE_ENV=dev ts-node src/initDb.ts",
+    "clear-uploads:dev": "NODE_ENV=dev ts-node src/clearUploads.ts",
+    "build": "NODE_ENV=prod tsc -b tsconfig.build.json",
+    "init-db": "NODE_ENV=prod node dist/initDb.js",
+    "clear-uploads": "NODE_ENV=prod node dist/clearUploads.js",
+    "start": "NODE_ENV=prod node dist/index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
@@ -20,5 +23,12 @@
     "sharp": "^0.34.1",
     "socket.io": "^4.8.1",
     "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }
