@@ -11,6 +11,11 @@ import Role from "../Role.ts";
 import Permission from "../Permission.ts";
 import Channel from "../Channel.ts";
 import Discussion from "../Discussion.ts";
+import Team from "../Team.ts";
+import TeamMember from "../TeamMember.ts";
+import ChannelMember from "../ChannelMember.ts";
+import ChannelPost from "../ChannelPost.ts";
+import ChannelPostResponse from "../ChannelPostResponse.ts";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -65,6 +70,11 @@ export class Database {
 				await Role.flushAll();
 				await Permission.flushAll();
 				await Discussion.flushAll();
+				await TeamMember.flushAll();
+				await Team.flushAll();
+				await ChannelPost.flushAll();
+				await ChannelPostResponse.flushAll();
+				await ChannelMember.flushAll();
 				await Channel.flushAll();
 			}
 
@@ -84,6 +94,9 @@ export class Database {
 			await User.injectAdmin();
 			if (process.env.NODE_ENV === "dev") await TestEnvironement.injectTestUsers();
 			await Discussion.injectTest();
+			await Team.injectTest();
+			await Channel.injectTest();
+			await ChannelPost.injectTest();
 
 		} catch (err: any) {
 			

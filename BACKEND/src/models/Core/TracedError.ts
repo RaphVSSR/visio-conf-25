@@ -76,7 +76,21 @@ const ErrorsType = {
 
 		id: "adminCredentialsNotReferenced",
 		message: "❌ Error admins credentials aren't referenced in a .env file.\n",		
-	}
+	},
+
+	//Teams
+	noTeamsFound: {
+
+		id: "noTeamsFound",
+		message: "❌ Error teams collection is empty.\n",
+	},
+
+	//Channels
+	noChannelsFound: {
+
+		id: "noChannelsFound",
+		message: "❌ Error channels collection is empty.\n",
+	},
 
 } as const;
 

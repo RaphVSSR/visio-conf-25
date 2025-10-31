@@ -1,0 +1,256 @@
+# GUIDE UTILISATEUR - VisioConf
+## Plateforme de Communication Collaborative MMI
+
+---
+
+## BIENVENUE SUR VISIOCONF
+
+VisioConf est la plateforme de communication collaborative du département MMI de l'Université de Toulon. Cette application vous permet de communiquer, collaborer et partager des fichiers avec vos collègues et étudiants en toute simplicité.
+
+---
+
+## PREMIÈRE CONNEXION
+
+### 1. Accès à la plateforme
+- Rendez-vous sur : https://visioconf.mmi.univ-tln.fr
+- Utilisez vos identifiants universitaires
+- En cas de problème, contactez le support : support@mmi.univ-tln.fr
+
+### 2. Configuration de votre profil
+1. Cliquez sur votre avatar en haut à droite
+2. Sélectionnez "Mon profil"
+3. Complétez vos informations :
+   - Photo de profil
+   - Fonction
+   - Description
+   - Numéro de téléphone
+
+### 3. Première visite guidée
+Au premier démarrage, suivez le tutoriel interactif qui vous présentera les fonctionnalités principales de la plateforme.
+
+---
+
+## FONCTIONNALITÉS PRINCIPALES
+
+### 📹 VISIOCONFÉRENCE
+
+#### Démarrer un appel
+1. Allez dans l'**Annuaire**
+2. Trouvez la personne à appeler
+3. Cliquez sur l'icône 📞 "Appeler"
+4. Attendez que votre correspondant réponde
+
+#### Participer à un appel
+- Lorsque vous recevez un appel, une notification apparaît
+- Cliquez sur **"Accepter"** pour rejoindre l'appel
+- Utilisez les boutons pour :
+  - 🎤 Couper/activer le microphone
+  - 📹 Couper/activer la caméra
+  - 📞 Raccrocher
+
+#### Appels de groupe
+1. Créez d'abord une équipe ou une discussion de groupe
+2. Dans la discussion, cliquez sur "Démarrer un appel"
+3. Tous les membres du groupe recevront une invitation
+
+### 💬 DISCUSSIONS
+
+#### Discussions privées
+1. Allez dans **"Discussion"**
+2. Cliquez sur **"Nouvelle discussion"**
+3. Sélectionnez un contact
+4. Commencez à taper votre message
+
+#### Discussions de groupe
+1. Cliquez sur **"Créer un groupe"**
+2. Donnez un nom au groupe
+3. Ajoutez les participants
+4. Validez la création
+
+#### Fonctionnalités de messagerie
+- **Emojis** : Cliquez sur 😊 pour ajouter des emojis
+- **Fichiers** : Glissez-déposez ou cliquez sur 📎
+- **Mentions** : Tapez @ suivi du nom de la personne
+- **Recherche** : Utilisez la barre de recherche en haut
+
+### 📁 GESTION DE FICHIERS
+
+#### Upload de fichiers
+1. Allez dans **"Fichiers"**
+2. Cliquez sur **"Importer"**
+3. Sélectionnez vos fichiers ou glissez-déposez
+4. Les fichiers sont organisés automatiquement
+
+#### Organisation
+- **Dossiers** : Créez des dossiers pour organiser vos fichiers
+- **Vue** : Basculez entre vue liste et vue grille
+- **Tri** : Triez par nom, date, taille ou type
+
+#### Partage de fichiers
+1. Sélectionnez un fichier
+2. Cliquez sur **"Partager"**
+3. Choisissez avec qui partager :
+   - Personne spécifique
+   - Équipe entière
+   - Lien public (avec précaution)
+
+#### Types de fichiers supportés
+- **Documents** : PDF, Word, Excel, PowerPoint
+- **Images** : JPG, PNG, GIF, SVG
+- **Vidéos** : MP4, AVI, MOV (max 100MB)
+- **Archives** : ZIP, RAR
+- **Code** : JS, HTML, CSS, Python, etc.
+
+### 👥 ÉQUIPES
+
+#### Rejoindre une équipe
+- Les équipes apparaissent automatiquement si vous y êtes invité
+- Acceptez les invitations depuis vos notifications
+
+#### Créer une équipe
+1. Allez dans **"Équipes"**
+2. Cliquez sur **"Créer une équipe"**
+3. Renseignez :
+   - Nom de l'équipe
+   - Description
+   - Membres initiaux
+4. Validez la création
+
+#### Gestion d'équipe
+En tant qu'administrateur d'équipe, vous pouvez :
+- Ajouter/retirer des membres
+- Modifier les informations de l'équipe
+- Gérer les permissions
+- Créer des canaux de discussion
+
+---
+
+## INTERFACE UTILISATEUR
+
+### Navigation principale
+- **🏠 Accueil** : Tableau de bord et activité récente
+- **👥 Équipes** : Gestion de vos équipes
+- **💬 Discussion** : Messagerie instantanée
+- **📁 Fichiers** : Gestionnaire de fichiers
+- **📋 Annuaire** : Répertoire des utilisateurs
+
+### Raccourcis clavier
+- **Ctrl + K** : Recherche rapide
+- **Ctrl + N** : Nouvelle discussion
+- **Ctrl + Shift + A** : Démarrer un appel
+- **Esc** : Fermer les modales
+- **Ctrl + /** : Afficher l'aide
+
+### Notifications
+- **🔴 Badge rouge** : Nouveaux messages non lus
+- **🔔 Cloche** : Notifications système
+- **⚠️ Alertes** : Messages importants ou erreurs
+
+---
+
+## PARAMÈTRES ET PERSONNALISATION
+
+### Paramètres généraux
+1. Cliquez sur votre avatar → **"Paramètres"**
+2. Configurez :
+   - Langue de l'interface
+   - Fuseau horaire
+   - Format date/heure
+
+### Notifications
+- **Push** : Notifications bureau (à autoriser)
+- **Email** : Résumés quotidiens/hebdomadaires
+- **Sons** : Personnaliser les sons de notification
+
+### Confidentialité
+- **Statut** : Disponible, Occupé, Absent, Invisible
+- **Partage de position** : Activer/désactiver
+- **Historique** : Contrôler la conservation des messages
+
+### Accessibilité
+- **Contraste élevé** : Pour une meilleure visibilité
+- **Taille de police** : Augmenter la lisibilité
+- **Raccourcis clavier** : Navigation au clavier
+- **Lecteur d'écran** : Compatibilité ARIA
+
+---
+
+## RÉSOLUTION DE PROBLÈMES
+
+### Problèmes de connexion
+1. Vérifiez votre connexion internet
+2. Actualisez la page (F5)
+3. Videz le cache du navigateur
+4. Contactez le support si le problème persiste
+
+### Problèmes audio/vidéo
+1. Vérifiez que votre micro/caméra sont autorisés
+2. Testez avec un autre navigateur
+3. Redémarrez votre navigateur
+4. Vérifiez les paramètres système
+
+### Upload de fichiers bloqué
+- Vérifiez la taille du fichier (max 50MB)
+- Vérifiez le format (voir liste des formats supportés)
+- Essayez avec un fichier plus petit
+- Contactez l'administrateur si nécessaire
+
+### Performance lente
+- Fermez les onglets inutiles
+- Redémarrez votre navigateur
+- Vérifiez la charge réseau
+- Utilisez un navigateur récent (Chrome, Firefox, Safari)
+
+---
+
+## SÉCURITÉ ET BONNES PRATIQUES
+
+### Protection des données
+- **Mots de passe** : Utilisez des mots de passe forts
+- **Déconnexion** : Déconnectez-vous des postes partagés
+- **Partage** : Attention aux partages publics
+- **Données sensibles** : Évitez les informations confidentielles
+
+### Utilisation responsable
+- Respectez la charte informatique de l'université
+- Utilisez la plateforme à des fins pédagogiques/professionnelles
+- Signaler tout comportement inapproprié
+- Respectez les droits d'auteur lors du partage
+
+---
+
+## SUPPORT ET AIDE
+
+### Documentation en ligne
+- **FAQ** : https://help.visioconf.univ-tln.fr/faq
+- **Tutoriels vidéo** : https://help.visioconf.univ-tln.fr/videos
+- **Guide avancé** : https://help.visioconf.univ-tln.fr/advanced
+
+### Contact support
+- **Email** : support@mmi.univ-tln.fr
+- **Téléphone** : 04 94 14 XX XX (9h-17h)
+- **Chat** : Support en ligne dans l'application
+- **Formulaire** : https://help.visioconf.univ-tln.fr/contact
+
+### Formation
+Des sessions de formation sont organisées régulièrement :
+- **Enseignants** : Formations pédagogiques
+- **Étudiants** : Ateliers d'utilisation
+- **Personnels** : Sessions techniques
+
+---
+
+## MISES À JOUR ET NOUVEAUTÉS
+
+### Changelog
+Suivez les nouveautés sur : https://help.visioconf.univ-tln.fr/changelog
+
+### Suggestions d'amélioration
+Proposez vos idées : feedback@mmi.univ-tln.fr
+
+---
+
+*Guide utilisateur mis à jour le : Juin 2025*
+*Version de la plateforme : 1.0*
+
+**Bonne utilisation de VisioConf ! 🚀**

@@ -1,4 +1,4 @@
-import mongoose, { model, Schema, Types } from "mongoose"
+import mongoose, { type HydratedDocument, model, Schema, Types } from "mongoose"
 import { v4 as uuidv4 } from "uuid"
 import Collection from "./Core/Collection.ts"
 import { Model } from "mongoose"
