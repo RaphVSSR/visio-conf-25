@@ -16,6 +16,8 @@ node_modules
 # production
 /build
 
+/uploads/
+
 # misc
 .DS_Store
 *.pem
@@ -39,3 +41,5 @@ yarn-error.log*
 
 # bun
 *.lockb
+
+!.gitkeep
