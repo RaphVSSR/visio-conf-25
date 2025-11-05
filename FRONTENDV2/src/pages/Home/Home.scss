@@ -1,160 +1,155 @@
-
 @use "../../design-system/scss/global.scss" as *;
 
 #homePage {
-	@extend %flex-col;
-	height: 100vh;
-	padding: 2%;
-	gap: 20px;
-	color: $text;
-	overflow: hidden;
-	background-color: $bg-page;
+  @extend %flex-col;
+  height: 100vh;
+  padding: 2%;
+  gap: 20px;
+  color: $text;
+  overflow: hidden;
+  background-color: $bg-page;
 
-	#topBar {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		width: 100%;
-		padding: 8px 0 16px;
+  #topBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 8px 0 16px;
 
-		#topBarGreeting {
-			font-size: 1.6rem;
-			font-weight: 700;
-			color: $primary;
-			letter-spacing: -0.02em;
-		}
+    #topBarGreeting {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: $primary;
+      letter-spacing: -0.02em;
+    }
 
-		#disconnectBtn {
-			background-color: transparent;
-			border: 1px solid rgba($danger, 0.2);
-			color: $danger;
+    #disconnectBtn {
+      background-color: transparent;
+      border: 1px solid rgba($danger, 0.2);
+      color: $danger;
 
-			.btnIco {
-				color: $danger;
-			}
+      .btnIco {
+        color: $danger;
+      }
 
-			span {
-				color: $danger;
-				font-weight: 500;
-			}
+      span {
+        color: $danger;
+        font-weight: 500;
+      }
 
-			&:hover {
-				background-color: $danger;
-				border-color: $danger;
+      &:hover {
+        background-color: $danger;
+        border-color: $danger;
 
-				.btnIco, span {
-					color: $bg-white;
-				}
-			}
-		}
-	}
+        .btnIco,
+        span {
+          color: $bg-white;
+        }
+      }
+    }
+  }
 
-	&::-webkit-scrollbar {
-		width: 6px;
-	}
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
 
-	&::-webkit-scrollbar-track {
-		background: $bg-hover;
-		border-radius: 10px;
-	}
+  &::-webkit-scrollbar-track {
+    background: $bg-hover;
+    border-radius: 10px;
+  }
 
-	&::-webkit-scrollbar-thumb {
-		background: $bg-skeleton;
-		border-radius: 10px;
+  &::-webkit-scrollbar-thumb {
+    background: $bg-skeleton;
+    border-radius: 10px;
 
-		&:hover {
-			background: $bg-skeleton-dark;
-		}
-	}
+    &:hover {
+      background: $bg-skeleton-dark;
+    }
+  }
 
-	.sectionTitle {
-		font-size: 1.25rem;
-		margin: 0 0 10px 0;
-		color: $primary;
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		font-weight: 600;
+  .sectionTitle {
+    font-size: 1.25rem;
+    margin: 0 0 10px 0;
+    color: $primary;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
 
-		svg {
-			color: $primary;
-		}
-	}
+    svg {
+      color: $primary;
+    }
+  }
 
-	#homeDash {
+  #homeDash {
+    flex: 1;
+  }
 
-		flex: 1;
-	}
+  #friendsSection {
+    @extend %flex-col;
+    flex: 1;
+    width: 100%;
+    padding: 20px;
+    gap: 20px;
+    color: $text;
+    border-radius: 16px;
+    background: $bg-white;
 
-	#friendsSection {
-		@extend %flex-col;
-		flex: 1;
-		width: 100%;
-		padding: 20px;
-		gap: 20px;
-		color: $text;
-		border-radius: 16px;
-		background: $bg-white;
+    #friendsHeader {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
 
-		#friendsHeader{
+      .sectionTitle {
+        display: flex;
+        align-items: center;
+      }
+    }
 
-			display: flex;
-			justify-content: space-between;
-			width: 100%;
+    #noFriends {
+      @extend %flex-col-centered;
+      padding: 40px 20px;
+      text-align: center;
+      color: $text-subtle;
+      height: 100%;
+      flex: 1;
 
-			.sectionTitle{
+      svg {
+        color: $text-placeholder;
+        margin-bottom: 16px;
+        width: 48px;
+        height: 48px;
+      }
 
-				display: flex;
-				align-items: center;
-			}
-		}
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 1.1rem;
+        color: $text-body;
+      }
 
-		#noFriends {
-			@extend %flex-col-centered;
-			padding: 40px 20px;
-			text-align: center;
-			color: $text-subtle;
-			height: 100%;
-			flex: 1;
+      p {
+        margin: 0 0 16px 0;
+        font-size: 0.9rem;
+        max-width: 300px;
+      }
+    }
 
-			svg {
-				color: $text-placeholder;
-				margin-bottom: 16px;
-				width: 48px;
-				height: 48px;
-			}
+    .resetButton {
+      margin-top: 16px;
+      padding: 8px 16px;
+      background-color: $bg-muted;
+      border: none;
+      border-radius: 8px;
+      color: $primary;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
 
-			h3 {
-				margin: 0 0 8px 0;
-				font-size: 1.1rem;
-				color: $text-body;
-			}
-
-			p {
-				margin: 0 0 16px 0;
-				font-size: 0.9rem;
-				max-width: 300px;
-			}
-		}
-
-
-		.resetButton {
-			margin-top: 16px;
-			padding: 8px 16px;
-			background-color: $bg-muted;
-			border: none;
-			border-radius: 8px;
-			color: $primary;
-			font-size: 0.9rem;
-			cursor: pointer;
-			transition: all 0.2s ease;
-
-			&:hover {
-				background-color: $bg-divider;
-			}
-		}
-
-	}
+      &:hover {
+        background-color: $bg-divider;
+      }
+    }
+  }
 }
 
 .contentColumns {

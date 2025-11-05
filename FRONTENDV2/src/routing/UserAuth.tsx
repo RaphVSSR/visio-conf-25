@@ -8,12 +8,11 @@ import { useAuth } from "hooks/useAuth";
  * Affiche un écran de chargement pendant la vérification.
  */
 export const UserAuth: FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
 
-	const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <h1>Chargement du bundle...</h1>;
 
-	if (isLoading) return <h1>Chargement du bundle...</h1>;
+  if (!isAuthenticated) return <Navigate to={"/login"} replace />;
 
-	if (!isAuthenticated) return <Navigate to={"/login"} replace />;
-
-	return <Outlet />;
-}
+  return <Outlet />;
+};

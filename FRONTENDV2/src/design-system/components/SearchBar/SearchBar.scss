@@ -1,34 +1,33 @@
-
 @use "../../scss/global.scss" as *;
 
 .searchBar {
-	display: flex;
-	align-items: center;
-	padding: 5px 15px;
-	width: fit-content;
-	gap: 10px;
-	background: white;
-	border-radius: 15px;
+  display: flex;
+  align-items: center;
+  padding: 5px 15px;
+  width: fit-content;
+  gap: 10px;
+  background: white;
+  border-radius: 15px;
 
-	.searchIcon {
-		color: $text-subtle;
-	}
+  .searchIcon {
+    color: $text-subtle;
+  }
 
-	.searchInput {
-		appearance: none;
-		padding: 10px;
-		font-size: 0.95rem;
-		color: $primaryCol;
-		border: none;
-		transition: all 0.3s ease;
+  .searchInput {
+    appearance: none;
+    padding: 10px;
+    font-size: 0.95rem;
+    color: $primaryCol;
+    border: none;
+    transition: all 0.3s ease;
 
-		&:focus {
-			outline: none;
-			//border-color: $primaryCol;
-		}
+    &:focus {
+      outline: none;
+      //border-color: $primaryCol;
+    }
 
-		&::placeholder {
-			color: $text-placeholder;
-		}
-	}
+    &::placeholder {
+      color: $text-placeholder;
+    }
+  }
 }
