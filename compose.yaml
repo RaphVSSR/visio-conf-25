@@ -32,11 +32,11 @@ services: # Service MongoDB
             - /app/node_modules
 
     # Service Frontend
-    frontend:
+    frontendv2:
         build:
-            context: ./FRONTEND
+            context: ./FRONTENDV2
             dockerfile: Dockerfile
-        container_name: frontend
+        container_name: frontendv2
         restart: always
         depends_on:
             - backend
@@ -45,8 +45,11 @@ services: # Service MongoDB
         networks:
             - app_network
         volumes:
-            - ./FRONTEND:/app
+            - ./FRONTENDV2:/app
             - /app/node_modules
+
+        environment:
+            - WATCHPACK_POLLING=true
 
 # Définition des volumes
 volumes:

@@ -1,0 +1,210 @@
+
+@use "../../design-system/scss/global.scss" as *;
+
+#homePage {
+	@extend %flex-col;
+	height: 100vh;
+	padding: 2%;
+	gap: 20px;
+	color: #060d19;
+	overflow: hidden;
+	background-color: #f5f7fa;
+
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: #f1f5f9;
+		border-radius: 10px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: #cbd5e1;
+		border-radius: 10px;
+
+		&:hover {
+			background: #94a3b8;
+		}
+	}
+
+	.sectionTitle {
+		font-size: 1.25rem;
+		margin: 0 0 10px 0;
+		color: $primaryCol;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-weight: 600;
+
+		svg {
+			color: $primaryCol;
+		}
+	}
+
+	#homeDash {
+
+		flex: 1;
+	}
+
+	#friendsSection {
+		@extend %flex-col;
+		flex: 1;
+		width: 100%;
+		padding: 20px;
+		gap: 20px;
+		color: var(--Texte, #060d19);
+		border-radius: 16px;
+		background: #fff;
+
+		#friendsHeader{
+
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+
+			.sectionTitle{
+
+				display: flex;
+				align-items: center;
+			}
+		}
+
+		#noFriends {
+			@extend %flex-col-centered;
+			padding: 40px 20px;
+			text-align: center;
+			color: #6b7280;
+			height: 100%;
+			flex: 1;
+
+			svg {
+				color: #9ca3af;
+				margin-bottom: 16px;
+				width: 48px;
+				height: 48px;
+			}
+	
+			h3 {
+				margin: 0 0 8px 0;
+				font-size: 1.1rem;
+				color: #4b5563;
+			}
+	
+			p {
+				margin: 0 0 16px 0;
+				font-size: 0.9rem;
+				max-width: 300px;
+			}
+		}
+
+
+		.resetButton {
+			margin-top: 16px;
+			padding: 8px 16px;
+			background-color: #f3f4f6;
+			border: none;
+			border-radius: 8px;
+			color: $primaryCol;
+			font-size: 0.9rem;
+			cursor: pointer;
+			transition: all 0.2s ease;
+
+			&:hover {
+				background-color: #e5e7eb;
+			}
+		}
+
+	}
+}
+
+.contentColumns {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  overflow: hidden;
+  gap: 20px;
+}
+
+.section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #fff;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  color: #060d19;
+  position: relative;
+  overflow: hidden;
+  gap: 16px;
+}
+
+.section:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.section h1 {
+  font-size: 1.5rem;
+  margin-bottom: 16px;
+  color: $primaryCol;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 1400px) {
+  .summary_cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
+  .contentColumns {
+    flex-direction: column;
+  }
+
+  .leftColumn,
+  .rightColumn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .main {
+    flex-direction: column;
+    overflow-y: auto;
+    height: auto;
+  }
+
+  .mainColumn,
+  .contactsColumn {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .contactsColumn {
+    height: auto;
+  }
+
+  .notification,
+  .amis {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .summary_cards {
+    grid-template-columns: 1fr;
+  }
+
+  .quick_actions {
+    justify-content: center;
+  }
+}

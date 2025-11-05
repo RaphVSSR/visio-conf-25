@@ -1,0 +1,101 @@
+
+@use "../../design-system/scss/global.scss" as *;
+
+#adminPanel {
+
+	@extend %flex-col;
+	width: 100%;
+	height: 100vh;
+	padding: 50px;
+	gap: 10%;
+
+	h1{
+	  color: #223A6A;
+	  font-family: Arial, Helvetica, sans-serif;
+	  font-size: 40px;
+	  font-style: normal;
+	  font-weight: 800;
+	  line-height: normal;
+	}
+
+	#infosWrapper, #tabsWrapper {
+
+		padding: 0 5%;
+	}
+
+	#infosWrapper{
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  font-family: Arial, Helvetica, sans-serif;
+
+	  .info{
+		width: 500px;
+		display: flex;
+		justify-content: space-around;
+		align-items: center;
+		padding: 30px;
+		border-radius: 20px;
+		border-style: solid;
+		font-size: 20px;
+	  }
+
+	  .icon {
+		width: 64px;
+		height: 64px;
+		border-radius: 50px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	  }
+
+	  .emphasis{
+		font-size: 40px;
+		font-weight: 700;
+	  }
+	}
+
+	#tabsWrapper {
+
+		@extend %flex-row-centered;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 30px;
+
+		.tab{
+		  width: 500px;
+		  height: 150px;
+		  border-style: solid;
+		  padding-inline: 75px;
+		  display: flex;
+		  justify-content: space-between;
+		  align-items: center;
+		  font-size: 30px;
+		  font-style: normal;
+		  font-weight: 700;
+		  border-radius: 20px;
+		  border-left-width: 20px;
+		  background-color: #EAEAEA;
+		  
+		  &:hover{
+			cursor: pointer;
+		  }
+		}
+	}
+
+	.forbiddenAccess{
+	  display: flex;
+	  flex-direction: column;
+	  justify-content: center;
+	  align-items: center;
+	  row-gap: 50px;
+	  height: 100vh;
+	}
+}
+
+
+
+
+
+
+
