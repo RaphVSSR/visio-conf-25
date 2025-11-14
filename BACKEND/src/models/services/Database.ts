@@ -1,14 +1,12 @@
 
-import { connect, disconnect, type ConnectOptions } from "mongoose"
+import mongoose, { connect, disconnect, type ConnectOptions } from "mongoose"
 import path from "path";
 import { fileURLToPath } from "url"
 import fs from "fs"
 import User from "../User.ts";
-import TracedError from "../Core/TracedError.ts";
+import TracedError from "../core/TracedError.ts";
 import FileSystem, { Folder } from "./FileSystem.ts";
-import TestEnvironement from "../Core/TestEnvironement.ts";
-import Role from "../Role.ts";
-import Permission from "../Permission.ts";
+import TestEnvironement from "../core/TestEnvironement.ts";
 import Channel from "../Channel.ts";
 import Discussion from "../Discussion.ts";
 import Team from "../Team.ts";
@@ -16,19 +14,26 @@ import TeamMember from "../TeamMember.ts";
 import ChannelMember from "../ChannelMember.ts";
 import ChannelPost from "../ChannelPost.ts";
 import ChannelPostResponse from "../ChannelPostResponse.ts";
+import { Db, MongoClient } from "mongodb";
+import Auth from "./Auth.ts";
 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export class Database {
-
+export default class Database {
 
 	static async init(){
 
 		if (process.env.VERBOSE === "true") console.group("⚙️ Processing Database..");
 
 		await this.connect();
+		
+		await Auth.init();
+		
+		if (process.env.FLUSH_DB_ON_START === "true") await this.flushDb();
+
+		await Auth.injectAdminUser();
 
 		await this.prepareProjectEnv();
 
@@ -48,8 +53,8 @@ export class Database {
 			
 			await connect(process.env.MONGO_URI, process.env.MONGO_USER && process.env.MONGO_PASSWORD ? mongoOptions : undefined);
 			
-			if (process.env.VERBOSE === "true") console.log("✅ Database connection succeed");
-			
+			if (process.env.VERBOSE === "true") console.log("✅ Connection succeed");
+
 
 		} catch (err: any) {
 			
@@ -58,25 +63,21 @@ export class Database {
 
 	}
 
-	private static async prepareProjectEnv(){
+	private static async flushDb(){
 
 		try {
-			
-			if (process.env.FLUSH_DB_ON_START === "true"){
 				
-				FileSystem.flushUploadLocalDir();
-				await Folder.flushAll();
-				await User.flushAll();
-				await Role.flushAll();
-				await Permission.flushAll();
-				await Discussion.flushAll();
-				await TeamMember.flushAll();
-				await Team.flushAll();
-				await ChannelPost.flushAll();
-				await ChannelPostResponse.flushAll();
-				await ChannelMember.flushAll();
-				await Channel.flushAll();
-			}
+			FileSystem.flushUploadLocalDir();
+
+			await Auth.flushAll();
+			await Folder.flushAll();
+			await Discussion.flushAll();
+			await TeamMember.flushAll();
+			await Team.flushAll();
+			await ChannelPost.flushAll();
+			await ChannelPostResponse.flushAll();
+			await ChannelMember.flushAll();
+			await Channel.flushAll();
 
 			if (process.env.VERBOSE === "true") console.log("✅ DB flushed successfully");
 
@@ -84,19 +85,18 @@ export class Database {
 			
 			throw new TracedError("dbFlushing", err.message)
 		}
+	}
+
+	private static async prepareProjectEnv(){
 
 		this.verifyUploadsEnvIntegrity();
 
 		try {
-			
-			await Permission.inject();
-			await Role.inject();
-			await User.injectAdmin();
-			if (process.env.NODE_ENV === "dev") await TestEnvironement.injectTestUsers();
-			await Discussion.injectTest();
-			await Team.injectTest();
-			await Channel.injectTest();
-			await ChannelPost.injectTest();
+			//if (process.env.NODE_ENV === "dev") await TestEnvironement.injectTestUsers();
+			//await Discussion.injectTest();
+			//await Team.injectTest();
+			//await Channel.injectTest();
+			//await ChannelPost.injectTest();
 
 		} catch (err: any) {
 			

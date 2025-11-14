@@ -7,7 +7,6 @@ import { File } from "../models/services/FileSystem.ts"
 import { v4 as uuidv4 } from "uuid"
 import User from "../models/User.ts"
 
-import authenticateToken from "../models/utils/authenticateToken.ts"
 import FileSystem from "../models/services/FileSystem.ts"
 
 const router = express.Router();

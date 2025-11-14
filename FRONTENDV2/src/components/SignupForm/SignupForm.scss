@@ -1,0 +1,120 @@
+
+@use "../../design-system/scss/global.scss" as *;
+
+#signupForm {
+  	@extend %flex-col-centered;
+	width: 35vw;
+	padding: 30px;
+	justify-content: unset;
+	gap: 50px;
+	background: white;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+	border-radius: 25px;
+	transition: .4s ease;
+
+	&>img {
+
+		width: 90%;
+	}
+
+	#pwdWrapper{
+		@extend %flex-row-centered;
+		position: relative;
+
+		input {
+
+			flex: 5;
+			color: $primaryCol;
+
+		}
+
+		& .pwdIco {
+
+			flex: 1;
+			cursor: pointer;
+		}
+	}
+
+	#inputWrapper{
+
+		@extend %flex-row-centered;
+		flex-wrap: wrap;
+		width: 100%;
+		gap: 20px;
+
+		&>* {
+
+			flex: 1;
+			padding: 10px;
+			border-bottom: solid 2px $linkCol !important;
+			transition: all .3s ease;
+
+			&:hover, & :focus-visible {
+
+				scale: 1.05;
+			}
+
+		}
+
+		input {
+
+			appearance: none;
+			border: none;
+
+			&:focus-visible {
+	
+				outline: none;
+			}
+
+		}
+	}
+
+	#signupFooter {
+
+		@extend %flex-col-centered;
+		width: 100%;
+		gap: 10px;
+
+		&>* {
+
+			width: 90%;
+			text-align: center;
+		}
+
+		#submitBtn {
+		  padding: 0.75rem;
+		  border: none;
+		  border-radius: 8px;
+		  background: var(--Primaire, #1E3664);
+		  color: white;
+		  cursor: pointer;
+
+		  &:disabled {
+			cursor: not-allowed;
+			background-color: #555; 
+		  }
+
+		  &:hover:not(:disabled) {
+			background-color: #005bb5;
+		  }
+		}
+
+		#loginLink {
+
+			color: $linkCol;
+			text-decoration: none;
+			transition: all .3s ease;
+	
+			&:hover{
+				color: #63b3ed;
+			}
+		}
+	}
+
+	.error {
+	  color: #d32f2f; 
+	}
+}
+
+
+

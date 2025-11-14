@@ -36,17 +36,16 @@ services: # Service MongoDB
               required: false
             - path: ./BACKEND/.env.local
               required: false
-        
         volumes:
             - ./BACKEND:/app
-            - /app/node_modules 
+            - /app/node_modules
 
     # Service Frontend
-    frontend:
+    frontendv2:
         build:
-            context: ./FRONTEND
+            context: ./FRONTENDV2
             dockerfile: Dockerfile
-        container_name: frontend
+        container_name: frontendv2
         restart: always
         depends_on:
             - backend
@@ -54,19 +53,12 @@ services: # Service MongoDB
             - "3000:3000"
         networks:
             - app_network
-        env_file:
-            - path: ./FRONTEND/.env
-              required: false
-            - path: ./FRONTEND/.env.dev
-              required: false
-            - path: ./FRONTEND/.env.prod
-              required: false
-            - path: ./FRONTEND/.env.local
-              required: false
-        
         volumes:
-            - ./FRONTEND:/app
+            - ./FRONTENDV2:/app
             - /app/node_modules
+
+        environment:
+            - WATCHPACK_POLLING=true
 
 # Définition des volumes
 volumes:

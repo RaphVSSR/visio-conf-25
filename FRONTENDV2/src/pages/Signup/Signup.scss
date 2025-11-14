@@ -1,0 +1,14 @@
+
+@use "../../design-system/scss/global.scss" as *;
+
+#signupPage {
+
+	@extend %flex-col-centered;
+
+	position: relative;
+	padding: 1rem;
+	height: 100vh;
+	gap: 20px;
+	background: center / cover no-repeat;
+
+}

@@ -5,14 +5,13 @@ import { fileURLToPath } from 'url';
 import User, { type UserType } from "../User.ts"
 import FileSystem, { File, Folder, type FileType, type FolderType } from "../services/FileSystem.ts";
 import TracedError from "./TracedError.ts";
-import Role from "../Role.ts";
 
 
 export default class TestEnvironement {
 
 	static testUsersToInject: UserType[] = [
 		{
-			uuid: uuidv4(),
+
 			firstname: "John",
 			lastname: "Doe",
 			email: "john.doe@example.com",
@@ -24,7 +23,7 @@ export default class TestEnvironement {
 				"f4f263e439cf40925e6a412387a9472a6773c2580212a4fb50d224d3a817de17", // Mot de passe : 'mdp'
 		},
 		{
-			uuid: uuidv4(),
+
 			firstname: "Janny",
 			lastname: "Doey",
 			email: "janny.doey@example.com",
@@ -36,7 +35,7 @@ export default class TestEnvironement {
 				"f4f263e439cf40925e6a412387a9472a6773c2580212a4fb50d224d3a817de17", // Mot de passe : 'mdp'
 		},
 		{
-			uuid: uuidv4(),
+
 			firstname: "Jean",
 			lastname: "Deau",
 			email: "jean.deau@example.com",
@@ -48,7 +47,7 @@ export default class TestEnvironement {
 				"f4f263e439cf40925e6a412387a9472a6773c2580212a4fb50d224d3a817de17", // Mot de passe : 'mdp'
 		},
 		{
-			uuid: uuidv4(),
+
 			firstname: "Hélios",
 			lastname: "Martin",
 			email: "heliosmartin.hm@gmail.com",
@@ -60,7 +59,7 @@ export default class TestEnvironement {
 			status: "active",
 		},
 		{
-			uuid: uuidv4(),
+
 			firstname: "Sophie",
 			lastname: "Durand",
 			email: "sophie.durand@example.com",
@@ -72,7 +71,7 @@ export default class TestEnvironement {
 			status: "active",
 		},
 		{
-			uuid: uuidv4(),
+
 			firstname: "Thomas",
 			lastname: "Petit",
 			email: "thomas.petit@example.com",
@@ -84,7 +83,7 @@ export default class TestEnvironement {
 			status: "active",
 		},
 		{
-			uuid: uuidv4(),
+
 			firstname: "Marie",
 			lastname: "Leroy",
 			email: "marie.leroy@example.com",
@@ -96,7 +95,7 @@ export default class TestEnvironement {
 			status: "active",
 		},
 		{
-			uuid: uuidv4(),
+
 			firstname: "Lucas",
 			lastname: "Moreau",
 			email: "lucas.moreau@example.com",
@@ -109,83 +108,81 @@ export default class TestEnvironement {
 		},
 	]
 
-	static async injectTestUsers(){
+	//static async injectTestUsers(){
 
 
-		if (process.env.VERBOSE === "true") {
+	//	if (process.env.VERBOSE === "true") {
 		
-			console.group("⚙️ Developpement environnement detected..");
-			console.group("💉 Injecting test users..");
+	//		console.group("⚙️ Developpement environnement detected..");
+	//		console.group("💉 Injecting test users..");
 
-		}
-
-		if (await Role.model.countDocuments({}) === 0) throw new Error("The roles collection needs to be initialized before users injection..");
+	//	}
 		
-		for (const userObj of this.testUsersToInject) {
+	//	for (const userObj of this.testUsersToInject) {
 			
-			for (const user of this.testUsersToInject) user.roles = (await Role.model.findOne({uuid: "user"})) || [];
+	//		for (const user of this.testUsersToInject) user.roles = (await Role.model.findOne({uuid: "user"})) || [];
 
-			const user = new User(userObj);
-			await user.save();
+	//		const user = new User(userObj);
+	//		await user.save();
 
-			await this.defTestUsersRootFiles(user);
+	//		await this.defTestUsersRootFiles(user);
 		
-		};
+	//	};
 
-		if (process.env.VERBOSE === "true") {
+	//	if (process.env.VERBOSE === "true") {
 			
-			console.log("✅ Utilisateurs créés : ", await User.model.countDocuments({}));
-			console.log("✅ Dossiers créés : ", await Folder.model.countDocuments({type: "folder"}));
-			console.log("✅ Fichiers créés : ", await File.model.countDocuments({type: "file"}));
+	//		console.log("✅ Utilisateurs créés : ", await User.model.countDocuments({}));
+	//		console.log("✅ Dossiers créés : ", await Folder.model.countDocuments({type: "folder"}));
+	//		console.log("✅ Fichiers créés : ", await File.model.countDocuments({type: "file"}));
 
-			console.groupEnd();
-			console.groupEnd();
-			console.log("");
-		}
-	}
+	//		console.groupEnd();
+	//		console.groupEnd();
+	//		console.log("");
+	//	}
+	//}
 
-	private static async defTestUsersRootFiles(user: User){
+	//private static async defTestUsersRootFiles(user: User){
 
-		const __filename = fileURLToPath(import.meta.url);
-		const __dirname = path.dirname(__filename);
+	//	const __filename = fileURLToPath(import.meta.url);
+	//	const __dirname = path.dirname(__filename);
 		
-		for (const folder of user.testRootFolders) {
+	//	for (const folder of user.testRootFolders) {
 
-			if (folder.files) for(const file of folder.files) {
+	//		if (folder.files) for(const file of folder.files) {
 				
-				await FileSystem.copyTestFiles(
+	//			await FileSystem.copyTestFiles(
 
-					file.name, path.join(__dirname, "..", "..", "uploads", file.path)
+	//				file.name, path.join(__dirname, "..", "..", "uploads", file.path)
 
-				);
+	//			);
 
-				file.size = FileSystem.getFileSize(path.join(__dirname, "..", "..", "uploads", file.path));
+	//			file.size = FileSystem.getFileSize(path.join(__dirname, "..", "..", "uploads", file.path));
 
-			};
+	//		};
 
-			const mongoRootFolder = new Folder(folder);
-			await mongoRootFolder.save();
+	//		const mongoRootFolder = new Folder(folder);
+	//		await mongoRootFolder.save();
 
-			if (folder.subFolders){
+	//		if (folder.subFolders){
 
-				for (const subFolder of folder.subFolders) {
+	//			for (const subFolder of folder.subFolders) {
 	
-					if (subFolder.files) for(const file of subFolder.files) {
+	//				if (subFolder.files) for(const file of subFolder.files) {
 				
-						await FileSystem.copyTestFiles(
+	//					await FileSystem.copyTestFiles(
 
-							file.name, path.join(__dirname, "..", "..", "uploads", file.path)
+	//						file.name, path.join(__dirname, "..", "..", "uploads", file.path)
 
-						);
+	//					);
 
-						file.size = FileSystem.getFileSize(path.join(__dirname, "..", "..", "uploads", file.path));
-					};
+	//					file.size = FileSystem.getFileSize(path.join(__dirname, "..", "..", "uploads", file.path));
+	//				};
 
-					const mongoSubFolder = new Folder(subFolder);
-					await mongoSubFolder.save();
+	//				const mongoSubFolder = new Folder(subFolder);
+	//				await mongoSubFolder.save();
 	
-				};
-			}
-		};
-	}
+	//			};
+	//		}
+	//	};
+	//}
 } 
