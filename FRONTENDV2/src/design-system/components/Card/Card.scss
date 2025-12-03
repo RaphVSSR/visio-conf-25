@@ -1,0 +1,22 @@
+
+@use "../../scss/global.scss" as *;
+
+.card {
+	@extend %flex-col;
+	padding: 16px;
+	gap: 8px;
+	background: white;
+	border-left: 4px solid $primaryCol;
+	border-radius: 15px;
+	box-shadow: 0 2px 8px rgba(30, 54, 100, 0.07);
+	transition: all 0.2s ease;
+
+	&:hover {
+		box-shadow: 0 4px 12px rgba(30, 54, 100, 0.12);
+		transform: translateY(-2px);
+	}
+
+	& svg {
+		color: $primaryCol;
+	}
+}
