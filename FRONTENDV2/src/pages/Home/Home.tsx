@@ -1,4 +1,4 @@
-import { FC, useContext } from 'react';
+import { FC, useContext, useEffect } from 'react';
 import { motion } from 'framer-motion'
 import { Search, Users } from 'lucide-react';
 import "./Home.scss";
@@ -7,12 +7,20 @@ import { SearchBar } from 'design-system/components';
 import { SessionContext } from 'contexts/SessionContext';
 import { Navigate } from 'react-router-dom';
 import { useSession } from 'core/AuthClient';
+import { Socket } from 'socket.io-client';
+import Controller from 'core/Controller';
 
 export const Home: FC = () => {
 
     const session = useContext(SessionContext);
     
-    if (!session.currentUser.data) return <Navigate to={"/login"} replace/>;
+    if (!session.currentUser) return <Navigate to={"/login"} replace/>;
+
+    useEffect(() => {
+
+        Controller.socketInit();
+        
+    }, []);
 
     return (
         <main id='homePage'>

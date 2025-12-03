@@ -15,6 +15,7 @@ export default class SocketIO {
 				methods: ["GET", "POST"]
 			}
 		});
+		
 		this.defListeners();
 	}
 

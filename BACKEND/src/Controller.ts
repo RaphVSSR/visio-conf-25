@@ -2,95 +2,69 @@
 
 //export type eventType = {
 
+import { Socket } from "socket.io";
+
 //    name: string,
 //    subscribers: string[]
 //};
 
 export default class Controller {
     
-    static activeEventsEmitted = new Map<string, {subscribers: string[]}>();
-    static activeEventsSubscribed = new Map<string, {subscribers: string[]}>();
+    static emittingSubscribersByMessages: { [key: string]: {}[] };
+	static recievingSubscribersByMessages: { [key: string]: {}[] };
 
-    static signUpEvent(emitter: any, eventsEmitted: string[], eventsToSubscribe: string[]) {
+	static subscribe(subscriber: Socket, emittingMessage: string[], recievingMessage: string[]){
 
-        eventsEmitted.forEach((event) => {
+		emittingMessage.forEach(message => {
 
-            const eventStored = this.activeEventsEmitted.has(event) && this.activeEventsEmitted.get(event);
+			this.emittingSubscribersByMessages[message]
+				? this.emittingSubscribersByMessages[message].push(subscriber)
+				: this.emittingSubscribersByMessages[message] = [subscriber];
 
-            eventStored
+		})
 
-                ? eventStored.subscribers.find(subscriber => subscriber == emitter.id)
-                    ? null
-                    : eventStored.subscribers.push(emitter.id)
+		recievingMessage.forEach(message => {
 
-                : this.activeEventsEmitted.set(event, {subscribers: [emitter.id]});
+			this.recievingSubscribersByMessages[message]
+				? this.recievingSubscribersByMessages[message].push(subscriber)
+				: this.recievingSubscribersByMessages[message] = [subscriber];
 
-            if (process.env.VERBOSE == "true") console.log("CONTROLLER: Liste des abonnés enregistrés sur ce message en émission : ", this.activeEventsEmitted);
+		})
+	}
 
-        });
+	static unsubscribe(subscriber: Socket, emittingMessage: string[], recievingMessage: string[]){
 
-        eventsToSubscribe.forEach((event) => {
+		emittingMessage.forEach(message => {
 
-            const eventStored = this.activeEventsSubscribed.has(event) && this.activeEventsSubscribed.get(event);
+			if (this.emittingSubscribersByMessages[message])
+				
+				this.emittingSubscribersByMessages[message] = this.emittingSubscribersByMessages[message].filter(socketStored => socketStored === subscriber);
 
-            eventStored
+		})
 
-                ? eventStored.subscribers.find(subscriber => subscriber == emitter.id)
-                    ? null
-                    : eventStored.subscribers.push(emitter.id)
+		recievingMessage.forEach(message => {
 
-                : this.activeEventsSubscribed.set(event, {subscribers: [emitter.id]});
+			if (this.recievingSubscribersByMessages[message])
+				
+				this.recievingSubscribersByMessages[message] = this.recievingSubscribersByMessages[message].filter(socketStored => socketStored === subscriber);
 
-            if (process.env.VERBOSE == "true") console.log("CONTROLLER: Liste des abonnés enregistrés sur ce message en réception : ", this.activeEventsSubscribed);
+		})
+	}
 
-        });
-    }
+    static send(emitter: Socket, message: {}) {
 
-    static unsubscribeEvent(emitter: any, eventsEmitted: string[], eventsToSubscribe: string[]) {
+        //if (process.env.VERBOSE == "true") console.log(`CONTROLLER: Reçu de ${emitter.name} : `, message);
 
-        eventsEmitted.forEach((event) => {
+        //const eventStored = this.activeEventsEmitted.has(Object.keys(message)[0]!) && this.activeEventsEmitted.get(Object.keys(message)[0]!);
 
-            const eventStored = this.activeEventsEmitted.has(event) && this.activeEventsEmitted.get(event);
+        //eventStored
 
-            eventStored
+        //    ? eventStored.subscribers.find(subscriber => subscriber == emitter.id)
 
-                ? eventStored.subscribers.find(subscriber => subscriber == emitter.id) 
-                    ? eventStored.subscribers.filter(subscriber => subscriber !== emitter.id) 
-                    : null
+        //        ? eventStored.subscribers.find(subscriber => subscriber == emitter.id)?.processEvent(message)
+        //        : console.log(`CONTROLLER: L'utilisateur ${emitter.name} n'a pas été enregistré encore..`)
 
-                : null;
-
-        });
-
-        eventsToSubscribe.forEach((event) => {
-
-            const eventStored = this.activeEventsSubscribed.has(event) && this.activeEventsSubscribed.get(event);
-
-            eventStored
-
-                ? eventStored.subscribers.find(subscriber => subscriber == emitter.id) 
-                    ? eventStored.subscribers.filter(subscriber => subscriber !== emitter.id) 
-                    : null
-
-                : null;
-
-        });
-    }
-
-    static envoie(emitter: any, message: any) {
-
-        if (process.env.VERBOSE == "true") console.log(`CONTROLLER: Reçu de ${emitter.name} : `, message);
-
-        const eventStored = this.activeEventsEmitted.has(Object.keys(message)[0]!) && this.activeEventsEmitted.get(Object.keys(message)[0]!);
-
-        eventStored
-
-            ? eventStored.subscribers.find(subscriber => subscriber == emitter.id)
-
-                ? eventStored.subscribers.find(subscriber => subscriber == emitter.id)?.processEvent(message)
-                : console.log(`CONTROLLER: L'utilisateur ${emitter.name} n'a pas été enregistré encore..`)
-
-            : console.log(`CONTROLLER: Le message ${Object.keys(message)[0]} n'a pas été enregistré encore..`);
+        //    : console.log(`CONTROLLER: Le message ${Object.keys(message)[0]} n'a pas été enregistré encore..`);
 
     }
 }
