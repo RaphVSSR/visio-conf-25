@@ -47,16 +47,12 @@ if [ "$choice" = "1" ]; then
     docker-compose up -d --build    
     if [ $? -eq 0 ]; then
         echo ">> Attente du demarrage des services..."
-        sleep 15
-        
-        echo ">> Initialisation de la base de donnees..."
-        docker exec backend node initDb.js
-        
+        sleep 15        
         echo ""
         echo "** Application lancee avec succes !"
         echo "** Frontend: http://localhost:3000"
-        echo "**  Backend: http://localhost:3220"
-        echo "** Connexion suggeree: john.doe@example.com | mdp"
+        echo "** Backend: http://localhost:3220"
+        echo "** Connexion suggeree: dev@visioconf.com | d3vV1s10C0nf"
     else
         echo "X Erreur au demarrage avec Docker."
     fi
@@ -103,14 +99,14 @@ else
     fi    # Backend
     echo ">> Installation des dependances du backend..."
     cd BACKEND
-    if [ ! -f .env ] && [ -f .env.example ]; then
+    if [ ! -f .env.local ] && [ -f .env.example ]; then
         cp .env.example .env
-        echo "V Fichier .env cree depuis .env.example"
+        echo "V Fichier .env.local cree depuis .env.example"
     fi
     npm install    
     # Frontend
     echo ">> Installation des dependances du frontend..."
-    cd ../FRONTEND
+    cd ../FRONTENDV2
     if [ ! -f .env.local ] && [ -f .env.example ]; then
         cp .env.example .env.local
         echo "V Fichier .env.local cree depuis .env.example"
@@ -132,13 +128,12 @@ else
     
     # Initialiser la base de donnees
     echo ">> Initialisation de la base de donnees..."
-    cd "$scriptDir/BACKEND" && node initDb.js
       # Demarrer le frontend
-    cd "$scriptDir/FRONTEND" && npm run dev &
+    cd "$scriptDir/FRONTENDV2" && npm run dev &
     
     echo ""
     echo "** Application en cours de lancement..."
     echo "** Frontend: http://localhost:3000"
-    echo "**  Backend: http://localhost:3220"
-    echo "** Connexion suggeree: john.doe@example.com | mdp"
+    echo "** Backend: http://localhost:3220"
+    echo "** Connexion suggeree: dev@visioconf.com | d3vV1s10C0nf"
 fi
