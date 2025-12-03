@@ -93,8 +93,8 @@ docker exec -it backend node initDb.js
 1. **Cloner le projet** :
 
 ```bash
-git clone https://github.com/HeliosMARTIN/visio-conf.git
-cd visio-conf
+git clone https://github.com/RaphVSSR/visio-conf-25.git
+cd visio-conf-25
 ```
 
 2. **Backend** :
@@ -109,7 +109,7 @@ cp .env.example .env
 3. **Frontend** :
 
 ```bash
-cd ../FRONTEND
+cd ../FRONTENDV2
 npm install
 cp .env.example .env.local
 # Le fichier .env.local sera ignoré par git
@@ -128,15 +128,8 @@ cd BACKEND
 npm start
 
 # Terminal 2 - Frontend
-cd FRONTEND
+cd FRONTENDV2
 npm run dev
-```
-
-6. **Initialiser la base de données** :
-
-```bash
-cd BACKEND
-node initDb.js
 ```
 
 ---
@@ -154,7 +147,7 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=admin123
 
 # Sécurité
-JWT_SECRET=votre_secret_jwt_très_long_et_sécurisé
+#JWT_SECRET=votre_secret_jwt_très_long_et_sécurisé
 
 # Serveur
 PORT=3220
@@ -166,7 +159,7 @@ FILE_STORAGE_URL=http://localhost:3220/api/files
 PROFILE_PICTURES_URL=http://localhost:3220/api/files/profile
 ```
 
-### Frontend (`FRONTEND/.env.local`)
+<!--### Frontend (`FRONTEND/.env.local`)
 
 ```bash
 # URL de l'API Backend
@@ -175,16 +168,16 @@ NEXT_PUBLIC_API_URL=http://localhost:3220
 # URLs pour le stockage de fichiers
 NEXT_PUBLIC_FILE_STORAGE_URL=http://localhost:3220/api/files
 NEXT_PUBLIC_PROFILE_PICTURES_URL=http://localhost:3220/api/files/profile
-```
+```-->
 
 ### 📝 Notes importantes sur les variables d'environnement
 
--   **Frontend** : Utilise `.env.local` qui sera ignoré par git (recommandé pour Next.js)
--   **Backend** : Utilise `.env` classique
+-   **Frontend** : Utilise `.env.local` qui sera ignoré par git
+-   **Backend** : Utilise `.env.local` aussi
 -   **MONGO_URI** :
     -   Local : `mongodb://localhost:27017/visioconf`
     -   Atlas : `mongodb+srv://username:password@cluster.mongodb.net/visioconf`
--   **JWT_SECRET** : Générez une clé sécurisée longue (64+ caractères)
+<!---   **JWT_SECRET** : Générez une clé sécurisée longue (64+ caractères)-->
 
 ---
 
@@ -192,7 +185,7 @@ NEXT_PUBLIC_PROFILE_PICTURES_URL=http://localhost:3220/api/files/profile
 
 ### Option 1 : MongoDB avec Docker (Simplifié)
 
-Le `docker-compose.yml` inclut déjà MongoDB sans authentification pour simplifier le développement :
+Le `compose.yaml` inclut déjà MongoDB sans authentification pour simplifier le développement :
 
 ```yaml
 mongodb:
@@ -236,7 +229,7 @@ mongosh mongodb://localhost:27017/visioconf
 2. **Créer un cluster gratuit**
 3. **Configurer l'accès réseau** : Autoriser toutes les IPs (0.0.0.0/0) pour le développement
 4. **Créer un utilisateur** avec des droits de lecture/écriture
-5. **Copier l'URI de connexion** dans votre `.env`
+5. **Copier l'URI de connexion** dans votre `.env.local`
 
 ---
 
@@ -272,7 +265,6 @@ docker system prune -a --volumes
 
 # Relancer
 docker-compose up -d
-docker exec -it backend node initDb.js
 ```
 
 ---
@@ -334,7 +326,7 @@ lsof -ti:3000 | xargs kill -9
 ```bash
 # Logs Docker
 docker-compose logs -f backend
-docker-compose logs -f frontend
+docker-compose logs -f frontendv2
 
 # Mode verbose Backend
 # Dans BACKEND/.env

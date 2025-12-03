@@ -26,11 +26,15 @@ export const App = () => {
 
 				<Routes>
 
-					<Route path="/" element={ <UserAuth/> }/>
-					<Route path="/home" element={ <Home /> }/>
+					<Route element={ <UserAuth/> }>
+
+						<Route path="/" element={ <Home /> }/>
+						<Route path="/home" element={ <Home /> }/>
+						<Route path='/admin' element={ <AdminPanel /> } />
+					
+					</Route>
 					<Route path="/login" element={ <Login /> }/>
 					<Route path='/signup' element={ <Signup /> } />
-					<Route path='/admin' element={ <AdminPanel /> } />
 
 				</Routes>
 

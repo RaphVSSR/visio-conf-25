@@ -1,11 +1,11 @@
 import { FC, useContext, useEffect } from "react";
 import { SessionContext } from "../contexts/SessionContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
 export const UserAuth: FC = () => {
 
 	const session = useContext(SessionContext);
-	
+
 	if (!session.isLoading){
 		
 		if (!session.currentUser.data){
@@ -14,7 +14,7 @@ export const UserAuth: FC = () => {
 
 		}else {
 
-			return <Navigate to={"/home"} replace/>;
+			return <Outlet />;
 			
 		}
 		
@@ -22,5 +22,4 @@ export const UserAuth: FC = () => {
 
 		return <><h1>Chargement du bundle...</h1></>
 	}
-
 }

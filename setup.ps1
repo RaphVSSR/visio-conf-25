@@ -62,13 +62,13 @@ if ($choice -eq "1") {
         Write-Color ">> Attente du demarrage des services..." Yellow
         Start-Sleep -Seconds 15
         
-        Write-Color ">> Initialisation de la base de donnees..." Yellow
-        docker exec backend node initDb.js
+        #Write-Color ">> Initialisation de la base de donnees..." Yellow
+        #docker exec backend node initDb.js
         
         Write-Color "`n** Application lancee avec succes !" Green
         Write-Color "** Frontend: http://localhost:3000" Cyan
         Write-Color "**  Backend: http://localhost:3220" Cyan
-        Write-Color "** Connexion suggeree: john.doe@example.com | mdp" Yellow
+        Write-Color "** Connexion suggeree: dev@visioconf.com | d3vV1s10C0nf" Yellow
     }
     else {
         Write-Color "X Erreur au demarrage avec Docker." Red
@@ -123,14 +123,14 @@ else {
     Write-Color ">> Installation des dependances du backend..." Yellow
     Set-Location BACKEND
     if (!(Test-Path ".env") -and (Test-Path ".env.example")) {
-        Copy-Item ".env.example" ".env"
-        Write-Color "V Fichier .env cree depuis .env.example" Green
+        Copy-Item ".env.example" ".env.local"
+        Write-Color "V Fichier .env.local cree depuis .env.example" Green
     }
     npm install
 
     # Frontend - Installation des dependances
     Write-Color ">> Installation des dependances du frontend..." Yellow
-    Set-Location ../FRONTEND
+    Set-Location ../FRONTENDV2
     if (!(Test-Path ".env.local") -and (Test-Path ".env.example")) {
         Copy-Item ".env.example" ".env.local"
         Write-Color "V Fichier .env.local cree depuis .env.example" Green
@@ -150,16 +150,16 @@ else {
     # Attendre que le backend soit pret
     Start-Sleep -Seconds 8
     
-    # Initialiser la base de donnees
-    Write-Color ">> Initialisation de la base de donnees..." Yellow
-    Set-Location BACKEND
-    node initDb.js
-    Set-Location ..
+    ## Initialiser la base de donnees
+    #Write-Color ">> Initialisation de la base de donnees..." Yellow
+    #Set-Location BACKEND
+    #node initDb.js
+    #Set-Location ..
     
     # Demarrer le frontend
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$scriptDir\FRONTEND'; Write-Host 'Demarrage du frontend...' -ForegroundColor Green; npm run dev"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$scriptDir\FRONTENDV2'; Write-Host 'Demarrage du frontend...' -ForegroundColor Green; npm run dev"
     Write-Color "`n** Application en cours de lancement..." Green
     Write-Color "** Frontend: http://localhost:3000" Cyan
     Write-Color "**  Backend: http://localhost:3220" Cyan
-    Write-Color "** Connexion suggeree: john.doe@example.com | mdp" Yellow
+    Write-Color "** Connexion suggeree: dev@visioconf.com | d3vV1s10C0nf" Yellow
 }
