@@ -1,6 +1,6 @@
 import mongoose, { model, Model, Schema, Types } from "mongoose"
-import Collection from "./Core/Collection.ts"
-import TracedError from "./Core/TracedError.ts";
+import Collection from "./core/Collection.ts"
+import TracedError from "./core/TracedError.ts";
 
 const { models } = mongoose;
 

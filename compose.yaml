@@ -36,10 +36,9 @@ services: # Service MongoDB
               required: false
             - path: ./BACKEND/.env.local
               required: false
-        
         volumes:
             - ./BACKEND:/app
-            - /app/node_modules 
+            - /app/node_modules
 
     # Service Frontend
     frontendv2:
@@ -54,16 +53,6 @@ services: # Service MongoDB
             - "3000:3000"
         networks:
             - app_network
-        env_file:
-            - path: ./FRONTEND/.env
-              required: false
-            - path: ./FRONTEND/.env.dev
-              required: false
-            - path: ./FRONTEND/.env.prod
-              required: false
-            - path: ./FRONTEND/.env.local
-              required: false
-        
         volumes:
             - ./FRONTENDV2:/app
             - /app/node_modules

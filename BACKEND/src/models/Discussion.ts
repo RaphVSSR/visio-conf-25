@@ -1,8 +1,8 @@
 import mongoose, { type HydratedDocument, model, Schema, Types } from "mongoose"
 import { v4 as uuidv4 } from "uuid"
-import Collection from "./Core/Collection.ts"
+import Collection from "./core/Collection.ts"
 import { Model } from "mongoose"
-import TracedError from "./Core/TracedError.ts"
+import TracedError from "./core/TracedError.ts"
 import User, { type UserType } from "./User.ts"
 
 const { models } = mongoose;

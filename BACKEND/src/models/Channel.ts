@@ -1,6 +1,6 @@
 import mongoose, { model, Model, Schema, Types } from "mongoose"
-import Collection from "./Core/Collection.ts";
-import TracedError from "./Core/TracedError.ts";
+import Collection from "./core/Collection.ts";
+import TracedError from "./core/TracedError.ts";
 import Team from "./Team.ts";
 import ChannelMember, { type ChannelMemberType } from "./ChannelMember.ts";
 import TeamMember, { type TeamMemberType } from "./TeamMember.ts";

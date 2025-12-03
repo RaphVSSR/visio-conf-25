@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, FormEvent, useRef, useContext } from "react"
 import { Eye, EyeOff } from "lucide-react"
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import "./LoginForm.scss";
+import { AuthClient } from "core/AuthClient";
+import { SessionContext } from "contexts/SessionContext";
 
 export const LoginForm = () => {
     //const { controleur, canal, currentUser, setCurrentUser } = useAppContext()
@@ -78,12 +80,15 @@ export const LoginForm = () => {
     //        }
     //    }
     //}, [controleur, currentUser])
-
-    //const [email, setEmail] = useState("")
+    
     const [pwdStatus, setPwdStatus] = useState<"shown" | "hidden">("hidden");
     //const [showPassword, setShowPassword] = useState(false)
     //const [error, setError] = useState("")
-    const [connecting, setConnecting] = useState(false);
+    const signInData = useRef<{ [key: string]: string } | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const navigate = useNavigate();
+    const session = useContext(SessionContext);
+    
     //const [loginError, setLoginError] = useState("")
 
     //const handleSubmit = async (e: React.FormEvent) => {
@@ -133,9 +138,37 @@ export const LoginForm = () => {
     //    }
     //}
 
+    useEffect(() => {
+        
+        signInData.current && (async () => {
+                
+            await AuthClient.signIn.email({
+                email: signInData.current!.email!, // required
+                password: signInData.current!.password!, // required
+                rememberMe: true,
+                callbackURL: "/home",
+            });
+            
+        })();
+
+    }, [signInData.current])
+
+    function signInSubmitting(event: FormEvent<HTMLFormElement>){
+    
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const formData = new FormData(form);
+
+        !form.checkValidity() ? form.reportValidity() : setIsLoading(!isLoading);
+
+        signInData.current = Object.fromEntries(formData.entries()) as { [key: string]: string };
+
+    }
+
     return (
-		//onSubmit={handleSubmit}
-        <form id="loginForm"> 
+
+        <form id="loginForm" onSubmit={signInSubmitting}> 
             <img
                 src="logos/logo_univ_grand.svg"
                 alt="Logo du formulaire de connexion."
@@ -147,6 +180,7 @@ export const LoginForm = () => {
                 <input
                     type="email"
                     id="email"
+                    name="email"
                     placeholder="Email"
                     //value={email}
                     //onChange={(e) => setEmail(e.target.value)}
@@ -156,6 +190,7 @@ export const LoginForm = () => {
                     <input
                         type={pwdStatus === "shown" ? "text" : "password"}
                         id="password"
+                        name="password"
                         placeholder="Password"
                         //value={password}
                         //onChange={(e) => setPassword(e.target.value)}
@@ -173,9 +208,9 @@ export const LoginForm = () => {
 
                 <button
                     type="submit"
-                    disabled={connecting}
+                    disabled={isLoading}
                 >
-                    {connecting ? "Connexion en cours..." : "Se connecter"}
+                    {isLoading ? "Connexion en cours..." : "Se connecter"}
                 </button>
                 <Link to="/signup" id="signupLink">Créer son compte</Link>
 

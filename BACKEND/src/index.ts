@@ -1,8 +1,8 @@
-//import { Server } from "socket.io"
 import dotenv from "dotenv"
-import { Database } from "./models/services/Database.ts"
-import { RestServer } from "./models/services/RestServer.ts";
-import TracedError from "./models/Core/TracedError.ts";
+import Database from "./models/services/Database.ts"
+import TracedError from "./models/core/TracedError.ts";
+import HTTPServer from "./models/core/HTTPServer.ts";
+import SocketIO from "./models/services/SocketIO.ts";
 //import jwt from "jsonwebtoken"
 //import CanalSocketio from "./canalsocketio.js"
 //import Controleur from "./controleur.js"
@@ -18,13 +18,22 @@ import TracedError from "./models/Core/TracedError.ts";
 dotenv.config();
 
 try {
-
+    
     if (process.env.VERBOSE === "true") console.log(`Lancement de l'app : [${new Date().toISOString()}]\n`);
     
     await Database.init();
 
-    await RestServer.init();
+    if (process.env.VERBOSE === "true"){
+                
+    	console.log("");
+    	console.group("⚙️ Processing App Server..");
+    }
 
+    await HTTPServer.init();
+    SocketIO.init();
+    HTTPServer.start();
+
+    if (process.env.VERBOSE === "true") console.groupEnd();
     
 } catch (err) {
     

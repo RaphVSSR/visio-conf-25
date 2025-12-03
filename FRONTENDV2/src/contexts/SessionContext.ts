@@ -1,9 +1,5 @@
+
+import { useSession } from "core/AuthClient";
 import { createContext } from "react";
 
-export type SessionType = {
-
-	currentUser: any | null,
-	theme: "light" | "dark",
-}
-
-export const SessionContext = createContext<SessionType | null>(null);
+export const SessionContext = createContext<any | null>(null);

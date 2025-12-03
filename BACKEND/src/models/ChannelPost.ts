@@ -1,6 +1,6 @@
 import mongoose, { model, Model, Schema, Types } from "mongoose"
-import Collection from "./Core/Collection.ts"
-import TracedError from "./Core/TracedError.ts"
+import Collection from "./core/Collection.ts"
+import TracedError from "./core/TracedError.ts"
 import Channel from "./Channel.ts";
 import ChannelPostResponse from "./ChannelPostResponse.ts";
 import User from "./User.ts";

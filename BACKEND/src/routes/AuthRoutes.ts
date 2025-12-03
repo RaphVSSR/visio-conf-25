@@ -6,11 +6,15 @@ import { fileURLToPath } from "url"
 import { File } from "../models/services/FileSystem.ts"
 import { v4 as uuidv4 } from "uuid"
 
-import authenticateToken from "../models/utils/authenticateToken.ts"
 import FileSystem from "../models/services/FileSystem.ts"
+import { toNodeHandler } from "better-auth/node"
+import Database from "../models/services/Database.ts"
+import Auth from "../models/services/Auth.ts"
 
 const router = express.Router();
-//const { upload } = new FileUpload();
+
+router.all("/*", toNodeHandler(Auth.betterAuthClient));
+router.use(express.json());
 
 //router.post("/login", authenticateToken,
 

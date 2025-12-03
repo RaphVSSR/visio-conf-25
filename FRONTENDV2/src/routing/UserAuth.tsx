@@ -1,18 +1,26 @@
-import { FC, useContext } from "react";
+import { FC, useContext, useEffect } from "react";
 import { SessionContext } from "../contexts/SessionContext";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 export const UserAuth: FC = () => {
 
 	const session = useContext(SessionContext);
-
-	if (!session!.currentUser){
+	
+	if (!session.isLoading){
 		
-		return <Navigate to={"/login"} replace/>;
+		if (!session.currentUser.data){
 
+			return <Navigate to={"/login"} replace/>;
+
+		}else {
+
+			return <Navigate to={"/home"} replace/>;
+			
+		}
+		
 	}else {
 
-		return <Navigate to={"/home"} replace/>;
-		
+		return <><h1>Chargement du bundle...</h1></>
 	}
+
 }

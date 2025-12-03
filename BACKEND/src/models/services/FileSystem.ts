@@ -1,7 +1,7 @@
 import mongoose, { model, Schema, type Document, type HydratedDocument, type Model, type Types } from "mongoose";
 import { v4 as uuidv4 } from "uuid"
-import Collection from "../Core/Collection.ts";
-import TracedError from "../Core/TracedError.ts";
+import Collection from "../core/Collection.ts";
+import TracedError from "../core/TracedError.ts";
 import path from "path";
 import { fileURLToPath } from 'url';
 import fs from "fs"
@@ -13,13 +13,13 @@ const __dirname = path.dirname(__filename);
 
 export type FolderType = {
 
-    id: string,
+    _id?: Types.ObjectId,
     name: string,
     type: "folder",
     createdAt: Date,
     updatedAt: Date,
-    parentId: string | null,
-    ownerId: string,
+    parentId: Types.ObjectId | null,
+    ownerId: Types.ObjectId,
     files?: FileType[],
 }
 
@@ -44,7 +44,6 @@ export class Folder extends Collection {
 
     protected static schema = new Schema({
 
-        id: { type: String, required: true }, // UUID for the file
         name: { type: String, required: true },
         type: {
             type: String,
@@ -149,7 +148,7 @@ export class Folder extends Collection {
 
 export type FileType = {
 
-    id: string,
+    _id?: Types.ObjectId,
     name: string,
     type: "file",
     size: number,
@@ -157,8 +156,8 @@ export type FileType = {
     extension: string,
     createdAt: Date,
     updatedAt: Date,
-    parentId: string | null,
-    ownerId: string,
+    parentId: Types.ObjectId | null,
+    ownerId: Types.ObjectId,
     shared?: boolean,
     sharedWith?: string,
     sharedWithTeams?: string,
@@ -188,7 +187,6 @@ export class File extends Collection {
 
     protected static schema = new Schema<FileType>({
 
-        id: { type: String, required: true }, // UUID for the file
         name: { type: String, required: true },
         type: {
             type: String,
