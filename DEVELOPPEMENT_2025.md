@@ -29,6 +29,11 @@
 > `ajout de données dans l'entête #3`<br><br>
 > L'objectif est de reconnaitre la fonction du commit au premier coup d'oeil puis d'avoir les détails de ce qui en est dans la description de celui-ci.<br>
 
+>[!WARNING]
+> La branche principale `main`, ne peut pas être fusionnée directement depuis la ligne de commande via un merge.<br><br>
+> Pour empécher toutes complications dû à des merges mal préparés, cette branche ne peut accepter uniquement les fusions via des PR (Pull Requests).<br>
+> Question pratique, d'interface UI mais surtout ça nous force à faire et déclarer des revues de code pour validation. ✨
+
 >[!TIP]
 > Pour créer un commit :
 > ```git
