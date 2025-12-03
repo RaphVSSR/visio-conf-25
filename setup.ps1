@@ -25,14 +25,15 @@ do {
 
 if ($choice -eq "1") {
     Write-Color ">> Mode Docker selectionne" Cyan
-      # Verifier Docker
+    # Verifier Docker
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
         Write-Color "X Docker non detecte. Installez Docker Desktop : https://www.docker.com/products/docker-desktop" Red
         exit 1
     }
 
     # Docker Compose
-    if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {        Write-Color "X Docker Compose manquant." Red
+    if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
+        Write-Color "X Docker Compose manquant." Red
         exit 1
     }    # Arreter les conteneurs existants
     Write-Color ">> Arret des conteneurs existants..." Yellow
@@ -47,7 +48,8 @@ if ($choice -eq "1") {
             Write-Color ">> Assurez-vous que Docker Desktop est lance et que le partage de fichiers est active." Yellow
             exit 1
         }
-    } catch {
+    }
+    catch {
         Write-Color "X Impossible de communiquer avec Docker." Red
         exit 1
     }
@@ -67,13 +69,14 @@ if ($choice -eq "1") {
         Write-Color "** Frontend: http://localhost:3000" Cyan
         Write-Color "**  Backend: http://localhost:3220" Cyan
         Write-Color "** Connexion suggeree: john.doe@example.com | mdp" Yellow
-    } else {
+    }
+    else {
         Write-Color "X Erreur au demarrage avec Docker." Red
     }
 }
 else {
     Write-Color ">> Mode installation locale selectionne" Cyan
-      # Verification Node.js
+    # Verification Node.js
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
         Write-Color "X Node.js non detecte. Telechargez-le sur https://nodejs.org/" Red
         exit 1
@@ -88,7 +91,8 @@ else {
             & mongosh --eval 'db.stats()' --quiet > $null 2>&1
             $mongoAvailable = $true
             Write-Color "V MongoDB et mongosh detectes." Green
-        } catch {
+        }
+        catch {
             Write-Color "!! mongosh detecte mais MongoDB service non demarre." Yellow
         }
     }
@@ -98,7 +102,8 @@ else {
             & mongo --eval 'db.stats()' --quiet > $null 2>&1
             $mongoAvailable = $true
             Write-Color "V MongoDB detecte (mongo)." Green
-        } catch {
+        }
+        catch {
             Write-Color "!! mongo detecte mais MongoDB service non demarre." Yellow
         }
     }
@@ -153,7 +158,7 @@ else {
     
     # Demarrer le frontend
     Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$scriptDir\FRONTEND'; Write-Host 'Demarrage du frontend...' -ForegroundColor Green; npm run dev"
-      Write-Color "`n** Application en cours de lancement..." Green
+    Write-Color "`n** Application en cours de lancement..." Green
     Write-Color "** Frontend: http://localhost:3000" Cyan
     Write-Color "**  Backend: http://localhost:3220" Cyan
     Write-Color "** Connexion suggeree: john.doe@example.com | mdp" Yellow

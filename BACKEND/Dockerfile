@@ -16,5 +16,4 @@ COPY . .
 # Exposer le port sur lequel le serveur backend s'exécute
 EXPOSE 3220
 
-# Commande pour démarrer l'application
-CMD ["node", "index.js"]
+CMD ["npm", "run", "dev"]
