@@ -1,5 +1,4 @@
 import mongoose, { type HydratedDocument, model, Schema, type Model } from "mongoose";
-import TracedError from "./TracedError.ts";
 
 
 /**

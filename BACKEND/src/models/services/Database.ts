@@ -6,7 +6,7 @@ import fs from "fs"
 import User from "../User.ts";
 import TracedError from "../core/TracedError.ts";
 import FileSystem, { Folder } from "./FileSystem.ts";
-import TestEnvironement from "../core/TestEnvironement.ts";
+//import TestEnvironement from "../core/TestEnvironement.ts";
 import Channel from "../Channel.ts";
 import Discussion from "../Discussion.ts";
 import Team from "../Team.ts";
@@ -16,6 +16,8 @@ import ChannelPost from "../ChannelPost.ts";
 import ChannelPostResponse from "../ChannelPostResponse.ts";
 import { Db, MongoClient } from "mongodb";
 import Auth from "./Auth.ts";
+import Permission from "../Permission.ts";
+import Role from "../Role.ts";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,6 +36,17 @@ export default class Database {
 		if (process.env.FLUSH_DB_ON_START === "true") await this.flushDb();
 
 		await Auth.injectAdminUser();
+
+		await User.inject();
+
+		//await User.deleteUser("test1@visioconf.com");
+		//await User.deleteUsers(["test1@visioconf.com", "test3@visioconf.com", "test5@visioconf.com"]);
+
+		//await User.updateUser("test1@visioconf.com", {job: "Mon premier JEAUBE"});
+		//await User.updateUsers(["test1@visioconf.com", "test3@visioconf.com"], { job: "Mon premier JEAUBE", desc: "Nous sommes des users modifiés" });
+
+		await Permission.inject();
+		await Role.inject();
 
 		await this.prepareProjectEnv();
 
@@ -71,6 +84,8 @@ export default class Database {
 
 			await Auth.flushAll();
 			await Folder.flushAll();
+			await Role.flushAll();
+			await Permission.flushAll();
 			await Discussion.flushAll();
 			await TeamMember.flushAll();
 			await Team.flushAll();
