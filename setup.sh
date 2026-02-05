@@ -66,7 +66,7 @@ while true; do
             if ! docker info >/dev/null 2>&1; then
                 write_color "X Docker Desktop ne semble pas fonctionner correctement." RED
                 write_color ">> Assurez-vous que Docker Desktop est lance et que le partage de fichiers est actif." YELLOW
-                write_color ">> Assurez-vous que le moteur Docker soit actif et fonctionnel puisque sans le Desktop les conteneurs ne pourront pas etre demarres si ce n'est pas prévu." BLUE
+                write_color ">> Assurez-vous que le moteur Docker soit actif et fonctionnel puisque sans le Desktop les conteneurs ne pourront pas etre demarres si ce n'est pas prévu." YELLOW
                 sleep 10
                 #exit 1
             else
