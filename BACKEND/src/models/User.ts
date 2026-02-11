@@ -18,18 +18,77 @@ export type UserType = {
     phone: string,
     status?: "waiting" | "active" | "banned" | "deleted",
     password: string,
-    job: string,
+    job?: string, //TODO: Le rendre obligatoire quand les tests sont finis
     desc: string,
-    date_create?: Date,
+    date_created?: Date,
     picture?: string,
     is_online?: boolean,
     disturb_status?: string,
     last_connection?: Date,
     direct_manager?: string,
+    roles?: Types.ObjectId,
 
 }
 
 export default class User {
+
+    protected static schema = new Schema<UserType>({
+
+        socket_id: { type: String, default: "none" },
+        firstname: { type: String, required: true },
+        lastname: { type: String, required: true },
+        email: { type: String, required: true },
+        phone: { type: String, required: true },
+        status: {
+            type: String,
+            required: true,
+            default: "waiting",
+            enum: ["waiting", "active", "banned", "deleted"],
+            description:
+                "Choose user status between : waiting, active, banned, deleted",
+        },
+        password: { type: String, required: true, description: "SHA256" },
+        job: {
+            type: String,
+            //required: true,
+            description: "Job description",
+        },
+        desc: {
+            type: String,
+            required: true,
+            description: "User description",
+        },
+        date_created: { type: Date, required: true, default: Date.now },
+        picture: {
+            type: String,
+            required: true,
+            default: "default_profile_picture.png",
+        },
+        is_online: { type: Boolean, required: true, default: false },
+        disturb_status: {
+            type: String,
+            required: true,
+            default: "available",
+            enum: ["available", "offline", "dnd"],
+            description: "Choose user status between : available, offline, dnd",
+        },
+        last_connection: { type: Date, required: true, default: Date.now },
+        direct_manager: {
+            type: String,
+            required: true,
+            default: "none",
+            description: "User uuid of the direct manager",
+        },
+        //tokens: { type: Object, default: {} },
+        roles: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Role",
+                default: "user",
+                description: `List of roles id created by admin in the roles collection`,
+            },
+        ],
+    });
 
     static betterAuthSchema = {
 
@@ -70,33 +129,82 @@ export default class User {
         },
     }
     
-    static model: Collection;
+    static mongooseModel: Model<UserType> = models.User || model<UserType>("User", this.schema);
+    static model: Collection; //TODO: Model Better Auth à enlever par la suite.
 
-    //modelInstance;
+    modelInstance;
 
     //testRootFolders;
 
-    //constructor(dataToConstruct: UserType){
+    constructor(dataToConstruct: UserType){
 
-    //    this.modelInstance = new User.model(dataToConstruct);
+        this.modelInstance = new User.mongooseModel(dataToConstruct);
 
-    //    this.testRootFolders = this.defTestRootFolders(dataToConstruct);
-    //    this.defTestSubFolders(dataToConstruct);
+        //this.testRootFolders = this.defTestRootFolders(dataToConstruct);
+        //this.defTestSubFolders(dataToConstruct);
 
-    //}
+    }
 
-    //async save(){
+    static async inject(){
 
-    //    try {
+        [{
+            firstname: "test1",
+            lastname: "testlast1",
+            email: "test1@visioconf.com",
+            phone: "06 52 14 55 45",
+            password: "12345678",
+            desc: "Une description vreumannnnn",
+        },
+        {
+            firstname: "test2",
+            lastname: "testlast2",
+            email: "test2@visioconf.com",
+            phone: "06 52 14 55 45",
+            password: "12345678",
+            desc: "Une description vreumannnnn",
+        },
+        {
+            firstname: "test3",
+            lastname: "testlast3",
+            email: "test3@visioconf.com",
+            phone: "06 52 14 55 45",
+            password: "12345678",
+            desc: "Une description vreumannnnn",
+        },
+        {
+            firstname: "test4",
+            lastname: "testlast4",
+            email: "test4@visioconf.com",
+            phone: "06 52 14 55 45",
+            password: "12345678",
+            desc: "Une description vreumannnnn",
+        },
+        {
+            firstname: "test5",
+            lastname: "testlast5",
+            email: "test5@visioconf.com",
+            phone: "06 52 14 55 45",
+            password: "12345678",
+            desc: "Une description vreumannnnn",
+        }].map(user => {
+
+            const newUser = new User(user);
+            newUser.save();
+        })
+    }
+
+    async save(){
+
+        try {
             
-    //        await this.modelInstance.save();
-    //        //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
+            await this.modelInstance.save();
+            //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
 
-    //    } catch (err: any) {
+        } catch (err: any) {
             
-    //        throw new TracedError("collectionSaving", err.message);
-    //    }
-    //}
+            throw new TracedError("collectionSaving", err.message);
+        }
+    }
 
     static async fetchModel(){
 
@@ -109,6 +217,61 @@ export default class User {
             throw new Error("Fetching model failed");
         }
     }
+
+    static async getUser(email: string) {
+        
+        if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
+
+        return this.mongooseModel.findOne({email: email});
+    }
+
+    static async getUsers(emails: string[]) {
+        
+        emails.forEach((email, index) => {
+            
+            if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) emails.splice(index, 1);
+
+        });
+
+        return this.mongooseModel.find({ email: {$in: emails}});
+    }
+
+    static async updateUser(email: string, newData: Partial<UserType>) {
+        
+        if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
+
+        return this.mongooseModel.updateOne({email: email}, { $set: newData});
+    }
+
+    static async updateUsers(emails: string[], newData: Partial<UserType>) {
+        
+        emails.forEach((email, index) => {
+            
+            if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) emails.splice(index, 1);
+
+        });
+
+        return this.mongooseModel.updateMany({ email: {$in: emails}}, {$set: newData});
+    }
+
+    static async deleteUser(email: string) {
+        
+        if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
+
+        return this.mongooseModel.deleteOne({email: email});
+    }
+
+    static async deleteUsers(emails: string[]) {
+        
+        emails.forEach((email, index) => {
+            
+            if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) emails.splice(index, 1);
+
+        });
+
+        return this.mongooseModel.deleteMany({ email: {$in: emails}});
+    }
+
     static async flushAll() {
         
         !this.model && await this.fetchModel();
