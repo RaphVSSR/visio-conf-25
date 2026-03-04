@@ -10,7 +10,7 @@
 	gap: 10%;
 
 	h1{
-	  color: #223A6A;
+	  color: $tab-heading;
 	  font-family: Arial, Helvetica, sans-serif;
 	  font-size: 40px;
 	  font-style: normal;
@@ -38,6 +38,16 @@
 		border-radius: 20px;
 		border-style: solid;
 		font-size: 20px;
+
+		&--users {
+			background-color: $success-light;
+			border-color: $success-border;
+		}
+
+		&--calls {
+			background-color: $purple-light;
+			border-color: $purple;
+		}
 	  }
 
 	  .icon {
@@ -47,6 +57,14 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+
+		&--users {
+			background-color: $success-border;
+		}
+
+		&--calls {
+			background-color: $purple;
+		}
 	  }
 
 	  .emphasis{
@@ -75,10 +93,30 @@
 		  font-weight: 700;
 		  border-radius: 20px;
 		  border-left-width: 20px;
-		  background-color: #EAEAEA;
-		  
+		  background-color: $bg-neutral;
+
 		  &:hover{
 			cursor: pointer;
+		  }
+
+		  &--users {
+			border-color: $tab-users;
+			color: $tab-users;
+		  }
+
+		  &--roles {
+			border-color: $tab-roles;
+			color: $tab-roles;
+		  }
+
+		  &--permissions {
+			border-color: $tab-permissions;
+			color: $tab-permissions;
+		  }
+
+		  &--teams {
+			border-color: $tab-teams;
+			color: $tab-teams;
 		  }
 		}
 	}
@@ -92,10 +130,3 @@
 	  height: 100vh;
 	}
 }
-
-
-
-
-
-
-

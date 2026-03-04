@@ -1,3 +1,6 @@
+
+@use "../../design-system/scss/global.scss" as *;
+
 .sessionExpiryOverlay {
 	position: fixed;
 	top: 0;
@@ -12,7 +15,7 @@
 }
 
 .sessionExpiryModal {
-	background: white;
+	background: $bg-white;
 	border-radius: 12px;
 	padding: 2rem;
 	max-width: 420px;
@@ -23,12 +26,12 @@
 	h2 {
 		margin: 0 0 1rem;
 		font-size: 1.25rem;
-		color: #1a1a1a;
+		color: $text-dark;
 	}
 
 	p {
 		margin: 0.5rem 0;
-		color: #555;
+		color: $text-muted;
 		font-size: 0.95rem;
 	}
 }
@@ -53,12 +56,12 @@
 	}
 
 	.extendBtn {
-		background: #2563eb;
-		color: white;
+		background: $info;
+		color: $bg-white;
 	}
 
 	.dismissBtn {
-		background: #e5e7eb;
-		color: #374151;
+		background: $bg-divider;
+		color: $text-disabled;
 	}
 }

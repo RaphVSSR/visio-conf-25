@@ -11,7 +11,7 @@
 	border-radius: 15px;
 
 	.searchIcon {
-		color: #6b7280;
+		color: $text-subtle;
 	}
 
 	.searchInput {
@@ -28,7 +28,7 @@
 		}
 
 		&::placeholder {
-			color: #9ca3af;
+			color: $text-placeholder;
 		}
 	}
 }

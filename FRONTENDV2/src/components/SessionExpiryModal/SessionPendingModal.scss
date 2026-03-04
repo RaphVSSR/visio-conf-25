@@ -1,3 +1,6 @@
+
+@use "../../design-system/scss/global.scss" as *;
+
 .sessionPendingOverlay {
 	position: fixed;
 	top: 0;
@@ -12,7 +15,7 @@
 }
 
 .sessionPendingModal {
-	background: white;
+	background: $bg-white;
 	border-radius: 12px;
 	padding: 2rem;
 	max-width: 420px;
@@ -23,18 +26,18 @@
 	h2 {
 		margin: 0 0 1rem;
 		font-size: 1.25rem;
-		color: #1a1a1a;
+		color: $text-dark;
 	}
 
 	p {
 		margin: 0.5rem 0;
-		color: #555;
+		color: $text-muted;
 		font-size: 0.95rem;
 	}
 }
 
 .deviceInfoBlock {
-	background: #f3f4f6;
+	background: $bg-muted;
 	border-radius: 8px;
 	padding: 0.75rem 1rem;
 	margin: 1rem 0;
@@ -66,12 +69,12 @@
 	}
 
 	.acceptBtn {
-		background: #16a34a;
-		color: white;
+		background: $success;
+		color: $bg-white;
 	}
 
 	.rejectBtn {
-		background: #dc2626;
-		color: white;
+		background: $danger;
+		color: $bg-white;
 	}
 }

@@ -4,41 +4,40 @@ import React from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { UserAuth } from 'routing/UserAuth';
 import { AdminAuth } from 'routing/AdminAuth';
-import { SessionExpiryModal, SessionPendingModal } from 'components/SessionExpiryModal';
+import { AuthToasts } from 'components/AuthToasts/AuthToasts';
+import { ToastProvider } from 'contexts/ToastContext';
 
-/**
- * Composant racine de l'application.
- * Enveloppe l'app dans AuthProvider et définit les routes.
- */
 export const App = () => {
 
 	return (
 
 		<AuthProvider>
+			<ToastProvider>
 
-			<BrowserRouter>
+				<BrowserRouter>
 
-				<Routes>
+					<Routes>
 
-					<Route element={ <UserAuth/> }>
+						<Route element={ <UserAuth/> }>
 
-						<Route path="/" element={ <Navigate to="/home" replace /> }/>
-						<Route path="/home" element={ <Home /> }/>
-						<Route element={ <AdminAuth /> }>
-						<Route path='/admin' element={ <AdminPanel /> } />
-					</Route>
+							<Route path="/" element={ <Navigate to="/home" replace /> }/>
+							<Route path="/home" element={ <Home /> }/>
 
-					</Route>
-					<Route path="/login" element={ <Login /> }/>
-					<Route path='/signup' element={ <Signup /> } />
+							<Route element={ <AdminAuth /> }>
+								<Route path='/admin' element={ <AdminPanel /> } />
+							</Route>
 
-				</Routes>
+						</Route>
+						<Route path="/login" element={ <Login /> }/>
+						<Route path='/signup' element={ <Signup /> } />
 
-			</BrowserRouter>
+					</Routes>
 
-			<SessionExpiryModal />
-			<SessionPendingModal />
+				</BrowserRouter>
 
+				<AuthToasts />
+
+			</ToastProvider>
 		</AuthProvider>
 
 	)

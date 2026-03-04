@@ -4,7 +4,7 @@ import { fileURLToPath } from "url"
 import express, { type Express, Router, type Request, type Response, type NextFunction  } from "express"
 import cors from "cors"
 import FileRoutes from "../../routes/FileRoutes.ts"
-import TracedError from "../core/TracedError.ts";
+import TracedError from "../Core/TracedError.ts";
 
 
 const __filename = fileURLToPath(import.meta.url);

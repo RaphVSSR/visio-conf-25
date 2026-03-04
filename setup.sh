@@ -28,14 +28,81 @@ invoke_compose() {
     return 0
 }
 
+generate_env() {
+    local template="$1"
+    local output="$2"
+    local label="$3"
+
+    if [ ! -f "$template" ]; then
+        write_color "X Fichier $template introuvable" RED
+        return 1
+    fi
+
+    write_color "" WHITE
+    write_color "== Configuration $label ==" CYAN
+    > "$output"
+
+    local state="header"
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [ "$state" = "header" ]; then
+            if [[ "$line" =~ ^# ]]; then
+                continue
+            elif [[ -z "$line" ]]; then
+                state="past_header"
+                continue
+            else
+                state="content"
+            fi
+        fi
+
+        if [ "$state" = "past_header" ]; then
+            if [[ -z "$line" ]]; then
+                continue
+            fi
+            state="content"
+        fi
+
+        if [[ -z "$line" ]] || [[ "$line" =~ ^# ]]; then
+            echo "$line" >> "$output"
+            continue
+        fi
+
+        local key="${line%%=*}"
+        local raw_value="${line#*=}"
+
+        local default_value="$raw_value"
+        local hint=""
+        if [[ "$raw_value" == *" #"* ]]; then
+            default_value="${raw_value%% #*}"
+            hint="${raw_value#*#}"
+        fi
+
+        local prompt_text="${BLUE}[${label}]${NC} ${CYAN}${key}${NC} [${YELLOW}${default_value}${NC}]"
+        if [ -n "$hint" ]; then
+            prompt_text="$prompt_text (${GREEN}${hint}${NC})"
+        fi
+
+        read -p "$prompt_text: " user_value < /dev/tty
+        if [ -z "$user_value" ]; then
+            user_value="$default_value"
+        fi
+
+        echo "${key}=${user_value}" >> "$output"
+    done < "$template"
+
+    write_color "V $label .env.local genere avec succes" GREEN
+}
+
 # Main menu
 while true; do
     clear
     write_color "=== Gestionnaire MMI-VisioConf ==="
     write_color "1. Gestion avec Docker (recommande)" GREEN
     write_color "2. Installation locale" BLUE
-    write_color "3. Fermer le gestionnaire" RED
-    read -p "Choix (1 - 3): " choice
+    write_color "3. Configurer les fichiers .env.local" YELLOW
+    write_color "4. Fermer le gestionnaire" RED
+    read -p "Choix (1 - 4): " choice
 
     case $choice in
         1)
@@ -158,19 +225,13 @@ while true; do
             # Backend
             write_color ">> Installation des dependances du backend..." YELLOW
             cd BACKEND || exit 1
-            if [ ! -f .env.local ] && [ -f .env.template ]; then
-                cp .env.template .env.local
-                write_color "V Fichier .env.local cree depuis .env.template" GREEN
-            fi
+            generate_env .env.template .env.local "Backend"
             npm install
 
             # Frontend
             write_color ">> Installation des dependances du frontend..." YELLOW
             cd ../FRONTENDV2 || exit 1
-            if [ ! -f .env.local ] && [ -f .env.template ]; then
-                cp .env.template .env.local
-                write_color "V Fichier .env.local cree depuis .env.template" GREEN
-            fi
+            generate_env .env.template .env.local "Frontend"
             npm install
 
             # Back to root
@@ -188,12 +249,26 @@ while true; do
             write_color "** Connexion suggeree: dev@visioconf.com | d3vV1s10C0nf" YELLOW
             ;;
         3)
+            clear
+            write_color ">> Configuration des fichiers .env.local" CYAN
+
+            script_dir=$(pwd)
+            cd BACKEND || exit 1
+            generate_env .env.template .env.local "Backend"
+            cd "$script_dir/FRONTENDV2" || exit 1
+            generate_env .env.template .env.local "Frontend"
+            cd "$script_dir" || exit 1
+
+            write_color "** Fichiers .env.local generes avec succes !" GREEN
+            read -p "Appuyez sur Entree pour continuer..."
+            ;;
+        4)
             write_color ">> Fermeture du gestionnaire..." CYAN
             exit 0
             ;;
         *)
             clear
-            echo "Choix invalide (1-3 seulement)" >&2
+            echo "Choix invalide (1-4 seulement)" >&2
             sleep 2
             ;;
     esac

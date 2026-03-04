@@ -6,7 +6,7 @@ export const Signup: FC = () => {
 
   return (
 
-    <main id="signupPage" style={{ background: "url('backgrounds/backLogin.jpg')"}}>
+    <main id="signupPage" style={{ backgroundImage: "url('backgrounds/backLogin.jpg')"}}>
 
       <SignupForm />
 

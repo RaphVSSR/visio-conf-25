@@ -1,6 +1,6 @@
 import { FC } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "hooks/useAuthMessages";
+import { useAuth } from "hooks/useAuth";
 
 /**
  * Garde de route pour les pages protégées.
@@ -11,13 +11,9 @@ export const UserAuth: FC = () => {
 
 	const { isAuthenticated, isLoading } = useAuth();
 
-	if (isLoading) {
-		return <><h1>Chargement du bundle...</h1></>;
-	}
+	if (isLoading) return <h1>Chargement du bundle...</h1>;
 
-	if (!isAuthenticated) {
-		return <Navigate to={"/login"} replace />;
-	}
+	if (!isAuthenticated) return <Navigate to={"/login"} replace />;
 
 	return <Outlet />;
 }

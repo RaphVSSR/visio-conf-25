@@ -1,0 +1,10 @@
+.authToasts {
+	position: fixed;
+	top: 1.25rem;
+	right: 1.25rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	z-index: 10000;
+	pointer-events: none;
+}

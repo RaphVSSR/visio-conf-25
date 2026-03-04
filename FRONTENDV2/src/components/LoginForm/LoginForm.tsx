@@ -2,17 +2,12 @@ import { useState, useEffect, FormEvent } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom";
 import "./LoginForm.scss";
-import { useAuth } from "hooks/useAuthMessages";
+import { useAuth } from "hooks/useAuth";
 
-/**
- * Formulaire de connexion.
- * Utilise le contrôleur pour envoyer le message `login` via Socket.io.
- * Redirige vers /home après un login réussi.
- */
 export const LoginForm = () => {
 
     const [pwdStatus, setPwdStatus] = useState<"shown" | "hidden">("hidden");
-    const { login, isLoading, isAuthenticated, pendingLoginRequestId } = useAuth();
+    const { login, isLoading, isAuthenticated, pendingLoginRequestId, loginRejected } = useAuth();
     const [error, setError] = useState<string>("");
     const navigate = useNavigate();
 
@@ -40,17 +35,17 @@ export const LoginForm = () => {
 
     if (pendingLoginRequestId) {
         return (
-            <div id="loginForm">
+            <section id="loginForm">
                 <img
                     src="logos/logo_univ_grand.svg"
                     alt="Logo du formulaire de connexion."
                 />
                 <h1>En attente d'approbation</h1>
-                <p style={{ textAlign: "center", color: "#555", padding: "1rem" }}>
+                <p className="pendingMessage">
                     Une session active existe sur un autre appareil.
                     En attente de l'approbation...
                 </p>
-            </div>
+            </section>
         );
     }
 
@@ -63,8 +58,9 @@ export const LoginForm = () => {
             />
 
             <h1>Se connecter</h1>
-            {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
-            <div id="inputWrapper">
+            {loginRejected && <p className="rejectedMessage">Connexion refusée — la session active a refusé votre demande.</p>}
+            {error && <p className="error">{error}</p>}
+            <fieldset id="inputWrapper">
 
                 <input
                     type="email"
@@ -85,8 +81,8 @@ export const LoginForm = () => {
                     {pwdStatus === "shown" ? <EyeOff className="pwdVisibilityIco" size={20} onClick={() => setPwdStatus("hidden")}/> : <Eye className="pwdVisibilityIco" size={20} onClick={() => setPwdStatus("shown")}/>}
                 </div>
 
-            </div>
-            <div id="footerForm">
+            </fieldset>
+            <footer id="footerForm">
 
                 <button
                     type="submit"
@@ -96,7 +92,7 @@ export const LoginForm = () => {
                 </button>
                 <Link to="/signup" id="signupLink">Créer son compte</Link>
 
-            </div>
+            </footer>
         </form>
     )
 }

@@ -36,14 +36,91 @@ function Invoke-Compose {
     }
 }
 
+function Generate-Env {
+    param(
+        [string]$Template,
+        [string]$Output,
+        [string]$Label
+    )
+
+    if (-not (Test-Path $Template)) {
+        Write-Color "X Fichier $Template introuvable" Red
+        return
+    }
+
+    Write-Host ""
+    Write-Color "== Configuration $Label ==" Cyan
+    $result = @()
+    $state = "header"
+
+    foreach ($line in Get-Content $Template) {
+        if ($state -eq "header") {
+            if ($line.StartsWith("#")) {
+                continue
+            }
+            elseif ([string]::IsNullOrWhiteSpace($line)) {
+                $state = "past_header"
+                continue
+            }
+            else {
+                $state = "content"
+            }
+        }
+
+        if ($state -eq "past_header") {
+            if ([string]::IsNullOrWhiteSpace($line)) {
+                continue
+            }
+            $state = "content"
+        }
+
+        if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith("#")) {
+            $result += $line
+            continue
+        }
+
+        $eqIndex = $line.IndexOf("=")
+        if ($eqIndex -lt 0) {
+            $result += $line
+            continue
+        }
+
+        $key = $line.Substring(0, $eqIndex)
+        $rawValue = $line.Substring($eqIndex + 1)
+
+        $defaultValue = $rawValue
+        $hint = ""
+        if ($rawValue -match "^(.*?)\s+#(.*)$") {
+            $defaultValue = $Matches[1]
+            $hint = $Matches[2]
+        }
+
+        $promptText = "[$Label] $key [$defaultValue]"
+        if ($hint) {
+            $promptText += " ($hint)"
+        }
+
+        $userValue = Read-Host $promptText
+        if ([string]::IsNullOrEmpty($userValue)) {
+            $userValue = $defaultValue
+        }
+
+        $result += "${key}=${userValue}"
+    }
+
+    $result | Set-Content -Path $Output -Encoding UTF8
+    Write-Color "V $Label .env.local genere avec succes" Green
+}
+
 :menuPrincipal while ($true) {
 
     Clear-Host
     Write-Color "=== Gestionnaire MMI-VisioConf ==="
     Write-Color "1. Gestion avec Docker (recommande)" Green
     Write-Color "2. Installation locale" Blue
-    Write-Color "3. Fermer le gestionnaire" Red
-    $choice = Read-Host "Choix (1 - 3)"
+    Write-Color "3. Configurer les fichiers .env.local" Yellow
+    Write-Color "4. Fermer le gestionnaire" Red
+    $choice = Read-Host "Choix (1 - 4)"
 
     switch ($choice) {
 
@@ -218,19 +295,13 @@ function Invoke-Compose {
             # Backend - Installation des dependances
             Write-Color ">> Installation des dependances du backend..." Yellow
             Set-Location BACKEND
-            if (!(Test-Path ".env") -and (Test-Path ".env.template")) {
-                Copy-Item ".env.template" ".env.local"
-                Write-Color "V Fichier .env.local cree depuis .env.template" Green
-            }
+            Generate-Env ".env.template" ".env.local" "Backend"
             npm install
 
             # Frontend - Installation des dependances
             Write-Color ">> Installation des dependances du frontend..." Yellow
             Set-Location ../FRONTENDV2
-            if (!(Test-Path ".env.local") -and (Test-Path ".env.template")) {
-                Copy-Item ".env.template" ".env.local"
-                Write-Color "V Fichier .env.local cree depuis .env.template" Green
-            }
+            Generate-Env ".env.template" ".env.local" "Frontend"
             npm install
 
             # Retour au dossier racine
@@ -261,13 +332,28 @@ function Invoke-Compose {
         }
         3 {
 
+            Clear-Host
+            Write-Color ">> Configuration des fichiers .env.local" Cyan
+
+            $scriptDir = Get-Location
+            Set-Location BACKEND
+            Generate-Env ".env.template" ".env.local" "Backend"
+            Set-Location "$scriptDir/FRONTENDV2"
+            Generate-Env ".env.template" ".env.local" "Frontend"
+            Set-Location $scriptDir
+
+            Write-Color "`n** Fichiers .env.local generes avec succes !" Green
+            Read-Host "Appuyez sur Entree pour continuer"
+        }
+        4 {
+
             Write-Color ">> Fermeture du gestionnaire..." Cyan
             exit 0
         }
         default {
 
             Clear-Host
-            Write-Warning "Choix invalide (1-3 seulement)"
+            Write-Warning "Choix invalide (1-4 seulement)"
             Start-Sleep 2
             $choice = $null
         }

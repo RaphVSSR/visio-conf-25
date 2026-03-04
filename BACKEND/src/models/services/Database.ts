@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url"
 import fs from "fs"
 import User from "../User.ts";
-import TracedError from "../core/TracedError.ts";
+import TracedError from "../Core/TracedError.ts";
 import FileSystem, { Folder } from "./FileSystem.ts";
 import Channel from "../Channel.ts";
 import Discussion from "../Discussion.ts";

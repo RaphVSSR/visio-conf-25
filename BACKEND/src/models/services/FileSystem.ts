@@ -1,7 +1,7 @@
 import mongoose, { model, Schema, type Document, type HydratedDocument, type Model, type Types } from "mongoose";
 import crypto from "crypto"
-import Collection from "../core/Collection.ts";
-import TracedError from "../core/TracedError.ts";
+import Collection from "../Core/Collection.ts";
+import TracedError from "../Core/TracedError.ts";
 import path from "path";
 import { fileURLToPath } from 'url';
 import fs from "fs"

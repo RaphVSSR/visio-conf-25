@@ -2,7 +2,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import React, { FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import "./SignupForm.scss"
-import { useAuth } from 'hooks/useAuthMessages';
+import { useAuth } from 'hooks/useAuth';
 
 /**
  * Formulaire d'inscription.
@@ -50,7 +50,7 @@ export const SignupForm = () => {
 
 			<h1>Créer son compte</h1>
 
-			<div id="inputWrapper">
+			<fieldset id="inputWrapper">
 
 				<input id="firstname" name="firstname" type="text" placeholder='Prénom' required/>
 
@@ -69,9 +69,9 @@ export const SignupForm = () => {
 
 				<input id="phone" name="phone" type="tel" placeholder='Téléphone' required/>
 
-			</div>
+			</fieldset>
 
-			<div id="signupFooter">
+			<footer id="signupFooter">
 
 				<button
 					id="submitBtn"
@@ -83,7 +83,7 @@ export const SignupForm = () => {
 
 				<Link to="/login" id="loginLink">Déjà un compte ?</Link>
 
-			</div>
+			</footer>
         </form>
 
     )

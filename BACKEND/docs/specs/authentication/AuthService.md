@@ -170,23 +170,33 @@ login { email, password, deviceInfo }
     login_failure { reason }
 ```
 
-### Flow 2 — Reconnexion (page refresh)
+### Flow 2 — Reconnexion (page refresh / reconnexion socket)
 
 ```
 Client                                          Serveur
 ------                                          -------
 authenticate { sessionId }
     │══════════════════════════════════════>     AuthService.authenticate()
+                                                    ├─ Vérifie sessionId non vide
                                                     ├─ Session.getSession(sessionId)
                                                     ├─ Vérifie expiration (expiresAt > now)
-                                                    ├─ Session.bindSocket(sessionId, socketId)
                                                     ├─ User.findById() (charge les données user)
+                                                    ├─ Session.getUserSocketIds(userId)
                                                     │
-    <══════════════════════════════════
+                                            ┌───────┴───────┐
+                                      Pas de sockets     Sockets actifs
+                                            │               │
+                                      bindSocket()     Flow 7 (multi-session)
+                                            │          → crée NOUVELLE session
+                                            │
+    <══════════════════════════════════      │
     auth_success { user, expiresAt }
     OU
-    auth_failure { reason: "session_expired" | "session_no_longer_exists" | "user_not_found" }
+    auth_failure { reason: "session_id_required" | "session_no_longer_exists"
+                         | "session_expired" | "user_not_found" }
 ```
+
+**Différence clé avec login :** Sans sockets actifs, `authenticate` réutilise la session existante (`bindSocket`). Avec approbation multi-session, une **nouvelle** session est créée — l'ancienne est abandonnée.
 
 ### Flow 3 — Inscription
 

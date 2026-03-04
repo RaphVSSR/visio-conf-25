@@ -1,3 +1,55 @@
 
-$primaryCol: #1E3664;
-$linkCol: #1e90ff;
+// Brand
+$primary: #1E3664;
+$primaryCol: $primary;
+$link: #1e90ff;
+$linkCol: $link;
+$link-hover: #63b3ed;
+$primary-hover: #005bb5;
+
+// Text
+$text: #060d19;
+$text-dark: #1a1a1a;
+$text-body: #4b5563;
+$text-muted: #555;
+$text-subtle: #6b7280;
+$text-placeholder: #9ca3af;
+$text-disabled: #374151;
+
+// Backgrounds
+$bg-white: #fff;
+$bg-page: #f5f7fa;
+$bg-light: #f9fafb;
+$bg-hover: #f1f5f9;
+$bg-muted: #f3f4f6;
+$bg-skeleton: #cbd5e1;
+$bg-skeleton-dark: #94a3b8;
+$bg-disabled: #555;
+$bg-neutral: #EAEAEA;
+$bg-accent: #f7faff;
+$bg-accent-hover: #eaf1fb;
+$bg-divider: #e5e7eb;
+
+// Status / Semantic
+$success: #16a34a;
+$success-light: #DCFCE7;
+$success-border: #47DA60;
+$danger: #dc2626;
+$danger-text: #d32f2f;
+$warning: #F59E0B;
+$info: #2563eb;
+$purple: #BF82FE;
+$purple-light: #F4E8FF;
+
+// Admin tabs
+$tab-users: #0272DA;
+$tab-roles: #63B367;
+$tab-permissions: #DA1F63;
+$tab-teams: #444447;
+$tab-heading: #223A6A;
+
+// Misc
+$icon-muted: #444;
+$empty-icon: #cbd5e1;
+$empty-text: #9ca3af;
+$contact-green: #10B981;

@@ -90,8 +90,42 @@ export default class AuthService extends ControllerService {
 		const userSockets = await Session.getUserSocketIds(userId)
 		if (userSockets.length > 0) {
 			this.controleur.envoie(this, {
-				session_pending: { requestId, requesterInfo: `${user.firstname} ${user.lastname}`, deviceInfo },
+				session_pending: { requestId, requesterInfo: `${user.firstname} ${user.lastname}`, deviceInfo: AuthService.parseDeviceInfo(deviceInfo) },
 				id: userSockets,
+			})
+		}
+	}
+
+	private static parseDeviceInfo(ua: string): string {
+		const browser =
+			/Edg\//i.test(ua) ? "Edge" :
+			/OPR|Opera/i.test(ua) ? "Opera" :
+			/Chrome/i.test(ua) ? "Chrome" :
+			/Firefox/i.test(ua) ? "Firefox" :
+			/Safari/i.test(ua) ? "Safari" :
+			"Inconnu"
+
+		const os =
+			/Windows/i.test(ua) ? "Windows" :
+			/Mac OS/i.test(ua) ? "macOS" :
+			/Android/i.test(ua) ? "Android" :
+			/iPhone|iPad/i.test(ua) ? "iOS" :
+			/Linux/i.test(ua) ? "Linux" :
+			"Inconnu"
+
+		return `${browser} sur ${os}`
+	}
+
+	private resendPendingRequests(userId: string, socketId: string) {
+		for (const [requestId, pending] of this.pendingRequests) {
+			if (pending.userId !== userId) continue
+			this.controleur.envoie(this, {
+				session_pending: {
+					requestId,
+					requesterInfo: `${pending.user.firstname} ${pending.user.lastname}`,
+					deviceInfo: AuthService.parseDeviceInfo(pending.deviceInfo),
+				},
+				id: [socketId],
 			})
 		}
 	}
@@ -144,15 +178,24 @@ export default class AuthService extends ControllerService {
 
 		if (new Date(session.expiresAt).getTime() <= Date.now()) return this.controleur.envoie(this, { auth_failure: { reason: "session_expired" }, id: [socketId] })
 
-		await Session.bindSocket(sessionId, socketId)
-
 		const user = await User.model.findById(session.userId).select('-password').lean()
 		if (!user) return this.controleur.envoie(this, { auth_failure: { reason: "user_not_found" }, id: [socketId] })
 
-		this.controleur.envoie(this, {
-			auth_success: { user, expiresAt: new Date(session.expiresAt).getTime() },
-			id: [socketId],
-		})
+		const userSockets = await Session.getUserSocketIds(session.userId.toString())
+
+		if (userSockets.length > 0) {
+
+			this.createManualSessionValidationByUser(socketId, user, session.deviceInfo)
+
+		} else {
+
+			await Session.bindSocket(sessionId, socketId)
+			this.controleur.envoie(this, {
+				auth_success: { user, expiresAt: new Date(session.expiresAt).getTime() },
+				id: [socketId],
+			})
+			this.resendPendingRequests(session.userId.toString(), socketId)
+		}
 	}
 
 	private async register(socketId: string, payload: { password: string, firstname: string, lastname: string, email: string, phone: string }) {

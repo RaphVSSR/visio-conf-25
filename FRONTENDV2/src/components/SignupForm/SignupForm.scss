@@ -2,12 +2,12 @@
 @use "../../design-system/scss/global.scss" as *;
 
 #signupForm {
-  	@extend %flex-col-centered;
+	@extend %flex-col-centered;
 	width: 35vw;
 	padding: 30px;
 	justify-content: unset;
 	gap: 50px;
-	background: white;
+	background: $bg-white;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 	border-radius: 25px;
 	transition: .4s ease;
@@ -24,7 +24,7 @@
 		input {
 
 			flex: 5;
-			color: $primaryCol;
+			color: $primary;
 
 		}
 
@@ -46,7 +46,7 @@
 
 			flex: 1;
 			padding: 10px;
-			border-bottom: solid 2px $linkCol !important;
+			border-bottom: solid 2px $link !important;
 			transition: all .3s ease;
 
 			&:hover, & :focus-visible {
@@ -62,7 +62,7 @@
 			border: none;
 
 			&:focus-visible {
-	
+
 				outline: none;
 			}
 
@@ -85,36 +85,33 @@
 		  padding: 0.75rem;
 		  border: none;
 		  border-radius: 8px;
-		  background: var(--Primaire, #1E3664);
-		  color: white;
+		  background: $primary;
+		  color: $bg-white;
 		  cursor: pointer;
 
 		  &:disabled {
 			cursor: not-allowed;
-			background-color: #555; 
+			background-color: $bg-disabled;
 		  }
 
 		  &:hover:not(:disabled) {
-			background-color: #005bb5;
+			background-color: $primary-hover;
 		  }
 		}
 
 		#loginLink {
 
-			color: $linkCol;
+			color: $link;
 			text-decoration: none;
 			transition: all .3s ease;
-	
+
 			&:hover{
-				color: #63b3ed;
+				color: $link-hover;
 			}
 		}
 	}
 
 	.error {
-	  color: #d32f2f; 
+	  color: $danger-text;
 	}
 }
-
-
-

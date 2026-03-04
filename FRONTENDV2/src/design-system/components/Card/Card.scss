@@ -6,7 +6,7 @@
 	padding: 16px;
 	gap: 8px;
 	background: white;
-	border-left: 4px solid $primaryCol;
+	border-left: 4px solid var(--card-border-color, $primaryCol);
 	border-radius: 15px;
 	box-shadow: 0 2px 8px rgba(30, 54, 100, 0.07);
 	transition: all 0.2s ease;

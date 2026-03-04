@@ -1,6 +1,6 @@
-import React, { FC, HTMLAttributes, PropsWithChildren } from 'react'
+import React, { FC, PropsWithChildren } from 'react'
 import { HTMLMotionProps, motion } from 'framer-motion'
-import { icons, MessageSquare } from 'lucide-react';
+import { icons } from 'lucide-react';
 import { LucideIcons } from '../LucideIcons/LucideIcons';
 import "./Card.scss"
 
@@ -16,22 +16,26 @@ export type CardProps = PropsWithChildren<(
 		iconPosition?: undefined,
 		iconSize?: undefined,
 	}
-)> & HTMLMotionProps<"div">;
+) & {
+	borderColor?: string,
+}> & Omit<HTMLMotionProps<"div">, "style">;
 
 export const Card: FC<CardProps> = ({
 
 	icon,
 	iconPosition,
 	iconSize,
+	borderColor,
 	children,
 	...props
 
 }) => {
   return (
-	
+
 	<motion.div
 		className="card"
 		whileHover={{ scale: 1.02 }}
+		style={borderColor ? { "--card-border-color": borderColor } as React.CSSProperties : undefined}
 		{...props}
 	>
 		{icon && iconPosition === 'left' && <LucideIcons name={icon} className='cardIco' size={iconSize}/>}

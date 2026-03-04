@@ -130,17 +130,31 @@ src/
 
 ## Comment le sessionId est persisté côté client ?
 
-**Doute initial :** Le cookie devrait-il être chiffré ? Pourquoi envoyer le sessionId via WebSocket plutôt que HTTP ? Est-ce moins sécurisé ?
+**Doute initial :** Cookie, `localStorage` ou `sessionStorage` ? Chacun a des compromis différents.
 
 **Réflexion :**
-- Les cookies HTTP ont des protections natives (`httpOnly`, `secure`, `sameSite`) que les messages WebSocket n'ont pas
-- Mais le backend ne lit jamais les cookies HTTP — toute l'auth passe par Socket.io
-- Le cookie est purement de la persistance côté client (survit au refresh de page)
-- La connexion WebSocket elle-même est l'ancre de confiance (TCP persistant), pas le transport du sessionId
+- **Cookie** : envoyé avec chaque requête HTTP au serveur, protections natives (`httpOnly`, `secure`, `sameSite`), mais le backend ne lit jamais les cookies — toute l'auth passe par Socket.io. Et surtout : partagé entre tous les onglets
+- **`localStorage`** : côté client uniquement (pas envoyé au serveur), ~5-10MB, pas d'expiry. Mais même problème que les cookies — partagé entre tous les onglets
+- **`sessionStorage`** : isolé par onglet, côté client uniquement. Seul storage qui garantit qu'un onglet ne voit pas les données d'un autre
+- Le partage inter-onglets est un vrai problème : si un onglet est rejeté par le flux multi-session et qu'on supprime le storage, tous les autres onglets perdent leur sessionId
+- Pas de persistance après fermeture d'onglet — mais l'expiration est gérée côté serveur (TTL MongoDB), donc un onglet fermé = session orpheline qui expire naturellement
 
-**Solution :** Cookie `visioconf_session` avec `SameSite=Strict`, envoyé comme payload Socket.io `authenticate` à la reconnexion.
+**Solution :** `sessionStorage` — chaque onglet stocke son propre sessionId, isolé des autres.
 
-**Doute ouvert :** En production, WSS (WebSocket over TLS) est indispensable. Sans `httpOnly`, le cookie est accessible au JavaScript — une XSS pourrait le voler. Suffisant pour le dev, à durcir pour la prod.
+**Doute ouvert :** En production, WSS (WebSocket over TLS) est indispensable. `sessionStorage` est accessible au JavaScript — une XSS pourrait le voler. Suffisant pour le dev, à durcir pour la prod.
+
+---
+
+## Pourquoi 1 session = 1 socket, mais 1 user = N sessions ?
+
+**Doute initial :** Chaque onglet du navigateur crée sa propre connexion Socket.io (son propre `socketId`). Est-ce qu'un onglet devrait réutiliser la session d'un autre onglet, ou avoir la sienne ?
+
+**Réflexion :**
+- Si plusieurs onglets partagent une session, `bindSocket` écrase le `socketId` précédent — le premier onglet perd silencieusement sa liaison et ne reçoit plus de messages
+- Un utilisateur peut légitimement vouloir être connecté depuis plusieurs onglets/appareils
+- Le flux multi-session (approbation) sert de second facteur — mais il doit s'appliquer partout, pas seulement au `login`
+
+**Solution :** Chaque onglet a sa propre session. `authenticate` (via sessionStorage) passe par le même flux d'approbation que `login` si un socket est déjà actif pour cet utilisateur. Sur approbation → nouvelle session créée (même `userId`). Sur rejet → `login_failure` → retour au login.
 
 ---
 
@@ -221,5 +235,5 @@ src/
 | Sessions orphelines | Les sessions sans socket actif posent-elles problème à grande échelle ? | Redis comme cache, ou sweep périodique |
 | Multi-session UX | L'approbation est-elle trop contraignante ? | À tester avec des vrais utilisateurs |
 | SHA256 | Vulnérable au brute force | Migrer vers bcrypt/argon2 avant prod (1 fichier) |
-| Cookie sécurité | XSS peut voler le sessionId | WSS obligatoire en prod, envisager `httpOnly` via HTTP handshake |
+| sessionStorage sécurité | XSS peut voler le sessionId | WSS obligatoire en prod |
 | Statuts utilisateur | `banned`/`deleted` manquants | À ajouter quand le besoin se présente |

@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState } from "react"
-import { useAuth } from "hooks/useAuthMessages"
+import { useAuth } from "hooks/useAuth"
 import "./SessionExpiryModal.scss"
 
 /**
@@ -38,20 +38,20 @@ export const SessionExpiryModal: FC = () => {
 	if (!showExpiryWarning) return null
 
 	return (
-		<div className="sessionExpiryOverlay">
-			<div className="sessionExpiryModal">
+		<dialog className="sessionExpiryOverlay" open>
+			<article className="sessionExpiryModal">
 				<h2>Session bientôt expirée</h2>
 				<p>Votre session expire dans <strong>{timeLeft}</strong>.</p>
 				<p>Souhaitez-vous prolonger votre session ?</p>
-				<div className="sessionExpiryActions">
+				<footer className="sessionExpiryActions">
 					<button className="extendBtn" onClick={refreshSession}>
 						Prolonger la session
 					</button>
 					<button className="dismissBtn" onClick={dismissExpiryWarning}>
 						Ignorer
 					</button>
-				</div>
-			</div>
-		</div>
+				</footer>
+			</article>
+		</dialog>
 	)
 }

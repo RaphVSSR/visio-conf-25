@@ -1,5 +1,5 @@
 import React, { FC } from "react"
-import { useAuth } from "hooks/useAuthMessages"
+import { useAuth } from "hooks/useAuth"
 import "./SessionPendingModal.scss"
 
 /**
@@ -11,21 +11,21 @@ export const SessionPendingModal: FC = () => {
 
 	const { pendingSessionRequests, respondToPendingSession } = useAuth()
 
-	if (pendingSessionRequests.length === 0) return null
+	const request = pendingSessionRequests[0]
 
-	const request = pendingSessionRequests[0]!
+	if (!request) return null
 
 	return (
-		<div className="sessionPendingOverlay">
-			<div className="sessionPendingModal">
+		<dialog className="sessionPendingOverlay" open>
+			<article className="sessionPendingModal">
 				<h2>Nouvelle connexion</h2>
 				<p>Un nouvel appareil tente de se connecter à votre compte :</p>
-				<div className="deviceInfoBlock">
+				<section className="deviceInfoBlock">
 					<p><strong>Appareil :</strong> {request.deviceInfo}</p>
 					<p><strong>Utilisateur :</strong> {request.requesterInfo}</p>
-				</div>
+				</section>
 				<p>Souhaitez-vous autoriser cette connexion ?</p>
-				<div className="sessionPendingActions">
+				<footer className="sessionPendingActions">
 					<button
 						className="acceptBtn"
 						onClick={() => respondToPendingSession(request.requestId, true)}
@@ -38,8 +38,8 @@ export const SessionPendingModal: FC = () => {
 					>
 						Refuser
 					</button>
-				</div>
-			</div>
-		</div>
+				</footer>
+			</article>
+		</dialog>
 	)
 }

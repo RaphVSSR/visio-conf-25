@@ -17,26 +17,26 @@ export const AdminPanel: FC = ({
     const tabs = [
         {
 			name : "Utilisateurs",
-			icon : <UsersRound size={60} color="#0272DA"/>,
-			color : "#0272DA",
+			icon : <UsersRound size={60}/>,
+			modifier : "users",
 			click : () => setTabSelected("Utilisateurs")
 		},
         {
 			name : "Rôles",
-			icon : <Drama size={60} color="#63B367"/>,
-			color : "#63B367",
+			icon : <Drama size={60}/>,
+			modifier : "roles",
 			click : () => setTabSelected("Rôles")
 		},
         {
 			name : "Permissions",
-			icon : <ListChecks size={60} color="#DA1F63"/>,
-			color : "#DA1F63",
+			icon : <ListChecks size={60}/>,
+			modifier : "permissions",
 			click : () => setTabSelected("Permissions")
 		},
         {
 			name : "Equipes",
-			icon : <MessagesSquare size={60} color="#444447"/>,
-			color : "#444447",
+			icon : <MessagesSquare size={60}/>,
+			modifier : "teams",
 			click : () => setTabSelected("Equipes")
 		},
     ]
@@ -115,41 +115,40 @@ export const AdminPanel: FC = ({
             !tabSelected ? (
                 <main id="adminPanel">
                     {/*<Typography className={styles.title} style={{fontSize: "40px", fontWeight: 800}}>Administration</Typography>*/}
-                    <h1 style={{fontSize: "40px", fontWeight: 800}}>Administration</h1>
-                    <div id="infosWrapper">
-                        <div style={{backgroundColor: "#DCFCE7", borderColor: "#47DA60"}} className="info">
-                            <div style={{backgroundColor: "#47DA60"}} className="icon">
+                    <h1>Administration</h1>
+                    <section id="infosWrapper">
+                        <article className="info info--users">
+                            <div className="icon icon--users">
                                 <UserRound size={30} color="white" />
                             </div>
                             {/*<p className={styles.emphasis}>{onlineUsers}</p>*/}
                             <p className="emphasis">4</p>
                             <p>utilisateur(s) connecté(s)</p>
-                        </div>
-                        <div style={{backgroundColor: "#F4E8FF", borderColor: "#BF82FE"}} className="info">
-                            <div style={{backgroundColor: "#BF82FE"}} className="icon">
+                        </article>
+                        <article className="info info--calls">
+                            <div className="icon icon--calls">
                                 <PhoneCall size={30} color="white" />
                             </div>
                             <p className="emphasis">6</p>
                             <p>appel(s) en cours</p>
-                        </div>
-                    </div>
-                    <div id="tabsWrapper">
+                        </article>
+                    </section>
+                    <nav id="tabsWrapper">
                         {
-                            tabs.map((tab, index) => 
+                            tabs.map((tab, index) =>
 
-                                <div 
-                                    key={index} 
-                                    className="tab" 
-                                    style={{borderColor: tab.color}}
+                                <button
+                                    key={index}
+                                    className={`tab tab--${tab.modifier}`}
                                     onClick={tab.click}
                                 >
                                     {tab.name}
                                     {tab.icon}
-                                    
-                                </div>
+
+                                </button>
                             )
                         }
-                    </div>
+                    </nav>
                 </main>
             ) : (
                     <AdminTabPanel tabSelected={tabSelected} setTabSelected={setTabSelected}/>

@@ -122,7 +122,9 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
         },
 	];
 
-	const tabDataSelected = tabsData.find(tab => tab.name === tabSelected)!;
+	const tabDataSelected = tabsData.find(tab => tab.name === tabSelected);
+
+	if (!tabDataSelected) return null;
 
   return (
 

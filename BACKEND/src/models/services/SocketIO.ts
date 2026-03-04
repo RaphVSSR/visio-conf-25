@@ -1,5 +1,5 @@
 import { Server } from "socket.io"
-import HTTPServer from "../core/HTTPServer.ts";
+import HTTPServer from "../Core/HTTPServer.ts";
 
 /**
  * Initialise le serveur Socket.io et expose l'instance pour le canal.

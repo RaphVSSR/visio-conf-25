@@ -13,3 +13,16 @@ ul {
 
 	list-style: none;
 }
+
+fieldset {
+
+	border: none;
+}
+
+dialog {
+
+	border: none;
+	background: none;
+	max-width: unset;
+	max-height: unset;
+}
