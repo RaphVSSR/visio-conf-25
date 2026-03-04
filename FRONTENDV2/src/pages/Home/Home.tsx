@@ -1,31 +1,42 @@
 import { FC, useContext, useEffect } from 'react';
 import { motion } from 'framer-motion'
-import { Search, Users } from 'lucide-react';
+import { LogOut, Search, Users } from 'lucide-react';
 import "./Home.scss";
 import { Dashboard } from 'components';
 import { SearchBar } from 'design-system/components';
 import { SessionContext } from 'contexts/SessionContext';
-import { Navigate } from 'react-router-dom';
-import { useSession } from 'core/AuthClient';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { AuthClient, useSession } from 'core/AuthClient';
 import { Socket } from 'socket.io-client';
 import Controller from 'core/Controller';
 
 export const Home: FC = () => {
 
     const session = useContext(SessionContext);
-    
+    const navigate = useNavigate();
+
     if (!session.currentUser) return <Navigate to={"/login"} replace/>;
+
+    const handleLogout = async () => {
+        await AuthClient.signOut();
+        navigate("/login");
+    };
 
     useEffect(() => {
 
         Controller.socketInit();
-        
+
     }, []);
 
     return (
         <main id='homePage'>
-                
-            <Dashboard/> 
+
+            <button id="logoutBtn" onClick={handleLogout}>
+                <LogOut size={18} />
+                <span>Deconnexion</span>
+            </button>
+
+            <Dashboard/>
 
             {/* Colonne des contacts */}
             <motion.section

@@ -1,12 +1,15 @@
-import React, { FC } from 'react'
+import React, { FC, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Activity, FileText, MessageSquare, PhoneCall, Users, Zap } from 'lucide-react'
 import "./Dashboard.scss"
 import { Button, Card } from 'design-system/components'
+import { ContactPickerModal } from 'components/call'
 
 export const Dashboard: FC = () => {
+  const [showContactPicker, setShowContactPicker] = useState(false)
+
   return (
-	
+	<>
 	<motion.section
 		id="homeDash"
 		initial={{ opacity: 0, y: 20 }}
@@ -44,8 +47,7 @@ export const Dashboard: FC = () => {
 		<aside id='dashQuickActions'>
 			<Button text='Nouvelle Discussion' icon='MessageSquare' iconPosition='left' iconSize={16}/>
 
-			{/*handleStartCall()*/}
-			<Button text='Démarrer un appel' icon='Video' iconPosition='left' iconSize={16}/>
+			<Button text='Démarrer un appel' icon='Video' iconPosition='left' iconSize={16} onClick={() => setShowContactPicker(true)}/>
 			{/*<a href="/files" className="dashQuickAction">
 				<FileUp size={16} />
 				<span>Partager un fichier</span>
@@ -150,5 +152,9 @@ export const Dashboard: FC = () => {
 		</motion.section>
 
 	</motion.section>
+
+	<ContactPickerModal isOpen={showContactPicker} onClose={() => setShowContactPicker(false)} />
+
+	</>
   )
 }

@@ -85,11 +85,15 @@ export default class RestService {
 
 		try {
 
-			const AuthRoutes = (await import("../../routes/AuthRoutes.ts")).default;
-						
+			const { toNodeHandler } = await import("better-auth/node");
+			const Auth = (await import("./Auth.ts")).default;
+
+			// BetterAuth must be mounted directly on the app (not via sub-router)
+			// so that req.url preserves the full path for basePath matching
+			this.server.all("/api/auth/*", toNodeHandler(Auth.betterAuthClient));
+
 			const coreRouter = Router();
 
-			coreRouter.use("/auth", AuthRoutes);
 			coreRouter.use("/files", FileRoutes);
 
 			this.server.use(process.env.API_BASE_PREFIX?.startsWith("/") ? process.env.API_BASE_PREFIX : "/", coreRouter);
@@ -97,7 +101,7 @@ export default class RestService {
 			if (process.env.VERBOSE === "true") console.log(`✅ Routes fully initialized\n`);
 
 		} catch (err: any) {
-			
+
 			throw new TracedError("restRoutesDef", err.message);
 
 		}

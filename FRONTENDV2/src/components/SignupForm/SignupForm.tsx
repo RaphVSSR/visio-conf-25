@@ -13,34 +13,37 @@ export const SignupForm = () => {
 	const navigate = useNavigate();
 	
 	useEffect(() => {
-		
+
 		signUpData.current && (async () => {
-			
+
 			await AuthClient.signUp.email({
 
 				email: signUpData.current!.email!,
 				password: signUpData.current!.password!,
 				name: signUpData.current!.firstname!,
-				//image, // User image URL (optional)
-				callbackURL: "/home" // A URL to redirect to after the user verifies their email (optional)
+				lastname: signUpData.current!.lastname!,
+				phone: signUpData.current!.phone!,
+				job: signUpData.current!.job || "",
+				desc: signUpData.current!.desc!,
+				callbackURL: "/home"
 
-			}, {
+			} as any, {
 				onRequest: (ctx) => {
 					//show loading
 				},
 				onSuccess: (ctx) => {
-					
+
 					navigate("/home", {replace: true});
 				},
 				onError: (ctx) => {
 
-					setIsLoading(!isLoading);
+					setIsLoading(false);
 					alert(ctx.error.message);
 				},
 			});
 
 		})()
-		
+
 	}, [signUpData.current])
 
 	function signUpSubmitting(event: FormEvent<HTMLFormElement>){

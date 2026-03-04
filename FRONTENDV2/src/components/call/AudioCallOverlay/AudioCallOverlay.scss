@@ -1,0 +1,157 @@
+@use "../../../design-system/scss/global.scss" as *;
+
+.callOverlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1500;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 16px;
+    min-width: 240px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    cursor: grab;
+    user-select: none;
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    .callOverlayHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .callStatus {
+            font-size: 14px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .minimizeBtn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+
+            &:hover {
+                color: #e2e8f0;
+            }
+        }
+    }
+
+    .callParticipants {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+        padding: 8px 0;
+    }
+
+    .callControls {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+
+        button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: background 0.2s ease, transform 0.2s ease;
+
+            &:hover {
+                transform: scale(1.05);
+            }
+        }
+
+        .controlBtn {
+            background: #334155;
+
+            &:hover {
+                background: #475569;
+            }
+
+            &.muted {
+                background: #ef4444;
+            }
+        }
+
+        .hangupBtn {
+            background: #ef4444;
+
+            &:hover {
+                background: #dc2626;
+            }
+        }
+    }
+}
+
+.callOverlayMinimized {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1500;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    cursor: grab;
+    user-select: none;
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    .miniInfo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #e2e8f0;
+        font-size: 13px;
+
+        .participantCount {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #94a3b8;
+        }
+    }
+
+    .expandBtn {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+
+        &:hover {
+            color: #e2e8f0;
+        }
+    }
+}

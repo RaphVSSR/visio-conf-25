@@ -1,5 +1,8 @@
-
-import ewpress, { type Request, type Response, type NextFunction } from "express"
+import ewpress, {
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
 //import jwt from "jsonwebtoken"
 
 import { betterAuth, type Auth as BetterAuthClient } from "better-auth";
@@ -11,130 +14,108 @@ import { admin } from "better-auth/plugins";
 import { createAccessControl } from "better-auth/plugins/access";
 import { adminAc, defaultStatements } from "better-auth/plugins/admin/access";
 
-
 export default class Auth {
+  static mongoClient: MongoClient = new MongoClient(process.env.MONGO_URI!);
+  static betterAuthClient: BetterAuthClient;
+  private static accessController: ReturnType<typeof createAccessControl>;
 
-	static mongoClient: MongoClient = new MongoClient(process.env.MONGO_URI!);
-	static betterAuthClient: BetterAuthClient;
-	private static accessController: ReturnType<typeof createAccessControl>;
+  static async init() {
+    await this.mongoClient.connect();
 
-	static async init(){
+    this.defAccessController();
 
-		await this.mongoClient.connect();
+    this.betterAuthClient = betterAuth({
+      database: mongodbAdapter(this.mongoClient.db("visioconf")),
+      trustedOrigins: ["http://localhost:3000"],
+      emailAndPassword: {
+        enabled: true,
+      },
 
-		this.defAccessController();
+      plugins: [
+        admin({
+          ac: this.accessController,
+          defaultRole: "user",
+          adminRole: "admin",
+          roles: this.defNewRoles(),
+        }),
+      ],
 
-		this.betterAuthClient = betterAuth({
-  
-			database: mongodbAdapter(this.mongoClient.db("visioconf")),
-			trustedOrigins: ["http://localhost:3000"],
-			emailAndPassword: { 
-				enabled: true, 
-			}, 
+      user: {
+        modelName: "users",
+        fields: {
+          name: "firstname",
+        },
+        additionalFields: User.betterAuthSchema,
+      },
+    });
+  }
 
-			plugins: [
+  private static defAccessController() {
+    this.accessController = createAccessControl(this.defPerms());
+  }
 
-				admin({
+  private static defPerms() {
+    return {
+      ...defaultStatements,
+      teams: ["list", "create", "modify", "delete"],
+      messages: ["send"],
+      discussions: ["list", "create", "history", "details"],
+      notifications: ["get", "update"],
+      status: ["change"],
+      profile: ["update", "avatar"],
+      calls: ["recieve", "create", "hangUp", "listUsers"],
+    };
+  }
 
-					ac: this.accessController,
-					defaultRole: "user",
-  					adminRole: "admin",
-					roles: this.defNewRoles()
+  private static defNewRoles() {
+    const admin = this.accessController.newRole({
+      ...adminAc.statements,
+      teams: ["list", "create", "modify", "delete"],
+      messages: ["send"],
+      discussions: ["list", "create", "history", "details"],
+      notifications: ["get", "update"],
+      status: ["change"],
+      profile: ["update", "avatar"],
+      calls: ["recieve", "create", "hangUp", "listUsers"],
+    });
 
-				}),
-			],
+    return { admin };
+  }
 
-			user: {
+  static async injectAdminUser() {
+    try {
+      const existingAdmin = await this.mongoClient
+        .db("visioconf")
+        .collection("users")
+        .findOne({ email: "dev@visioconf.com" });
 
-				modelName: "users",
-				fields: {
-					name: "firstname",
-				},
-				additionalFields: User.betterAuthSchema,
-			}
+      if (existingAdmin) return;
 
-		});
+      //@ts-ignore
+      await this.betterAuthClient.api.createUser({
+        body: {
+          name: "Dev",
+          email: "dev@visioconf.com",
+          password: "d3vV1s10C0nf",
+          role: "admin",
+          data: {
+            phone: "06 42 58 66 95",
+            desc: "Admin de la plateforme",
+          },
+        },
+      });
+    } catch (err: any) {
+      console.log(err);
+      throw new Error("The admin creation failed", { cause: err });
+    }
+  }
 
-	}
-
-	private static defAccessController(){
-
-		this.accessController = createAccessControl(this.defPerms());
-	}
-
-	private static defPerms(){
-
-		return {
-
-			...defaultStatements,
-			teams: ["list", "create", "modify", "delete"],
-			messages: ["send"],
-			discussions: ["list", "create", "history", "details"],
-			notifications: ["get", "update"],
-			status: ["change"],
-			profile: ["update", "avatar"],
-			calls: ["recieve", "create", "hangUp", "listUsers"],
-
-		}
-
-	}
-
-	private static defNewRoles(){
-
-		const admin = this.accessController.newRole({
-
-			...adminAc.statements,
-			teams: ["list", "create", "modify", "delete"],
-			messages: ["send"],
-			discussions: ["list", "create", "history", "details"],
-			notifications: ["get", "update"],
-			status: ["change"],
-			profile: ["update", "avatar"],
-			calls: ["recieve", "create", "hangUp", "listUsers"],
-		});
-
-		return { admin };
-	}
-
-	static async injectAdminUser(){
-
-		try {
-			
-			//@ts-ignore
-			await this.betterAuthClient.api.createUser({
-	
-				body: {
-	
-					name: "Dev",
-					email: "dev@visioconf.com",
-					password: "d3vV1s10C0nf",
-					role: "admin",
-					data: {
-
-						phone:"06 42 58 66 95",
-						desc: "Admin de la plateforme"
-		
-					}
-	
-				}
-			})
-
-		} catch (err: any) {
-
-			console.log(err);
-			throw new Error("The admin creation failed", {cause: err});
-		}
-
-	}
-
-	static async flushAll(){
-
-		await User.flushAll();
-		await this.mongoClient.db().collection("account").deleteMany({});
-		await this.mongoClient.db().collection("session").deleteMany({});
-	}
+  static async flushAll() {
+    await User.flushAll();
+    await this.mongoClient.db().collection("account").deleteMany({});
+    await this.mongoClient.db().collection("session").deleteMany({});
+  }
 }
-
 
 //export default async function autenticateToken(req: Request, res: Response, next: NextFunction){
 
@@ -146,11 +127,11 @@ export default class Auth {
 //		if (req.headers.cookie){
 
 //			const cookies = req.headers.cookie.split(";").reduce((acc, cookie) => {
-	
+
 //				const [key, value] = cookie.trim().split("=");
 //				acc[key] = value;
 //				return acc;
-	
+
 //			}, {})
 
 //			//token = cookies.token;
@@ -160,28 +141,28 @@ export default class Auth {
 //			return res.status(401).json({ error: "Access token required" })
 
 //		}
-		
+
 //	}
 
 //	try {
-		
+
 //		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
 //		const user = await User.findById(decoded.userId);
 
 //		if (user) {
-			
+
 //			req.user = user;
 //			next();
 
 //		}else {
-			
+
 //			return res.status(401).json({ error: "User not found" });
 
 //		};
 
 //	} catch (error) {
-		
+
 //		return res.status(403).json({ error: "Invalid token" });
 
 //	}
