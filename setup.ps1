@@ -218,18 +218,18 @@ function Invoke-Compose {
             # Backend - Installation des dependances
             Write-Color ">> Installation des dependances du backend..." Yellow
             Set-Location BACKEND
-            if (!(Test-Path ".env") -and (Test-Path ".env.example")) {
-                Copy-Item ".env.example" ".env.local"
-                Write-Color "V Fichier .env.local cree depuis .env.example" Green
+            if (!(Test-Path ".env") -and (Test-Path ".env.template")) {
+                Copy-Item ".env.template" ".env.local"
+                Write-Color "V Fichier .env.local cree depuis .env.template" Green
             }
             npm install
 
             # Frontend - Installation des dependances
             Write-Color ">> Installation des dependances du frontend..." Yellow
             Set-Location ../FRONTENDV2
-            if (!(Test-Path ".env.local") -and (Test-Path ".env.example")) {
-                Copy-Item ".env.example" ".env.local"
-                Write-Color "V Fichier .env.local cree depuis .env.example" Green
+            if (!(Test-Path ".env.local") -and (Test-Path ".env.template")) {
+                Copy-Item ".env.template" ".env.local"
+                Write-Color "V Fichier .env.local cree depuis .env.template" Green
             }
             npm install
 

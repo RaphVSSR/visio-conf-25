@@ -36,7 +36,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
-# Keep .env.example for documentation
+# Keep .env.template for documentation
 
 # vercel
 .vercel

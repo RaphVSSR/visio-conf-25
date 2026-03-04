@@ -158,18 +158,18 @@ while true; do
             # Backend
             write_color ">> Installation des dependances du backend..." YELLOW
             cd BACKEND || exit 1
-            if [ ! -f .env.local ] && [ -f .env.example ]; then
-                cp .env.example .env.local
-                write_color "V Fichier .env.local cree depuis .env.example" GREEN
+            if [ ! -f .env.local ] && [ -f .env.template ]; then
+                cp .env.template .env.local
+                write_color "V Fichier .env.local cree depuis .env.template" GREEN
             fi
             npm install
 
             # Frontend
             write_color ">> Installation des dependances du frontend..." YELLOW
             cd ../FRONTENDV2 || exit 1
-            if [ ! -f .env.local ] && [ -f .env.example ]; then
-                cp .env.example .env.local
-                write_color "V Fichier .env.local cree depuis .env.example" GREEN
+            if [ ! -f .env.local ] && [ -f .env.template ]; then
+                cp .env.template .env.local
+                write_color "V Fichier .env.local cree depuis .env.template" GREEN
             fi
             npm install
 

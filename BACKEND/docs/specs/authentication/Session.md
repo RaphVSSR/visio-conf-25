@@ -58,7 +58,7 @@
 
 ## 5. Catalogue des messages associés
 
-La Session n'a pas de messages propres. Elle est utilisée indirectement par `AuthService` pour les messages d'authentification (voir `BACKEND/docs/specs/AuthService.md` et `BACKEND/docs/auth-messages.md`).
+La Session n'a pas de messages propres. Elle est utilisée indirectement par `AuthService` pour les messages d'authentification (voir `BACKEND/docs/specs/authentication/AuthService.md`).
 
 ---
 

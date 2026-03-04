@@ -13,7 +13,7 @@
 
 #Environement
 .env*
-!.env.example
+!.env.template
 .gitkeep
 
 # misc

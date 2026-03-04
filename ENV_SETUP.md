@@ -4,7 +4,7 @@
 
 ### Structure des fichiers
 
--   **`.env.example`** - Template avec toutes les variables nécessaires (committé dans git)
+-   **`.env.template`** - Template avec toutes les variables nécessaires (committé dans git)
 -   **`.env.local`** - Configuration locale de développement (ignoré par git)
 -   **`.env.development`** - Configuration pour l'environnement de développement
 -   **`.env.production`** - Configuration pour l'environnement de production
@@ -24,10 +24,10 @@ NEXT_PUBLIC_PROFILE_PICTURES_URL=http://localhost:3220/api/files/profile
 
 ### Configuration pour le développement
 
-1. Copiez `.env.example` vers `.env.local` :
+1. Copiez `.env.template` vers `.env.local` :
 
     ```bash
-    cp .env.example .env.local
+    cp .env.template .env.local
     ```
 
 2. Modifiez les valeurs dans `.env.local` selon votre configuration locale
@@ -71,10 +71,10 @@ PROFILE_PICTURES_URL=http://localhost:3220/api/files/profile
 
 ### Configuration pour le développement
 
-1. Copiez `.env.example` vers `.env` :
+1. Copiez `.env.template` vers `.env` :
 
     ```bash
-    cp .env.example .env
+    cp .env.template .env
     ```
 
 2. Modifiez les valeurs selon votre configuration

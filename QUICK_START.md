@@ -82,7 +82,7 @@ docker exec -it backend node initDb.js
 ```bash
 cd BACKEND
 npm install
-cp .env.example .env
+cp .env.template .env
 npm start
 ```
 
@@ -91,7 +91,7 @@ npm start
 ```bash
 cd FRONTEND
 npm install
-cp .env.example .env.local
+cp .env.template .env.local
 npm run dev
 ```
 

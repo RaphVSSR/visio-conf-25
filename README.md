@@ -102,7 +102,7 @@ cd visio-conf-25
 ```bash
 cd BACKEND
 npm install
-cp .env.example .env
+cp .env.template .env
 # Éditer le fichier .env selon vos besoins
 ```
 
@@ -111,7 +111,7 @@ cp .env.example .env
 ```bash
 cd ../FRONTENDV2
 npm install
-cp .env.example .env.local
+cp .env.template .env.local
 # Le fichier .env.local sera ignoré par git
 ```
 
