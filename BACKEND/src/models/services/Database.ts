@@ -1,8 +1,7 @@
-
-import mongoose, { connect, disconnect, type ConnectOptions } from "mongoose"
+import mongoose, { connect, disconnect, type ConnectOptions } from "mongoose";
 import path from "path";
-import { fileURLToPath } from "url"
-import fs from "fs"
+import { fileURLToPath } from "url";
+import fs from "fs";
 import User from "../User.ts";
 import TracedError from "../Core/TracedError.ts";
 import FileSystem, { Folder } from "./FileSystem.ts";
@@ -18,15 +17,17 @@ import Role from "../Role.ts";
 import Session from "./authentication/Session.ts";
 import { sha256 } from "js-sha256";
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default class Database {
+  static async init() {
+    if (process.env.VERBOSE === "true")
+      console.group("⚙️ Processing Database..");
 
-	static async init(){
+    await this.connect();
 
-		if (process.env.VERBOSE === "true") console.group("⚙️ Processing Database..");
+    await Auth.init();
 
 		await this.connect();
 
@@ -45,9 +46,14 @@ export default class Database {
 
 	}
 
-	private static async connect(){
+  private static async connect() {
+    if (!process.env.MONGO_URI)
+      throw new TracedError("dbConnect", "Connection URI is missing..");
 
-		if (!process.env.MONGO_URI) throw new TracedError("dbConnect", "Connection URI is missing..");
+    const mongoOptions: ConnectOptions = {
+      user: process.env.MONGO_USER,
+      pass: process.env.MONGO_PASSWORD,
+    };
 
 		const mongoOptions: ConnectOptions = { user: process.env.MONGO_USER, pass: process.env.MONGO_PASSWORD };
 
@@ -57,15 +63,35 @@ export default class Database {
 
 			if (process.env.VERBOSE === "true") console.log("✅ Connection succeed");
 
+      if (process.env.VERBOSE === "true") console.log("✅ Connection succeed");
+    } catch (err: any) {
+      throw new TracedError("dbConnect", err.message);
+    }
+  }
 
 		} catch (err: any) {
 
 			throw new TracedError("dbConnect", err.message);
 		}
 
-	}
+      await Auth.flushAll();
+      await Folder.flushAll();
+      await Role.flushAll();
+      await Permission.flushAll();
+      await Discussion.flushAll();
+      await TeamMember.flushAll();
+      await Team.flushAll();
+      await ChannelPost.flushAll();
+      await ChannelPostResponse.flushAll();
+      await ChannelMember.flushAll();
+      await Channel.flushAll();
 
-	private static async flushDb(){
+      if (process.env.VERBOSE === "true")
+        console.log("✅ DB flushed successfully");
+    } catch (err: any) {
+      throw new TracedError("dbFlushing", err.message);
+    }
+  }
 
 		try {
 
@@ -84,7 +110,12 @@ export default class Database {
 			await Channel.flushAll();
 			await User.model.deleteMany({});
 
-			if (process.env.VERBOSE === "true") console.log("✅ DB flushed successfully");
+  private static verifyUploadsEnvIntegrity() {
+    try {
+      if (!fs.existsSync(FileSystem.uploadsDir))
+        fs.mkdirSync(FileSystem.uploadsDir, { recursive: true });
+      if (!fs.existsSync(FileSystem.filesDir))
+        fs.mkdirSync(FileSystem.filesDir, { recursive: true });
 
 		} catch (err: any) {
 
@@ -128,7 +159,7 @@ export default class Database {
 
 	private static async prepareProjectEnv(){
 
-		this.verifyUploadsEnvIntegrity();
+  //	if (!users) return console.error("Utilisateurs manquants");
 
 		try {
 

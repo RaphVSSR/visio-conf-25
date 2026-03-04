@@ -12,6 +12,8 @@ import "./Dashboard.scss";
 import { Button, Card } from "design-system/components";
 
 export const Dashboard: FC = () => {
+  const [showContactPicker, setShowContactPicker] = useState(false);
+
   return (
     <motion.section
       id="homeDash"

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(find \"C:\\\\Users\\\\RESSE\\\\Documents\\\\visio-conf-25-main\\\\BACKEND\\\\src\" -name \"*.ts\" | xargs grep -l \"socket\\\\|Socket\" | head -10)"
+    ]
+  },
+  "outputStyle": "Explanatory"
+}

@@ -28,8 +28,112 @@ export type UserType = {
 }
 
 export default class User {
+  protected static schema = new Schema<UserType>({
+    socket_id: { type: String, default: "none" },
+    firstname: { type: String, required: true },
+    lastname: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String, required: true },
+    status: {
+      type: String,
+      required: true,
+      default: "waiting",
+      enum: ["waiting", "active", "banned", "deleted"],
+      description:
+        "Choose user status between : waiting, active, banned, deleted",
+    },
+    password: { type: String, required: true, description: "SHA256" },
+    job: {
+      type: String,
+      //required: true,
+      description: "Job description",
+    },
+    desc: {
+      type: String,
+      required: true,
+      description: "User description",
+    },
+    date_created: { type: Date, required: true, default: Date.now },
+    picture: {
+      type: String,
+      required: true,
+      default: "default_profile_picture.png",
+    },
+    is_online: { type: Boolean, required: true, default: false },
+    disturb_status: {
+      type: String,
+      required: true,
+      default: "available",
+      enum: ["available", "offline", "dnd"],
+      description: "Choose user status between : available, offline, dnd",
+    },
+    last_connection: { type: Date, required: true, default: Date.now },
+    direct_manager: {
+      type: String,
+      required: true,
+      default: "none",
+      description: "User uuid of the direct manager",
+    },
+    //tokens: { type: Object, default: {} },
+    roles: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Role",
+        default: "user",
+        description: `List of roles id created by admin in the roles collection`,
+      },
+    ],
+  });
 
-    protected static schema = new Schema<UserType>({
+  static betterAuthSchema = {
+    socket_id: {
+      type: "string" as const,
+      required: false,
+      defaultValue: "none",
+    },
+    lastname: { type: "string" as const, required: false, input: true },
+    phone: { type: "string" as const, required: true, input: true },
+    status: {
+      type: "string" as const,
+      required: true,
+      defaultValue: "waiting",
+    },
+    job: {
+      type: "string" as const,
+      required: false,
+      input: true,
+    },
+    desc: {
+      type: "string" as const,
+      required: true,
+      input: true,
+    },
+    picture: {
+      type: "string" as const,
+      required: false,
+      defaultValue: "default_profile_picture.png",
+    },
+    is_online: {
+      type: "boolean" as const,
+      required: true,
+      defaultValue: false,
+    },
+    disturb_status: {
+      type: "string" as const,
+      required: true,
+      defaultValue: "available",
+    },
+    last_connection: {
+      type: "date" as const,
+      required: true,
+      defaultValue: Date.now,
+    },
+    direct_manager: {
+      type: "string" as const,
+      required: true,
+      defaultValue: "none",
+    },
+  };
 
         socket_id: { type: String, default: "none" },
         firstname: { type: String, required: true },
