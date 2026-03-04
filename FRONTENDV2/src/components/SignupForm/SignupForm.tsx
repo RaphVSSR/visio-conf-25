@@ -1,66 +1,47 @@
 import { Eye, EyeOff } from 'lucide-react'
-import React, { FormEvent, useEffect, useRef, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import React, { FormEvent, useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom';
 import "./SignupForm.scss"
-import { AuthClient } from 'core/AuthClient';
+import { useAuth } from 'hooks/useAuthMessages';
 
+/**
+ * Formulaire d'inscription.
+ * Utilise le contrôleur pour envoyer le message `register` via Socket.io.
+ */
 export const SignupForm = () => {
 
 	const [showPwd, setShowPwd] = useState<boolean>(false);
-	const [isLoading, setIsLoading] = useState<boolean>(false);
-
-	const signUpData = useRef<{ [key: string]: string } | null>(null);
+	const { register, isLoading, isAuthenticated } = useAuth();
 	const navigate = useNavigate();
-	
+
 	useEffect(() => {
-		
-		signUpData.current && (async () => {
-			
-			await AuthClient.signUp.email({
+		if (isAuthenticated) navigate("/home", { replace: true })
+	}, [isAuthenticated, navigate])
 
-				email: signUpData.current!.email!,
-				password: signUpData.current!.password!,
-				name: signUpData.current!.firstname!,
-				//image, // User image URL (optional)
-				callbackURL: "/home" // A URL to redirect to after the user verifies their email (optional)
-
-			}, {
-				onRequest: (ctx) => {
-					//show loading
-				},
-				onSuccess: (ctx) => {
-					
-					navigate("/home", {replace: true});
-				},
-				onError: (ctx) => {
-
-					setIsLoading(!isLoading);
-					alert(ctx.error.message);
-				},
-			});
-
-		})()
-		
-	}, [signUpData.current])
-
-	function signUpSubmitting(event: FormEvent<HTMLFormElement>){
+	function handleSubmit(event: FormEvent<HTMLFormElement>) {
 
 		event.preventDefault();
 
 		const form = event.currentTarget;
+		if (!form.checkValidity()) {
+			form.reportValidity();
+			return;
+		}
+
 		const formData = new FormData(form);
 
-		!form.checkValidity() ? form.reportValidity() : setIsLoading(!isLoading);
-
-		signUpData.current = Object.fromEntries(formData.entries()) as { [key: string]: string };
-
+		register({
+			email: formData.get("email") as string,
+			password: formData.get("password") as string,
+			firstname: formData.get("firstname") as string,
+			lastname: formData.get("lastname") as string,
+			phone: formData.get("phone") as string,
+		});
 	}
 
 	return (
 
-        <form id="signupForm" onSubmit={signUpSubmitting}>
-
-            {/*{error && <div className={styles.error}>{error}</div>}*/}
+        <form id="signupForm" onSubmit={handleSubmit}>
 
 			<img
                 src="logos/logo_univ_grand.svg"
@@ -87,10 +68,6 @@ export const SignupForm = () => {
 				</div>
 
 				<input id="phone" name="phone" type="tel" placeholder='Téléphone' required/>
-
-				<input id="job" name="job" type="text" placeholder="Activité" required/>
-
-				<input id="desc" name="desc" type="text" placeholder='Description du compte' required/>
 
 			</div>
 

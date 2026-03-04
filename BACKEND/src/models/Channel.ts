@@ -263,9 +263,10 @@ export default class Channel extends Collection {
             }
 
         } catch (err: any) {
-            
+
             console.trace(err);
             throw new Error(err.message);
         }
     }
+
 }

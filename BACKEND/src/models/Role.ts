@@ -39,7 +39,6 @@ export default class Role extends Collection {
             required: true,
             default: false 
         },
-        //TODO: have to implement default permissions for default role user
     });
     
     static model: Model<RoleType> = models.Role || model<RoleType>("Role", this.schema);
@@ -67,7 +66,7 @@ export default class Role extends Collection {
             {
                 uuid: "admin",
                 label: "Administrateur",
-                permissions: (await Permission.model.find({default: true}, {_id: 1}).lean()).map(permObj => permObj._id),
+                permissions: (await Permission.model.find({}, {_id: 1}).lean()).map(permObj => permObj._id),
                 default: true,
             },
             {
@@ -146,7 +145,8 @@ export default class Role extends Collection {
     }
 
     static async flushAll() {
-            
+
         return this.model.deleteMany({});
     }
+
 }

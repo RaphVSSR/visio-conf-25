@@ -1,5 +1,5 @@
 import mongoose, { model, Schema, type Document, type HydratedDocument, type Model, type Types } from "mongoose";
-import { v4 as uuidv4 } from "uuid"
+import crypto from "crypto"
 import Collection from "../core/Collection.ts";
 import TracedError from "../core/TracedError.ts";
 import path from "path";
@@ -396,7 +396,7 @@ export default class FileSystem {
 			destination: (req, file, integrityStatus) => {
 
 				const userId = req.user.uuid;
-				const fileId = req.body.fileId || uuidv4();
+				const fileId = req.body.fileId || crypto.randomUUID();
 
 				//req.fileId = fileId // Store for later use
 		

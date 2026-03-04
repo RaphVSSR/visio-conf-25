@@ -1,26 +1,20 @@
-import { SessionContext } from 'contexts/SessionContext';
+import { AuthProvider } from 'contexts/AuthContext';
 import { AdminPanel, Home, Login, Signup } from 'pages';
-import React, { useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import React from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { UserAuth } from 'routing/UserAuth';
-import { useSession } from './AuthClient';
+import { AdminAuth } from 'routing/AdminAuth';
+import { SessionExpiryModal, SessionPendingModal } from 'components/SessionExpiryModal';
 
+/**
+ * Composant racine de l'application.
+ * Enveloppe l'app dans AuthProvider et définit les routes.
+ */
 export const App = () => {
-
-	const [theme, setTheme] = useState<"light" | "dark">("light");
-	const [isLoading, setIsLoading]= useState<boolean>(true);
-	const session = useSession();
-
-	useEffect(() => {
-
-		session.isPending === false && setIsLoading(false);
-
-	}, [session])
-
 
 	return (
 
-		<SessionContext.Provider value={{currentUser: session, theme, setTheme, isLoading}}>
+		<AuthProvider>
 
 			<BrowserRouter>
 
@@ -28,10 +22,12 @@ export const App = () => {
 
 					<Route element={ <UserAuth/> }>
 
-						<Route path="/" element={ <Home /> }/>
+						<Route path="/" element={ <Navigate to="/home" replace /> }/>
 						<Route path="/home" element={ <Home /> }/>
+						<Route element={ <AdminAuth /> }>
 						<Route path='/admin' element={ <AdminPanel /> } />
-					
+					</Route>
+
 					</Route>
 					<Route path="/login" element={ <Login /> }/>
 					<Route path='/signup' element={ <Signup /> } />
@@ -40,7 +36,10 @@ export const App = () => {
 
 			</BrowserRouter>
 
-		</SessionContext.Provider>
+			<SessionExpiryModal />
+			<SessionPendingModal />
+
+		</AuthProvider>
 
 	)
 }
