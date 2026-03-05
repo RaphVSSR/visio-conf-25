@@ -75,38 +75,38 @@ new AuthService(controleur, "AuthService",
 
 ### Client → Serveur (6 messages)
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `authenticate` | `{ sessionId: string }` | Vérifie si la session est encore active (reconnexion) |
-| `login` | `{ email: string, password: string, deviceInfo: string }` | Connexion avec identifiants |
-| `register` | `{ password: string, firstname: string, lastname: string, email: string, phone: string }` | Création de compte |
-| `user_disconnect` | `{}` | Déconnexion volontaire |
-| `session_refresh` | `{}` | Demande de prolongation de session |
-| `session_pending_choice` | `{ requestId: string, accepted: boolean }` | Réponse à une demande d'approbation multi-session |
+| Message | Payload | Description | Exemple |
+|---------|---------|-------------|---------|
+| `authenticate` | `{ sessionId: string }` | Vérifie si la session est encore active (reconnexion) | `{ authenticate: { sessionId: "67a1b2c3d4e5f6a7b8c9d0e1" }, id: "xK9mP2..." }` |
+| `login` | `{ email: string, password: string, deviceInfo: string }` | Connexion avec identifiants | `{ login: { email: "dev@visioconf.com", password: "a1b2c3...", deviceInfo: "Mozilla/5.0..." }, id: "xK9mP2..." }` |
+| `register` | `{ password: string, firstname: string, lastname: string, email: string, phone: string }` | Création de compte | `{ register: { password: "mdp", firstname: "Jean", lastname: "Dupont", email: "jean@example.com", phone: "0612345678" }, id: "xK9mP2..." }` |
+| `user_disconnect` | `{}` | Déconnexion volontaire | `{ user_disconnect: {}, id: "xK9mP2..." }` |
+| `session_refresh` | `{}` | Demande de prolongation de session | `{ session_refresh: {}, id: "xK9mP2..." }` |
+| `session_pending_choice` | `{ requestId: string, accepted: boolean }` | Réponse à une demande d'approbation multi-session | `{ session_pending_choice: { requestId: "f47ac10b-...", accepted: true }, id: "xK9mP2..." }` |
 
 ### Serveur → Client (12 messages)
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `auth_success` | `{ user: User, expiresAt: number }` | Reconnexion réussie |
-| `auth_failure` | `{ reason: string }` | Reconnexion échouée (`"session_id_required"`, `"session_no_longer_exists"`, `"session_expired"`, `"user_not_found"`, `"not_authenticated"`) |
-| `login_success` | `{ user: User, expiresAt: number, sessionId: string }` | Connexion réussie |
-| `login_failure` | `{ reason: string }` | Connexion échouée (`"user_not_found"`, `"wrong_password"`, `"rejected"`, `"timeout"`) |
-| `login_pending` | `{ requestId: string }` | En attente d'approbation multi-session |
-| `registration_success` | `{ user: User, expiresAt: number, sessionId: string }` | Inscription réussie |
-| `registration_failure` | `{ reason: string }` | Inscription échouée (`"email_already_exists"` ou message d'erreur) |
-| `user_disconnect_success` | `{}` | Déconnexion confirmée |
-| `session_refreshed` | `{ expiresAt: number }` | Session prolongée avec succès |
-| `session_expired` | `{}` | Réponse à `session_refresh` quand la session n'existe plus |
-| `session_pending` | `{ requestId: string, deviceInfo: string, requesterInfo: string }` | Nouvelle connexion nécessite approbation |
-| `session_pending_accepted` | `{ requestId: string }` | Approbation accordée (notification toast) |
-| `session_pending_rejected` | `{ requestId: string }` | Approbation refusée (notification toast) |
+| Message | Payload | Description | Exemple |
+|---------|---------|-------------|---------|
+| `auth_success` | `{ user: User, expiresAt: number }` | Reconnexion réussie | `{ auth_success: { user: { _id: "67a1...", firstname: "Admin", ... }, expiresAt: 1709312400000 }, id: ["xK9mP2..."] }` |
+| `auth_failure` | `{ reason: string }` | Reconnexion échouée (`"session_id_required"`, `"session_no_longer_exists"`, `"session_expired"`, `"user_not_found"`, `"not_authenticated"`) | `{ auth_failure: { reason: "session_no_longer_exists" }, id: ["xK9mP2..."] }` |
+| `login_success` | `{ user: User, expiresAt: number, sessionId: string }` | Connexion réussie | `{ login_success: { user: { _id: "67a1...", firstname: "Admin", ... }, expiresAt: 1709312400000, sessionId: "67b2c3d4..." }, id: ["xK9mP2..."] }` |
+| `login_failure` | `{ reason: string }` | Connexion échouée (`"user_not_found"`, `"wrong_password"`, `"rejected"`, `"timeout"`) | `{ login_failure: { reason: "wrong_password" }, id: ["xK9mP2..."] }` |
+| `login_pending` | `{ requestId: string }` | En attente d'approbation multi-session | `{ login_pending: { requestId: "f47ac10b-..." }, id: ["xK9mP2..."] }` |
+| `registration_success` | `{ user: User, expiresAt: number, sessionId: string }` | Inscription réussie | `{ registration_success: { user: { _id: "67c3...", firstname: "Jean", ... }, expiresAt: 1709312400000, sessionId: "67d4e5f6..." }, id: ["xK9mP2..."] }` |
+| `registration_failure` | `{ reason: string }` | Inscription échouée (`"email_already_exists"` ou message d'erreur) | `{ registration_failure: { reason: "email_already_exists" }, id: ["xK9mP2..."] }` |
+| `user_disconnect_success` | `{}` | Déconnexion confirmée | `{ user_disconnect_success: {}, id: ["xK9mP2..."] }` |
+| `session_refreshed` | `{ expiresAt: number }` | Session prolongée avec succès | `{ session_refreshed: { expiresAt: 1709398800000 }, id: ["xK9mP2..."] }` |
+| `session_expired` | `{}` | Réponse à `session_refresh` quand la session n'existe plus | `{ session_expired: {}, id: ["xK9mP2..."] }` |
+| `session_pending` | `{ requestId: string, deviceInfo: string, requesterInfo: string }` | Nouvelle connexion nécessite approbation | `{ session_pending: { requestId: "f47ac10b-...", deviceInfo: "Chrome sur Windows", requesterInfo: "Jean Dupont" }, id: ["aB3nQ7..."] }` |
+| `session_pending_accepted` | `{ requestId: string }` | Approbation accordée (notification toast) | `{ session_pending_accepted: { requestId: "f47ac10b-..." }, id: ["aB3nQ7..."] }` |
+| `session_pending_rejected` | `{ requestId: string }` | Approbation refusée (notification toast) | `{ session_pending_rejected: { requestId: "f47ac10b-..." }, id: ["aB3nQ7..."] }` |
 
 ### Interne (1 message)
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `client_deconnexion` | `string` (socketId) | Déclenché automatiquement quand un socket se déconnecte |
+| Message | Payload | Description | Exemple |
+|---------|---------|-------------|---------|
+| `client_deconnexion` | `string` (socketId) | Déclenché automatiquement quand un socket se déconnecte | `{ client_deconnexion: "xK9mP2...", id: "canalsocketio" }` |
 
 ### Dispatch (traitementMessage)
 

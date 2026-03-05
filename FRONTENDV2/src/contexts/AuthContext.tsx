@@ -1,10 +1,10 @@
 import React, { createContext, useEffect, useState, useRef, type FC, type PropsWithChildren } from "react"
 import Controleur from "Controller/controleur.js"
 import { SocketIO } from "services/SocketIO"
-import { AuthService } from "services/auth/AuthService"
-import type { AuthState, AuthContextType } from "services/auth/AuthService.types"
+import { AuthSync } from "services/auth/AuthSync"
+import type { AuthState, AuthContextType } from "services/auth/AuthSync.types"
 
-export type { AuthUser, PendingSessionRequest, AuthState, AuthActions, AuthContextType } from "services/auth/AuthService.types"
+export type { AuthUser, PendingSessionRequest, AuthState, AuthActions, AuthContextType } from "services/auth/AuthSync.types"
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
@@ -23,14 +23,14 @@ const INITIAL_STATE: AuthState = {
 export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
 	const [state, setState] = useState<AuthState>(INITIAL_STATE)
-	const authRef = useRef<AuthService | null>(null)
+	const authRef = useRef<AuthSync | null>(null)
 
 	useEffect(() => {
 		const controleur = new Controleur()
 		controleur.verboseall = process.env.REACT_APP_VERBOSE === "true" && Number(process.env.REACT_APP_VERBOSE_LVL) >= 3
 
 		SocketIO.init(controleur)
-		authRef.current = new AuthService(controleur, setState)
+		authRef.current = new AuthSync(controleur, setState)
 
 		return () => {
 			authRef.current?.destroy()
