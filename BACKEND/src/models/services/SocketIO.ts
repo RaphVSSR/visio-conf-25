@@ -46,6 +46,10 @@ export default class SocketIO {
         }
       });
 
+		CallSignaling.init(this.server);
+		this.defListeners();
+	}
+
       socket.on("authenticate:session", (userId: string) => {
         if (typeof userId === "string" && userId.length > 0) {
           socket.data.userId = userId;
