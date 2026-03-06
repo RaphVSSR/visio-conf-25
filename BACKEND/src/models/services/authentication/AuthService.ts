@@ -2,8 +2,8 @@ import crypto from "crypto"
 import { sha256 } from "js-sha256"
 import User from "../../User.ts"
 import Session from "./Session.ts"
-import { type Controller, type ControllerMessage } from "../../../Controller/Controller.types.ts"
-import { ControllerService } from "../../../Controller/Controller.service.ts"
+import { ControllerBinder, type ControllerMessage } from "../../../Controller/Controller.abstracts.ts"
+
 
 type PendingSessionRequest = {
 	socketId: string
@@ -13,7 +13,7 @@ type PendingSessionRequest = {
 	timeout: NodeJS.Timeout
 }
 
-export default class AuthService extends ControllerService {
+export default class AuthService extends ControllerBinder {
 
 	private pendingRequests = new Map<string, PendingSessionRequest>()
 

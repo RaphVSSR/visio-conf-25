@@ -3,7 +3,7 @@ import Database from "./models/services/Database.ts"
 import TracedError from "./models/Core/TracedError.ts";
 import HTTPServer from "./models/Core/HTTPServer.ts";
 import SocketIO from "./models/services/SocketIO.ts";
-import { init as initController } from "./Controller/Controller.abstracts.ts";
+import { ControllerManager } from "./Controller/Controller.abstracts.ts";
 
 dotenv.config();
 
@@ -22,7 +22,8 @@ try {
     await HTTPServer.init();
     SocketIO.init();
     
-    initController();
+    ControllerManager.createController();
+    ControllerManager.registerServices();
 
     HTTPServer.start();
 
