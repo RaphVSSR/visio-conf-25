@@ -222,9 +222,9 @@ export default class AuthService extends ControllerBinder {
 				id: [socketId],
 			})
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			this.controleur.envoie(this, { registration_failure: { reason: err.message }, id: [socketId] })
+			this.controleur.envoie(this, { registration_failure: { reason: error.message }, id: [socketId] })
 		}
 	}
 

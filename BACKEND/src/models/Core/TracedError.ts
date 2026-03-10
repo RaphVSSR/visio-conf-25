@@ -125,15 +125,15 @@ export default class TracedError extends Error {
 
 	}
 
-	static errorHandler(err: any){
+	static errorHandler(error: any){
 
-		if (err instanceof TracedError){
+		if (error instanceof TracedError){
 
-			console.error(err.message, err.reason ? `Reason: ${err.reason}\n` : "\n", err.stack + "\n");
+			console.error(error.message, error.reason ? `Reason: ${error.reason}\n` : "\n", error.stack + "\n");
 
 		}else {
-	
-			console.trace(`❌ Unknown error `, err.message + "\n", err.stack + "\n");
+
+			console.trace(`❌ Unknown error `, error.message + "\n", error.stack + "\n");
 	
 		}
 		

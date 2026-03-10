@@ -5,16 +5,15 @@
   @extend %flex-col;
   gap: 16px;
   width: 100%;
+  flex: 1;
 
   #summaryCards {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     width: 100%;
     gap: 16px;
 
-    .card{
-
-      flex: 4;
+    .card {
 
       h3 {
         margin: 0;
@@ -22,11 +21,21 @@
         color: $text-body;
       }
 
-      p {
+      .cardValue {
         margin: 0;
         font-size: 1.5rem;
         font-weight: 600;
         color: $primary;
+      }
+
+      .cardIconBox {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        margin-bottom: 8px;
       }
     }
   }
@@ -37,7 +46,7 @@
     gap: 12px;
     margin-top: 8px;
 
-    #dashQuickAction {
+    .quickAction {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -45,11 +54,10 @@
       padding: 10px 16px;
       background-color: $bg-accent;
       border-radius: 8px;
-      border: 1px solid rgba(30, 54, 100, 0.1);
+      border: none;
       cursor: pointer;
       transition: all 0.2s ease;
       text-decoration: none;
-      border: none;
       font-family: inherit;
 
       &:hover {
@@ -70,14 +78,19 @@
         height: 18px;
       }
     }
-
   }
 
-  #recentActivity{
-
+  #recentActivity {
     padding: 20px;
-    border-radius: 15px;
+    border-radius: 16px;
     background-color: $bg-white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
 
     #activitiesList {
       @extend %flex-col;
@@ -155,7 +168,6 @@
         justify-content: center;
         flex-shrink: 0;
       }
-
     }
 
     .emptyActivities {
@@ -169,28 +181,21 @@
         color: $empty-icon;
       }
     }
+  }
+}
 
+@media (max-width: 1400px) {
+  #homeDash #summaryCards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  #homeDash #summaryCards {
+    grid-template-columns: 1fr;
   }
 
-  .clearButton {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: $text-subtle;
-    display: flex;
-    align-items: center;
+  #homeDash #dashQuickActions {
     justify-content: center;
-    padding: 4px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-  }
-
-  .clearButton:hover {
-    background-color: $bg-muted;
-    color: $primary;
   }
 }

@@ -21,15 +21,15 @@ try {
 
     await HTTPServer.init();
     SocketIO.init();
-    
-    ControllerManager.createController();
-    ControllerManager.registerServices();
+
+    await ControllerManager.createController();
+    await ControllerManager.registerServices();
 
     HTTPServer.start();
 
     if (process.env.VERBOSE === "true") console.groupEnd();
 
-} catch (err) {
+} catch (error) {
 
-    TracedError.errorHandler(err);
+    TracedError.errorHandler(error);
 }

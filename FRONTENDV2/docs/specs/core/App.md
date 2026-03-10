@@ -39,7 +39,13 @@
 | `/signup` | `Signup` | aucune (public) | Page d'inscription |
 | `/` | `Navigate → /home` | `UserAuth` | Redirection vers /home |
 | `/home` | `Home` | `UserAuth` | Page d'accueil (dashboard) |
+| `/equipes` | `TeamsPage` | `UserAuth` | Gestion des équipes et canaux |
+| `/discussions` | — | `UserAuth` | Discussions (à implémenter) |
+| `/drive` | — | `UserAuth` | Drive (à implémenter) |
+| `/annuaire` | — | `UserAuth` | Annuaire (à implémenter) |
 | `/admin` | `AdminPanel` | `UserAuth` + `AdminAuth` | Panel d'administration |
+
+Les routes authentifiées utilisent `AuthenticatedLayout` qui fournit la `NavigationSidebar` et un `Outlet` pour les routes enfants.
 
 ---
 

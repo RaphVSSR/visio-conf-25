@@ -1,12 +1,8 @@
 import { FC } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "hooks/useAuth";
+import { AuthenticatedLayout } from "components/AuthenticatedLayout/AuthenticatedLayout";
 
-/**
- * Garde de route pour les pages protégées.
- * Redirige vers /login si l'utilisateur n'est pas authentifié.
- * Affiche un écran de chargement pendant la vérification.
- */
 export const UserAuth: FC = () => {
 
 	const { isAuthenticated, isLoading } = useAuth();
@@ -15,5 +11,5 @@ export const UserAuth: FC = () => {
 
 	if (!isAuthenticated) return <Navigate to={"/login"} replace />;
 
-	return <Outlet />;
+	return <AuthenticatedLayout />;
 }

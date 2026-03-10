@@ -82,6 +82,9 @@ Séquence :
 |---------|-------------|------|-------|
 | `CanalSocketio` | `"canalsocketio"` | (tous les messages Socket.io) | (tous les messages Socket.io) |
 | `AuthService` | `"AuthService"` | 13 messages auth | 7 messages auth |
+| `ChannelService` | `"ChannelService"` | 15 messages channel | 15 messages channel |
+| `TeamService` | `"TeamService"` | 9 messages team | 9 messages team |
+| `UserService` | `"UserService"` | 6 messages user | 6 messages user |
 
 ---
 

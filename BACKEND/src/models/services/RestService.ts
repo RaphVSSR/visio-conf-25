@@ -74,9 +74,9 @@ export default class RestService {
 
 			if (process.env.VERBOSE === "true") console.log(`✅ CORS fully defined`);
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			throw new TracedError("restCorsDef", err.message);
+			throw new TracedError("restCorsDef", error.message);
 		}
 
 	}
@@ -93,9 +93,9 @@ export default class RestService {
 
 			if (process.env.VERBOSE === "true") console.log(`✅ Routes fully initialized\n`);
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			throw new TracedError("restRoutesDef", err.message);
+			throw new TracedError("restRoutesDef", error.message);
 
 		}
 

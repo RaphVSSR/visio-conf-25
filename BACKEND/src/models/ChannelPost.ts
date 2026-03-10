@@ -77,9 +77,9 @@ export default class ChannelPost extends Collection {
             await this.modelInstance.save();
             //if (process.env.VERBOSE === "true") console.log("💾 User collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -148,9 +148,9 @@ export default class ChannelPost extends Collection {
                 console.log("");
             }
             
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new Error(err.message);
+            throw new Error(error.message);
         }
     };
 };

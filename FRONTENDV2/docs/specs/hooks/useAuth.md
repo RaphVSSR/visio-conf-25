@@ -62,6 +62,11 @@ function useAuth(): AuthContextType
 | `Home` | `isAuthenticated`, `user`, `logout` |
 | `UserAuth` | `isAuthenticated`, `isLoading` |
 | `AdminAuth` | `user` |
+| `AuthenticatedLayout` | `user`, `logout` |
+| `TeamsPage` | `user` (controleur via user context) |
+| `TeamForm` | `user` (controleur et userId) |
+| `ChannelForm` | `user` (controleur et userId) |
+| `ChannelView` | `user` (controleur) |
 | `SessionExpiryModal` | `showExpiryWarning`, `expiresAt`, `refreshSession`, `dismissExpiryWarning` |
 | `SessionPendingModal` | `pendingSessionRequests`, `respondToPendingSession` |
 | `AuthToasts` | `showExpiryWarning`, `expiresAt`, `refreshSession`, `dismissExpiryWarning`, `pendingSessionRequests`, `respondToPendingSession` |

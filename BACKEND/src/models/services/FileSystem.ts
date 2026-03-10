@@ -131,9 +131,9 @@ export class Folder extends Collection {
 
             //if (process.env.VERBOSE) console.log("💾 Folder collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -306,9 +306,9 @@ export class File extends Collection {
             await this.modelInstance.save();
             //if (process.env.VERBOSE) console.log("💾 File collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -354,9 +354,9 @@ export default class FileSystem {
                 console.groupEnd();
             }
             
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("testFilesCopying", err.message);
+            throw new TracedError("testFilesCopying", error.message);
         }
 		
 	}
@@ -367,9 +367,9 @@ export default class FileSystem {
             
 			return fs.statSync(filePath).size;
 
-        } catch (err: any) {
+        } catch (error: any) {
          
-			throw new TracedError("getFileSize", err.message);
+			throw new TracedError("getFileSize", error.message);
         }			
 	}
 
@@ -382,9 +382,9 @@ export default class FileSystem {
 
 			if (process.env.VERBOSE === "true") console.log("✅ Local upload dir flushed successfully");
 
-        } catch (err: any) {
+        } catch (error: any) {
 
-            throw new Error("Error while flushing the upload directory. : " + err.message);
+            throw new Error("Error while flushing the upload directory. : " + error.message);
 
         }
     }

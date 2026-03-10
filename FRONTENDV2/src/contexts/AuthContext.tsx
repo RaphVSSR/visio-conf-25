@@ -24,9 +24,11 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
 	const [state, setState] = useState<AuthState>(INITIAL_STATE)
 	const authRef = useRef<AuthSync | null>(null)
+	const controleurRef = useRef<any>(null)
 
 	useEffect(() => {
 		const controleur = new Controleur()
+		controleurRef.current = controleur
 		controleur.verboseall = process.env.REACT_APP_VERBOSE === "true" && Number(process.env.REACT_APP_VERBOSE_LVL) >= 3
 
 		SocketIO.init(controleur)
@@ -41,6 +43,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
 	const contextValue: AuthContextType = {
 		...state,
+		controleur: controleurRef.current,
 		login: (email, password) => authRef.current?.login(email, password),
 		register: (data) => authRef.current?.register(data),
 		logout: () => authRef.current?.logout(),

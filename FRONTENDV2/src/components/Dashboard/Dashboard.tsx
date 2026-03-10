@@ -1,12 +1,12 @@
-import React, { FC } from 'react'
+import { FC } from 'react'
 import { motion } from 'framer-motion'
-import { Activity, Zap } from 'lucide-react'
+import { Activity, FileUp, MessageSquare, PhoneCall, UserPlus, Users, Video, Zap } from 'lucide-react'
 import "./Dashboard.scss"
-import { Button, Card } from 'design-system/components'
+import { Card } from 'design-system/components'
 
 export const Dashboard: FC = () => {
   return (
-	
+
 	<motion.section
 		id="homeDash"
 		initial={{ opacity: 0, y: 20 }}
@@ -18,43 +18,50 @@ export const Dashboard: FC = () => {
 		</h1>
 		<section id='summaryCards'>
 
-			<Card icon='MessageSquare' iconPosition='left' iconSize={20} borderColor="#1E3664">
-
+			<Card borderColor="#1E3664">
+				<div className="cardIconBox" style={{ backgroundColor: 'rgba(30, 54, 100, 0.1)' }}>
+					<MessageSquare size={20} />
+				</div>
 				<h3>Messages non lus</h3>
-				{/*<p>{getUnreadReceivedMessagesCount()}</p>*/}
-
+				<p className="cardValue">0</p>
 			</Card>
 
-			<Card icon='PhoneCall' iconPosition='left' iconSize={20} borderColor="#F59E0B">
-
+			<Card borderColor="#F59E0B">
+				<div className="cardIconBox" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)' }}>
+					<PhoneCall size={20} />
+				</div>
 				<h3>Appels manqués</h3>
-				{/*<p>{getMissedCallsCount()}</p>*/}
-
+				<p className="cardValue">0</p>
 			</Card>
 
-			<Card icon='Users' iconPosition='left' iconSize={20} borderColor="#10B981">
-
+			<Card borderColor="#10B981">
+				<div className="cardIconBox" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+					<Users size={20} />
+				</div>
 				<h3>Contacts actifs</h3>
-				{/*<p>{getActiveContactsCount()}</p>*/}
-
+				<p className="cardValue">0</p>
 			</Card>
 
 		</section>
 
-		<aside id='dashQuickActions'>
-			<Button text='Nouvelle Discussion' icon='MessageSquare' iconPosition='left' iconSize={16}/>
-
-			{/*handleStartCall()*/}
-			<Button text='Démarrer un appel' icon='Video' iconPosition='left' iconSize={16}/>
-			{/*<a href="/files" className="dashQuickAction">
+		<nav id='dashQuickActions'>
+			<button className="quickAction">
+				<MessageSquare size={16} />
+				<span>Nouvelle discussion</span>
+			</button>
+			<button className="quickAction">
+				<Video size={16} />
+				<span>Démarrer un appel</span>
+			</button>
+			<a href="/files" className="quickAction">
 				<FileUp size={16} />
 				<span>Partager un fichier</span>
 			</a>
-			<a href="/equipes" className="dashQuickAction">
+			<a href="/equipes" className="quickAction">
 				<UserPlus size={16} />
 				<span>Créer une équipe</span>
-			</a>*/}
-		</aside>
+			</a>
+		</nav>
 
 		<motion.section
 			id="recentActivity"
@@ -67,23 +74,10 @@ export const Dashboard: FC = () => {
 			</h2>
 
 			<ul id="activitiesList">
-				{/*{recentActivities.length > 0 ? (
-					recentActivities.map((activity, index) =>
-						activity ? (
-							<li
-								key={index}
-								className="activityItem"
-							>
-								...
-							</li>
-						) : null
-					)
-				) : (*/}
-					<li className="emptyActivities">
-						<Activity size={40} />
-						<p>Aucune activité récente</p>
-					</li>
-				{/*)}*/}
+				<li className="emptyActivities">
+					<Activity size={40} />
+					<p>Aucune activité récente</p>
+				</li>
 			</ul>
 		</motion.section>
 

@@ -145,41 +145,61 @@
 
 ## 5. Catalogue des messages associés
 
-### Client → Serveur (12 messages)
+### Client → Serveur (15 messages)
 
 | Message | Payload | Description |
 |---------|---------|-------------|
-| `channels_list_request` | `{ teamId: string }` | Demande les canaux d'une équipe |
-| `channel_create_request` | `{ teamId: string, name: string, isPublic?: boolean }` | Création d'un canal |
-| `channel_update_request` | `{ channelId: string, data: Partial<ChannelType> }` | Mise à jour d'un canal |
-| `channel_delete_request` | `{ channelId: string }` | Suppression d'un canal |
-| `channel_leave_request` | `{ channelId: string }` | Quitter un canal |
-| `channel_members_request` | `{ channelId: string }` | Demande la liste des membres d'un canal |
-| `channel_add_member_request` | `{ channelId: string, userId: string }` | Ajouter un membre à un canal |
-| `channel_remove_member_request` | `{ channelId: string, userId: string }` | Retirer un membre d'un canal |
-| `channel_posts_request` | `{ channelId: string }` | Demande les posts d'un canal |
-| `channel_post_create_request` | `{ channelId: string, content: string }` | Création d'un post |
-| `channel_post_responses_request` | `{ postId: string }` | Demande les réponses d'un post |
-| `channel_post_response_create_request` | `{ postId: string, content: string }` | Création d'une réponse |
+| `get_channels` | `{ teamId: string }` | Demande les canaux d'une équipe (filtrés par visibilité) |
+| `get_channel` | `{ channelId: string }` | Demande un canal spécifique |
+| `create_channel` | `{ name: string, isPublic: boolean, teamId: string, members?: string[] }` | Création d'un canal |
+| `update_channel` | `{ id: string, name: string, isPublic: boolean, teamId: string, members?: string[] }` | Mise à jour d'un canal |
+| `delete_channel` | `{ channelId: string }` | Suppression d'un canal (cascade: posts, réponses, membres) |
+| `get_channel_members` | `{ channelId: string }` | Demande la liste des membres d'un canal |
+| `add_channel_member` | `{ channelId: string, userId: string }` | Ajouter un membre à un canal |
+| `remove_channel_member` | `{ channelId: string, userId: string }` | Retirer un membre d'un canal |
+| `leave_channel` | `{ channelId: string }` | Quitter un canal |
+| `get_posts` | `{ channelId: string }` | Demande les posts d'un canal avec réponses |
+| `get_user_post` | `{ channelId: string, userId: string }` | Demande les posts d'un auteur spécifique |
+| `publish_post` | `{ channelId: string, content: string }` | Publication d'un post |
+| `update_post` | `{ postId: string, content: string }` | Mise à jour d'un post |
+| `delete_post` | `{ postId: string }` | Suppression d'un post (cascade: réponses) |
+| `answer_post` | `{ postId: string, content: string }` | Réponse à un post |
 
-### Serveur → Client (12 messages)
+### Serveur → Client (15 messages)
 
 | Message | Payload | Description |
 |---------|---------|-------------|
-| `channels_list_response` | `{ channels: Channel[] }` | Réponse avec les canaux |
-| `channel_create_response` | `{ channel: Channel }` | Confirmation de création |
-| `channel_update_response` | `{ channel: Channel }` | Confirmation de mise à jour |
-| `channel_delete_response` | `{ success: boolean }` | Confirmation de suppression |
-| `channel_leave_response` | `{ success: boolean }` | Confirmation de départ |
-| `channel_members_response` | `{ members: ChannelMember[] }` | Réponse avec les membres |
-| `channel_add_member_response` | `{ member: ChannelMember }` | Confirmation d'ajout |
-| `channel_remove_member_response` | `{ success: boolean }` | Confirmation de retrait |
-| `channel_posts_response` | `{ posts: ChannelPost[] }` | Réponse avec les posts |
-| `channel_post_create_response` | `{ post: ChannelPost }` | Confirmation de création |
-| `channel_post_responses_response` | `{ responses: ChannelPostResponse[] }` | Réponse avec les réponses |
-| `channel_post_response_create_response` | `{ response: ChannelPostResponse }` | Confirmation de création |
+| `channels` | `{ etat: boolean, channels: Channel[] }` | Liste des canaux filtrés |
+| `channel` | `{ etat: boolean, channel: Channel }` | Détails d'un canal |
+| `channel_creating_status` | `{ etat: boolean, channel?: Channel, error?: string }` | Confirmation de création (broadcast aux membres de l'équipe) |
+| `channel_updating_status` | `{ etat: boolean, channel?: Channel, error?: string }` | Confirmation de mise à jour |
+| `channel_deleting_status` | `{ etat: boolean, channelId?: string, error?: string }` | Confirmation de suppression |
+| `channel_members` | `{ etat: boolean, members: ChannelMember[] }` | Liste des membres avec infos user (firstname, lastname, picture) |
+| `channel_member_adding_status` | `{ etat: boolean, channelId?: string, userId?: string, error?: string }` | Confirmation d'ajout de membre |
+| `channel_member_removing_status` | `{ etat: boolean, channelId?: string, userId?: string, error?: string }` | Confirmation de retrait de membre |
+| `channel_leaving_status` | `{ etat: boolean, channelId?: string, error?: string }` | Confirmation de départ |
+| `posts` | `{ etat: boolean, posts: ChannelPost[] }` | Liste des posts avec réponses populées |
+| `user_post` | `{ etat: boolean, posts: ChannelPost[] }` | Posts d'un auteur spécifique |
+| `post_publishing_status` | `{ etat: boolean, post?: ChannelPost, error?: string }` | Confirmation de publication (broadcast aux membres connectés) |
+| `post_updating_status` | `{ etat: boolean, postId?: string, content?: string, error?: string }` | Confirmation de mise à jour |
+| `post_deleting_status` | `{ etat: boolean, postId?: string, error?: string }` | Confirmation de suppression |
+| `post_answering_status` | `{ etat: boolean, postId?: string, response?: ChannelPostResponse, error?: string }` | Confirmation de réponse (broadcast aux membres connectés) |
 
-**Total : 12 client→serveur + 12 serveur→client = 24 messages**
+**Total : 15 client→serveur + 15 serveur→client = 30 messages**
+
+### Codes d'erreur
+
+| Code | Description |
+|------|-------------|
+| `not_authenticated` | Utilisateur non authentifié |
+| `not_found` | Canal/post non trouvé |
+| `admin_required` | Action réservée aux admins du canal |
+| `already_a_member` | L'utilisateur est déjà membre |
+| `not_a_member` | L'utilisateur n'est pas membre |
+| `last_admin_cannot_leave` | Le dernier admin ne peut pas quitter |
+| `not_the_author` | L'utilisateur n'est pas l'auteur du post |
+| `cannot_remove_admin` | Impossible de retirer un admin |
+| `cannot_answer_own_post` | Impossible de répondre à son propre post |
 
 ---
 

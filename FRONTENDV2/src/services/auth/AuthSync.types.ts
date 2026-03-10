@@ -40,4 +40,4 @@ export type AuthActions = {
 	dismissExpiryWarning: () => void,
 }
 
-export type AuthContextType = AuthState & AuthActions
+export type AuthContextType = AuthState & AuthActions & { controleur: any }

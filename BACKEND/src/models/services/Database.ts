@@ -58,9 +58,9 @@ export default class Database {
 			if (process.env.VERBOSE === "true") console.log("✅ Connection succeed");
 
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			throw new TracedError("dbConnect", err.message);
+			throw new TracedError("dbConnect", error.message);
 		}
 
 	}
@@ -86,9 +86,9 @@ export default class Database {
 
 			if (process.env.VERBOSE === "true") console.log("✅ DB flushed successfully");
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			throw new TracedError("dbFlushing", err.message)
+			throw new TracedError("dbFlushing", error.message)
 		}
 	}
 
@@ -120,9 +120,9 @@ export default class Database {
 
 			if (process.env.VERBOSE === "true") console.log("✅ Admin user injected");
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			throw new TracedError("injectAdmin", err.message);
+			throw new TracedError("injectAdmin", error.message);
 		}
 	}
 
@@ -132,9 +132,9 @@ export default class Database {
 
 		try {
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			throw new TracedError("injectingCollection", err.message);
+			throw new TracedError("injectingCollection", error.message);
 		}
 
 	}
@@ -149,9 +149,9 @@ export default class Database {
 
 			if (process.env.VERBOSE === "true") console.log("✅ Upload environement integrity verified");
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			throw new TracedError("uploadsIntegrity", `Among the uploads files hierarchy, some are missing..\n${err.message}`);
+			throw new TracedError("uploadsIntegrity", `Among the uploads files hierarchy, some are missing..\n${error.message}`);
 		}
 	}
 
@@ -163,9 +163,9 @@ export default class Database {
 
 			if (process.env.VERBOSE === "true") console.log(`✅ MongoDb connection closed successfully\n`);
 
-		} catch (err: any) {
+		} catch (error: any) {
 
-			throw new TracedError("dbClose", err.message);
+			throw new TracedError("dbClose", error.message);
 		}
 	}
 }

@@ -15,6 +15,6 @@ export default class HTTPServer {
 
 	static start(){
 
-		this.server.listen(this.port, () => console.log(`Visioconf app listening on port ${this.port}`) );
+		this.server.listen(this.port, "0.0.0.0", () => console.log(`Visioconf app listening on port ${this.port}`) );
 	}
 }

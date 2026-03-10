@@ -1,0 +1,360 @@
+@use "../../design-system/scss/global.scss" as *;
+
+.team-form {
+	width: 100%;
+	max-width: 800px;
+	margin: 0 auto;
+	background-color: $bg-white;
+	border-radius: 8px;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+	display: flex;
+	flex-direction: column;
+	max-height: calc(100vh - 40px);
+	position: relative;
+
+	&__header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 16px 20px;
+		border-bottom: 1px solid $bg-divider;
+		flex-shrink: 0;
+	}
+
+	&__title-container {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	&__icon {
+		color: $primary;
+	}
+
+	&__title {
+		font-size: 18px;
+		font-weight: 600;
+		margin: 0;
+		color: #111827;
+	}
+
+	&__close-button {
+		background: transparent;
+		border: none;
+		color: $text-subtle;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		border-radius: 4px;
+		transition: background-color 0.2s;
+
+		&:hover {
+			background-color: $bg-muted;
+			color: #374151;
+		}
+	}
+
+	&__error {
+		padding: 12px;
+		background-color: #fee2e2;
+		color: #b91c1c;
+		border-radius: 6px;
+		font-size: 14px;
+		margin: 16px 20px 0;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	&__success {
+		padding: 12px;
+		background-color: #d1fae5;
+		color: #065f46;
+		border-radius: 6px;
+		font-size: 14px;
+		margin: 16px 20px 0;
+	}
+
+	&__form {
+		padding: 20px 20px 0px;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		overflow-y: auto;
+		flex-grow: 1;
+	}
+
+	&__form-group {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	&__label {
+		font-size: 14px;
+		font-weight: 500;
+		color: #374151;
+		display: flex;
+		align-items: center;
+	}
+
+	&__input {
+		width: 100%;
+		padding: 10px 12px;
+		border: 1px solid #d1d5db;
+		border-radius: 6px;
+		font-size: 14px;
+		transition: border-color 0.2s;
+		color: #111827;
+		background-color: $bg-white;
+
+		&:focus {
+			outline: none;
+			border-color: $primary;
+			box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+		}
+	}
+
+	&__textarea {
+		width: 100%;
+		padding: 10px 12px;
+		border: 1px solid #d1d5db;
+		border-radius: 6px;
+		font-size: 14px;
+		resize: vertical;
+		min-height: 120px;
+		height: 120px;
+		transition: border-color 0.2s;
+		color: #111827;
+		background-color: $bg-white;
+
+		&:focus {
+			outline: none;
+			border-color: $primary;
+			box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+		}
+	}
+
+	&__description-image-row {
+		display: flex;
+		gap: 24px;
+		align-items: stretch;
+	}
+
+	&__description-section {
+		flex: 2;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	&__image-section {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		min-width: 200px;
+	}
+
+	&__picture-upload-container {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		align-items: center;
+		justify-content: center;
+		flex: 1;
+		min-height: 120px;
+	}
+
+	&__picture-preview {
+		position: relative;
+		width: 100px;
+		height: 100px;
+		border-radius: 12px;
+		overflow: hidden;
+		border: 2px solid $bg-divider;
+		transition: all 0.2s ease;
+		margin-bottom: auto;
+
+		&:hover {
+			border-color: $primary;
+		}
+	}
+
+	&__picture-image {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	&__remove-picture-button {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background-color: rgba(239, 68, 68, 0.9);
+		color: $bg-white;
+		border: none;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s ease;
+		backdrop-filter: blur(4px);
+
+		&:hover {
+			background-color: rgba(220, 38, 38, 0.95);
+			transform: scale(1.1);
+		}
+	}
+
+	&__picture-placeholder {
+		width: 100px;
+		height: 100px;
+		border: 2px dashed #d1d5db;
+		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		color: $text-subtle;
+		background-color: $bg-light;
+		transition: all 0.2s ease;
+		margin-bottom: auto;
+
+		&:hover {
+			border-color: $primary;
+			color: $primary;
+			background-color: #eff6ff;
+		}
+
+		span {
+			font-size: 12px;
+			font-weight: 500;
+			text-align: center;
+		}
+	}
+
+	&__placeholder-icon {
+		opacity: 0.6;
+	}
+
+	&__file-input {
+		display: none;
+	}
+
+	&__upload-button {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 16px;
+		background-color: $primary;
+		color: $bg-white;
+		border: none;
+		border-radius: 6px;
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		text-decoration: none;
+		justify-content: center;
+		min-width: 100px;
+		margin-top: auto;
+
+		&:hover {
+			background-color: $primary-hover;
+			transform: translateY(-1px);
+		}
+	}
+
+	&__actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 12px;
+		padding: 16px 20px;
+		border-top: 1px solid $bg-divider;
+		background-color: $bg-white;
+		position: sticky;
+		bottom: 0;
+		z-index: 10;
+		flex-shrink: 0;
+	}
+
+	&__cancel-button,
+	&__submit-button {
+		padding: 10px 16px;
+		border-radius: 6px;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		transition: all 0.2s;
+	}
+
+	&__cancel-button {
+		background-color: $bg-white;
+		border: 1px solid #d1d5db;
+		color: #374151;
+
+		&:hover {
+			background-color: $bg-muted;
+		}
+	}
+
+	&__submit-button {
+		background-color: $primary;
+		border: none;
+		color: $bg-white;
+
+		&:hover {
+			background-color: $primary-hover;
+		}
+
+		&:disabled {
+			background-color: $text-subtle;
+			cursor: not-allowed;
+		}
+	}
+
+	&__button-spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		border-radius: 50%;
+		border-top-color: $bg-white;
+		animation: team-form-spin 1s linear infinite;
+	}
+
+	&__delete-button {
+		margin-right: auto;
+		padding: 10px 16px;
+		border-radius: 6px;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		background-color: #fee2e2;
+		border: 1px solid #fecaca;
+		color: #b91c1c;
+		transition: all 0.2s;
+
+		&:hover {
+			background-color: #fecaca;
+		}
+	}
+}
+
+@keyframes team-form-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

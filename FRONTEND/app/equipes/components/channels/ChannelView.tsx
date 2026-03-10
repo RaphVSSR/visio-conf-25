@@ -43,18 +43,18 @@ export default function ChannelView({
     const verbose = false
 
     const listeMessageEmis = [
-        "channel_posts_request",
-        "channel_members_request",
-        "channel_post_create_request",
-        "channel_post_response_create_request",
-        "channel_delete_request",
+        "get_posts",
+        "get_channel_members",
+        "publish_post",
+        "answer_post",
+        "delete_channel",
     ]
     const listeMessageRecus = [
-        "channel_posts_response",
-        "channel_members_response",
-        "channel_post_create_response",
-        "channel_post_response_create_response",
-        "channel_delete_response",
+        "posts",
+        "channel_members",
+        "post_publishing_status",
+        "post_answering_status",
+        "channel_deleting_status",
     ]
 
     // Assurons-nous que nous utilisons l'ID correct

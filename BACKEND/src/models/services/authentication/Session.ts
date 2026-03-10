@@ -71,7 +71,7 @@ export default class Session {
 			{ userId, socketId: { $exists: true, $ne: null } },
 			{ socketId: 1 }
 		).lean()
-		return sessions.map(s => s.socketId!).filter(Boolean)
+		return sessions.map(session => session.socketId!).filter(Boolean)
 	}
 
 	static async flushAll(): Promise<void> {

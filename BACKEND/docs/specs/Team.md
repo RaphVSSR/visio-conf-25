@@ -87,35 +87,47 @@
 
 ## 5. Catalogue des messages associés
 
-### Client → Serveur (8 messages)
+### Client → Serveur (9 messages)
 
 | Message | Payload | Description |
 |---------|---------|-------------|
-| `teams_list_request` | `{}` | Demande les équipes de l'utilisateur courant |
-| `all_teams_request` | `{}` | Demande toutes les équipes (admin) |
-| `team_create_request` | `{ name: string, description?: string }` | Création d'une nouvelle équipe |
-| `team_update_request` | `{ teamId: string, data: Partial<TeamType> }` | Mise à jour d'une équipe |
-| `team_delete_request` | `{ teamId: string }` | Suppression d'une équipe |
+| `teams_list_request` | `{}` | Demande les équipes dont l'utilisateur est membre |
+| `all_teams_request` | `{}` | Demande toutes les équipes du système |
+| `team_create_request` | `{ name: string, description?: string, picture?: string, members: string[] }` | Création d'une équipe avec membres initiaux |
+| `team_update_request` | `{ id: string, name?: string, description?: string, picture?: string }` | Mise à jour d'une équipe (admin requis) |
+| `team_delete_request` | `{ teamId: string }` | Suppression d'une équipe (cascade: canaux, posts, réponses, membres) |
 | `team_leave_request` | `{ teamId: string }` | Quitter une équipe |
-| `team_members_request` | `{ teamId: string }` | Demande la liste des membres d'une équipe |
-| `team_add_member_request` | `{ teamId: string, userId: string }` | Ajouter un membre à une équipe |
-| `team_remove_member_request` | `{ teamId: string, userId: string }` | Retirer un membre d'une équipe |
+| `team_members_request` | `{ teamId: string }` | Demande la liste des membres avec infos user |
+| `team_add_member_request` | `{ teamId: string, userId: string }` | Ajouter un membre (admin requis) |
+| `team_remove_member_request` | `{ teamId: string, userId: string }` | Retirer un membre (admin requis, ne peut pas retirer un admin) |
 
-### Serveur → Client (8 messages)
+### Serveur → Client (9 messages)
 
 | Message | Payload | Description |
 |---------|---------|-------------|
-| `teams_list_response` | `{ teams: Team[] }` | Réponse avec les équipes de l'utilisateur |
-| `all_teams_response` | `{ teams: Team[] }` | Réponse avec toutes les équipes |
-| `team_create_response` | `{ team: Team }` | Confirmation de création |
-| `team_update_response` | `{ team: Team }` | Confirmation de mise à jour |
-| `team_delete_response` | `{ success: boolean }` | Confirmation de suppression |
-| `team_leave_response` | `{ success: boolean }` | Confirmation de départ |
-| `team_members_response` | `{ members: TeamMember[] }` | Réponse avec les membres |
-| `team_add_member_response` | `{ member: TeamMember }` | Confirmation d'ajout d'un membre |
-| `team_remove_member_response` | `{ success: boolean }` | Confirmation de retrait d'un membre |
+| `teams_list_response` | `{ etat: boolean, teams: Team[] }` | Équipes de l'utilisateur avec son rôle |
+| `all_teams_response` | `{ etat: boolean, teams: Team[] }` | Toutes les équipes |
+| `team_create_response` | `{ etat: boolean, team?: Team, error?: string }` | Confirmation de création |
+| `team_update_response` | `{ etat: boolean, team?: Team, error?: string }` | Confirmation de mise à jour |
+| `team_delete_response` | `{ etat: boolean, teamId?: string, error?: string }` | Confirmation de suppression |
+| `team_leave_response` | `{ etat: boolean, teamId?: string, error?: string }` | Confirmation de départ |
+| `team_members_response` | `{ etat: boolean, members: { id, userId, firstname, lastname, picture, role, joinedAt }[] }` | Membres avec infos populées |
+| `team_add_member_response` | `{ etat: boolean, teamId?: string, userId?: string, error?: string }` | Confirmation d'ajout |
+| `team_remove_member_response` | `{ etat: boolean, teamId?: string, userId?: string, error?: string }` | Confirmation de retrait |
 
 **Total : 9 client→serveur + 9 serveur→client = 18 messages**
+
+### Codes d'erreur
+
+| Code | Description |
+|------|-------------|
+| `not_authenticated` | Utilisateur non authentifié |
+| `not_found` | Équipe non trouvée |
+| `admin_required` | Action réservée aux admins de l'équipe |
+| `already_a_member` | L'utilisateur est déjà membre |
+| `not_a_member` | L'utilisateur n'est pas membre |
+| `last_admin_cannot_leave` | Le dernier admin ne peut pas quitter |
+| `cannot_remove_admin` | Impossible de retirer un admin |
 
 ---
 

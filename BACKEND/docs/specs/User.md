@@ -68,27 +68,29 @@
 
 ## 5. Catalogue des messages associés
 
-### Client → Serveur (4 messages)
+### Client → Serveur (6 messages)
 
 | Message | Payload | Description |
 |---------|---------|-------------|
-| `users_list_request` | `{}` | Demande la liste de tous les utilisateurs |
-| `user_info_request` | `{ userId: string }` | Demande les informations d'un utilisateur |
-| `update_user_request` | `{ userId: string, data: Partial<UserType> }` | Mise à jour d'un utilisateur |
+| `users_list_request` | `{}` | Demande la liste de tous les utilisateurs actifs |
+| `user_info_request` | `{ userId: string }` | Demande les informations complètes d'un utilisateur |
+| `users_search_request` | `{ query: string }` | Recherche d'utilisateurs par nom/email (regex, max 20 résultats) |
+| `update_user_request` | `{ firstname?, lastname?, phone?, job?, desc?, picture? }` | Mise à jour du profil de l'utilisateur connecté |
 | `update_user_status_request` | `{ userId: string, status: string }` | Mise à jour du statut d'un utilisateur |
 | `update_user_roles_request` | `{ userId: string, roles: string[] }` | Mise à jour des rôles d'un utilisateur |
 
-### Serveur → Client (5 messages)
+### Serveur → Client (6 messages)
 
 | Message | Payload | Description |
 |---------|---------|-------------|
-| `users_list_response` | `{ users: User[] }` | Réponse avec la liste des utilisateurs |
-| `user_info_response` | `{ user: User }` | Réponse avec les informations de l'utilisateur |
-| `update_user_response` | `{ success: boolean }` | Confirmation de la mise à jour |
-| `update_user_status_response` | `{ success: boolean }` | Confirmation de la mise à jour du statut |
-| `update_user_roles_response` | `{ success: boolean }` | Confirmation de la mise à jour des rôles |
+| `users_list_response` | `{ etat: boolean, users: { id, firstname, lastname, email, picture, isOnline, job }[] }` | Liste des utilisateurs actifs |
+| `user_info_response` | `{ etat: boolean, user: { id, firstname, lastname, email, picture, isOnline, job, desc, phone, dateCreated } }` | Informations complètes d'un utilisateur |
+| `users_search_response` | `{ etat: boolean, users: User[] }` | Résultats de recherche |
+| `update_user_response` | `{ etat: boolean, error?: string }` | Confirmation de la mise à jour du profil |
+| `update_user_status_response` | `{ etat: boolean, userId?: string, status?: string }` | Confirmation de la mise à jour du statut |
+| `update_user_roles_response` | `{ etat: boolean, userId?: string, roles?: string[] }` | Confirmation de la mise à jour des rôles |
 
-**Total : 5 client→serveur + 5 serveur→client = 10 messages**
+**Total : 6 client→serveur + 6 serveur→client = 12 messages**
 
 ---
 

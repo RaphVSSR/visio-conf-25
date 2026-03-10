@@ -110,6 +110,7 @@ export default class User {
             phone: "06 52 14 55 45",
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
+            status: "active" as const,
         },
         {
             firstname: "test2",
@@ -118,6 +119,7 @@ export default class User {
             phone: "06 52 14 55 45",
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
+            status: "active" as const,
         },
         {
             firstname: "test3",
@@ -126,6 +128,7 @@ export default class User {
             phone: "06 52 14 55 45",
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
+            status: "active" as const,
         },
         {
             firstname: "test4",
@@ -134,6 +137,7 @@ export default class User {
             phone: "06 52 14 55 45",
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
+            status: "active" as const,
         },
         {
             firstname: "test5",
@@ -142,6 +146,7 @@ export default class User {
             phone: "06 52 14 55 45",
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
+            status: "active" as const,
         }].map(user => {
 
             const newUser = new User(user);
@@ -156,9 +161,9 @@ export default class User {
             await this.modelInstance.save();
             //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
