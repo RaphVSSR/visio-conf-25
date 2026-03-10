@@ -348,18 +348,6 @@ VERBOSE=true
 
 ---
 
-## 🤝 Contribution
-
-Ce projet est développé dans le cadre de la formation MMI. Les contributions sont les bienvenues !
-
-1. Fork le projet
-2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
-3. Commit vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
-
----
-
 ## 📄 Licence
 
 Projet open source développé pour la formation MMI Toulon.
