@@ -1,126 +1,90 @@
 import { Server, Socket } from "socket.io";
-import HTTPServer from "../core/HTTPServer.ts";
+import HTTPServer from "../Core/HTTPServer.ts";
 import CallSignaling from "./CallSignaling.ts";
+import User from "../User.ts";
 
 /**
  * Initialise le serveur Socket.io et expose l'instance pour le canal.
  */
 export default class SocketIO {
-  static server: Server;
 
-  /**
-   * Crée le serveur Socket.io attaché au serveur HTTP.
-   * L'instance est accessible via SocketIO.server pour être passée au CanalSocketio.
-   */
-  static init() {
-    this.server = new Server(HTTPServer.server, {
-      cors: {
-        origin: "*",
-        methods: ["GET", "POST"],
-      },
-    });
+	static server: Server;
 
-    if (process.env.VERBOSE === "true")
-      console.log("✅ Socket.io server initialized");
+	/**
+	 * Crée le serveur Socket.io attaché au serveur HTTP.
+	 * L'instance est accessible via SocketIO.server pour être passée au CanalSocketio.
+	 */
+	static init() {
 
-    CallSignaling.init(this.server);
-    this.defListeners();
-  }
+		this.server = new Server(HTTPServer.server, {
 
-  private static defListeners() {
-    this.server.on("connection", (socket: Socket) => {
-      console.log("New connection:", socket.id);
+			cors: {
+				origin: "*",
+				methods: ["GET", "POST"]
+			}
+		});
 
-      socket.on("authenticate", (token: string) => {
-        try {
-          const decoded = jwt.verify(
-            token,
-            process.env.JWT_SECRET as string,
-          ) as any;
-          socket.data.userId = decoded.userId;
-          console.log(
-            `Socket ${socket.id} authenticated for user ${decoded.userId}`,
-          );
-        } catch (err: any) {
-          console.error("Socket auth failed:", err.message);
-        }
-      });
+		if (process.env.VERBOSE === "true") console.log("✅ Socket.io server initialized");
 
 		CallSignaling.init(this.server);
 		this.defListeners();
 	}
 
-      socket.on("authenticate:session", (userId: string) => {
-        if (typeof userId === "string" && userId.length > 0) {
-          socket.data.userId = userId;
-          console.log(
-            `Socket ${socket.id} authenticated (session) for user ${userId}`,
-          );
-        }
-      });
+	private static defListeners() {
 
-      socket.on(
-        "contacts:list",
-        async (payload?: { excludeEmail?: string }) => {
-          try {
-            const db = Auth.mongoClient.db("visioconf");
-            const filter: any = {};
-            if (payload?.excludeEmail) {
-              filter.email = { $ne: payload.excludeEmail };
-            }
+		this.server.on("connection", (socket: Socket) => {
 
-            const allUsers = await db
-              .collection("users")
-              .find(filter, {
-                projection: {
-                  _id: 1,
-                  id: 1,
-                  firstname: 1,
-                  name: 1,
-                  lastname: 1,
-                  image: 1,
-                  email: 1,
-                },
-              })
-              .toArray();
+			console.log("New connection:", socket.id);
 
-            console.log(`[contacts:list] Found ${allUsers.length} users in DB`);
+			socket.on("authenticate:session", (userId: string) => {
+				if (typeof userId === "string" && userId.length > 0) {
+					socket.data.userId = userId;
+					console.log(`Socket ${socket.id} authenticated (session) for user ${userId}`);
+				}
+			});
 
-            const onlineUserIds = new Set<string>();
-            for (const [, s] of this.server.sockets.sockets) {
-              if (s.data.userId) onlineUserIds.add(s.data.userId);
-            }
+			socket.on("contacts:list", async (payload?: { excludeEmail?: string }) => {
+				try {
+					const filter: any = {};
+					if (payload?.excludeEmail) {
+						filter.email = { $ne: payload.excludeEmail };
+					}
 
-            const contacts = allUsers.map((u) => {
-              const odId = (u._id as any).toString();
-              const id = u.id ? u.id.toString() : odId;
-              return {
-                id,
-                firstname: u.firstname || u.name || "",
-                lastname: u.lastname || "",
-                picture: u.image || "",
-                is_online: onlineUserIds.has(id),
-              };
-            });
+					const allUsers = await User.model
+						.find(filter)
+						.select("_id firstname lastname picture email")
+						.lean();
 
-            console.log(
-              `[contacts:list] Returning ${contacts.length} contacts`,
-            );
-            socket.emit("contacts:list:response", contacts);
-          } catch (err) {
-            console.error("[contacts:list] error:", err);
-            socket.emit("contacts:list:response", []);
-          }
-        },
-      );
+					const onlineUserIds = new Set<string>();
+					for (const [, s] of this.server.sockets.sockets) {
+						if (s.data.userId) onlineUserIds.add(s.data.userId);
+					}
 
-      CallSignaling.registerSocketHandlers(socket);
+					const contacts = allUsers.map((u) => {
+						const id = (u._id as any).toString();
+						return {
+							id,
+							firstname: u.firstname || "",
+							lastname: u.lastname || "",
+							picture: u.picture || "",
+							is_online: onlineUserIds.has(id),
+						};
+					});
 
-      socket.emit("connected", "You are connected !");
-    });
-  }
+					socket.emit("contacts:list:response", contacts);
+				} catch (err) {
+					console.error("[contacts:list] error:", err);
+					socket.emit("contacts:list:response", []);
+				}
+			});
 
-  static getServer(): Server {
-    return this.server;
-  }
+			CallSignaling.registerSocketHandlers(socket);
+
+			socket.emit("connected", "You are connected !");
+		});
+	}
+
+	static getServer(): Server {
+		return this.server;
+	}
 }

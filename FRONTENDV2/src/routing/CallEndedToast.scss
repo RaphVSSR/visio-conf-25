@@ -1,0 +1,21 @@
+.callEndedToast {
+	position: fixed;
+	top: 24px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: #1e293b;
+	color: #f1f5f9;
+	padding: 12px 24px;
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+	z-index: 3000;
+	cursor: pointer;
+	font-size: 14px;
+
+	.callEndedIcon {
+		color: #ef4444;
+	}
+}

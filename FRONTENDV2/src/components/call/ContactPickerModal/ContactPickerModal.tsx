@@ -1,9 +1,9 @@
-import { FC, useContext, useEffect, useState } from "react"
+import { FC, useEffect, useState } from "react"
 import { Phone, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAudioCall } from "contexts/call/AudioCallContext"
-import { SessionContext } from "contexts/SessionContext"
-import Controller from "core/Controller"
+import { useAuth } from "hooks/useAuth"
+import { SocketIO } from "services/SocketIO"
 import "./ContactPickerModal.scss"
 
 interface Contact {
@@ -21,8 +21,7 @@ interface ContactPickerModalProps {
 
 export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClose }) => {
     const { initiateCall } = useAudioCall()
-    const session = useContext(SessionContext)
-    const currentUser = session?.currentUser?.data?.user
+    const { user } = useAuth()
     const [contacts, setContacts] = useState<Contact[]>([])
     const [loading, setLoading] = useState(false)
 
@@ -30,33 +29,20 @@ export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClos
         if (!isOpen) return
 
         setLoading(true)
-        const socket = Controller.getSocket()
+        const socket = SocketIO.canal.socket
 
         const handleResponse = (data: Contact[]) => {
-            console.log("[ContactPicker] Received contacts:", data)
             setContacts(data)
             setLoading(false)
         }
 
         socket.on("contacts:list:response", handleResponse)
-
-        // Debug: log session structure to find the correct path to user data
-        console.log("[ContactPicker] session context:", JSON.stringify(session, null, 2))
-        console.log("[ContactPicker] currentUser:", currentUser)
-
-        // Try multiple paths to get the user email for filtering
-        const user = session?.currentUser?.data?.user
-            || session?.currentUser?.data
-            || session?.currentUser
-        const email = user?.email
-        console.log("[ContactPicker] resolved user:", user, "email:", email)
-
-        socket.emit("contacts:list", { excludeEmail: email })
+        socket.emit("contacts:list", { excludeEmail: user?.email })
 
         return () => {
             socket.off("contacts:list:response", handleResponse)
         }
-    }, [isOpen, currentUser, session])
+    }, [isOpen, user])
 
     const handleSelectContact = (contact: Contact) => {
         initiateCall([{

@@ -4,7 +4,7 @@ import { SocketIO } from "services/SocketIO"
 import { AuthService } from "services/auth/AuthService"
 import type { AuthState, AuthContextType } from "services/auth/AuthService.types"
 
-export type { AuthUser, PendingSessionRequest, AuthState, AuthActions, AuthContextType } from "services/auth/AuthService.types"
+export type { AuthContextType } from "services/auth/AuthService.types"
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 

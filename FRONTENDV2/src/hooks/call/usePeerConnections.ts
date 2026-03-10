@@ -10,7 +10,7 @@ const ICE_SERVERS: RTCConfiguration = {
     ],
 };
 
-export interface PeerConnectionsOptions {
+interface PeerConnectionsOptions {
     currentUserId: string | undefined;
     getSocket: () => Socket;
     mediaConstraints: MediaConstraints;
@@ -18,17 +18,17 @@ export interface PeerConnectionsOptions {
     onParticipantConnectionChanged: (remoteUserId: string, connected: boolean) => void;
 }
 
-export interface PeerConnectionsReturn {
+interface PeerConnectionsReturn {
     localMediaStream: MutableRefObject<MediaStream | null>;
     peerConnectionsByUserId: MutableRefObject<Map<string, RTCPeerConnection>>;
-    acquireMediaStream: () => Promise<MediaStream>;
-    createPeerConnectionForRemoteUser: (remoteUserId: string, callId: string) => RTCPeerConnection;
+    getLocalMediasStream: () => Promise<MediaStream>;
+    createMediasStreamRemoteConnection: (remoteUserId: string, callId: string) => RTCPeerConnection;
     sendOfferToRemoteUser: (remoteUserId: string, callId: string) => Promise<void>;
-    handleReceivedOffer: (payload: SdpPayload) => Promise<void>;
-    handleReceivedAnswer: (payload: SdpPayload) => Promise<void>;
-    handleReceivedIceCandidate: (payload: IceCandidatePayload) => Promise<void>;
-    closePeerConnectionForUser: (userId: string) => void;
-    closeAllPeerConnections: () => void;
+    processOffer: (payload: SdpPayload) => Promise<void>;
+    processAnswer: (payload: SdpPayload) => Promise<void>;
+    processIceCandidate: (payload: IceCandidatePayload) => Promise<void>;
+    closeMediasStreamRemoteConnection: (userId: string) => void;
+    closeAllRemoteConnections: () => void;
 }
 
 export function usePeerConnections(options: PeerConnectionsOptions): PeerConnectionsReturn {
@@ -36,7 +36,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     const localMediaStream = useRef<MediaStream | null>(null);
     const pendingIceCandidatesByUserId = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
 
-    const acquireMediaStream = useCallback(async (): Promise<MediaStream> => {
+    const getLocalMediasStream = useCallback(async (): Promise<MediaStream> => {
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: options.mediaConstraints.audio,
             video: options.mediaConstraints.video,
@@ -45,7 +45,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
         return stream;
     }, [options.mediaConstraints.audio, options.mediaConstraints.video]);
 
-    const createPeerConnectionForRemoteUser = useCallback(
+    const createMediasStreamRemoteConnection = useCallback(
         (remoteUserId: string, callId: string): RTCPeerConnection => {
             const existing = peerConnectionsByUserId.current.get(remoteUserId);
             if (existing) return existing;
@@ -97,7 +97,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
 
     const sendOfferToRemoteUser = useCallback(
         async (remoteUserId: string, callId: string) => {
-            const peerConnection = createPeerConnectionForRemoteUser(remoteUserId, callId);
+            const peerConnection = createMediasStreamRemoteConnection(remoteUserId, callId);
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
 
@@ -108,12 +108,12 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
                 sdp: offer,
             });
         },
-        [createPeerConnectionForRemoteUser, options],
+        [createMediasStreamRemoteConnection, options],
     );
 
-    const handleReceivedOffer = useCallback(
+    const processOffer = useCallback(
         async (payload: SdpPayload) => {
-            const peerConnection = createPeerConnectionForRemoteUser(payload.fromUserId, payload.callId);
+            const peerConnection = createMediasStreamRemoteConnection(payload.fromUserId, payload.callId);
             await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
 
             const buffered = pendingIceCandidatesByUserId.current.get(payload.fromUserId);
@@ -134,10 +134,10 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
                 sdp: answer,
             });
         },
-        [createPeerConnectionForRemoteUser, options],
+        [createMediasStreamRemoteConnection, options],
     );
 
-    const handleReceivedAnswer = useCallback(
+    const processAnswer = useCallback(
         async (payload: SdpPayload) => {
             const peerConnection = peerConnectionsByUserId.current.get(payload.fromUserId);
             if (peerConnection) {
@@ -155,7 +155,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
         [],
     );
 
-    const handleReceivedIceCandidate = useCallback(
+    const processIceCandidate = useCallback(
         async (payload: IceCandidatePayload) => {
             const peerConnection = peerConnectionsByUserId.current.get(payload.fromUserId);
             if (peerConnection && peerConnection.remoteDescription) {
@@ -172,7 +172,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
         [],
     );
 
-    const closePeerConnectionForUser = useCallback((userId: string) => {
+    const closeMediasStreamRemoteConnection = useCallback((userId: string) => {
         const peerConnection = peerConnectionsByUserId.current.get(userId);
         if (peerConnection) {
             peerConnection.close();
@@ -180,7 +180,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
         }
     }, []);
 
-    const closeAllPeerConnections = useCallback(() => {
+    const closeAllRemoteConnections = useCallback(() => {
         peerConnectionsByUserId.current.forEach((pc) => pc.close());
         peerConnectionsByUserId.current.clear();
 
@@ -193,13 +193,13 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     return {
         localMediaStream,
         peerConnectionsByUserId,
-        acquireMediaStream,
-        createPeerConnectionForRemoteUser,
+        getLocalMediasStream,
+        createMediasStreamRemoteConnection,
         sendOfferToRemoteUser,
-        handleReceivedOffer,
-        handleReceivedAnswer,
-        handleReceivedIceCandidate,
-        closePeerConnectionForUser,
-        closeAllPeerConnections,
+        processOffer,
+        processAnswer,
+        processIceCandidate,
+        closeMediasStreamRemoteConnection,
+        closeAllRemoteConnections,
     };
 }

@@ -7,14 +7,14 @@ import type {
     IceCandidatePayload,
 } from "types/Call";
 
-export interface CallSocketListenersOptions {
+interface CallSocketListenersOptions {
     getSocket: () => Socket;
     callState: ActiveCallState | null;
 
     sendOfferToRemoteUser: (remoteUserId: string, callId: string) => Promise<void>;
-    handleReceivedOffer: (payload: SdpPayload) => Promise<void>;
-    handleReceivedAnswer: (payload: SdpPayload) => Promise<void>;
-    handleReceivedIceCandidate: (payload: IceCandidatePayload) => Promise<void>;
+    processOffer: (payload: SdpPayload) => Promise<void>;
+    processAnswer: (payload: SdpPayload) => Promise<void>;
+    processIceCandidate: (payload: IceCandidatePayload) => Promise<void>;
 
     onIncomingCall: (payload: IncomingCallInfo & { participants: any[] }) => void;
     onParticipantsList: (payload: { callId: string; participants: any[] }) => void;
@@ -30,9 +30,9 @@ export function useCallSocketListeners({
     getSocket,
     callState,
     sendOfferToRemoteUser,
-    handleReceivedOffer,
-    handleReceivedAnswer,
-    handleReceivedIceCandidate,
+    processOffer,
+    processAnswer,
+    processIceCandidate,
     onIncomingCall,
     onParticipantsList,
     onUserJoined,
@@ -59,9 +59,9 @@ export function useCallSocketListeners({
         socket.on("call:incoming", onIncomingCall);
         socket.on("call:participants-list", handleParticipantsList);
         socket.on("call:user-joined", onUserJoined);
-        socket.on("call:offer", handleReceivedOffer);
-        socket.on("call:answer", handleReceivedAnswer);
-        socket.on("call:ice-candidate", handleReceivedIceCandidate);
+        socket.on("call:offer", processOffer);
+        socket.on("call:answer", processAnswer);
+        socket.on("call:ice-candidate", processIceCandidate);
         socket.on("call:user-left", onUserLeft);
         socket.on("call:user-rejected", onUserRejected);
         socket.on("call:ended", onCallEnded);
@@ -72,9 +72,9 @@ export function useCallSocketListeners({
             socket.off("call:incoming", onIncomingCall);
             socket.off("call:participants-list", handleParticipantsList);
             socket.off("call:user-joined", onUserJoined);
-            socket.off("call:offer", handleReceivedOffer);
-            socket.off("call:answer", handleReceivedAnswer);
-            socket.off("call:ice-candidate", handleReceivedIceCandidate);
+            socket.off("call:offer", processOffer);
+            socket.off("call:answer", processAnswer);
+            socket.off("call:ice-candidate", processIceCandidate);
             socket.off("call:user-left", onUserLeft);
             socket.off("call:user-rejected", onUserRejected);
             socket.off("call:ended", onCallEnded);
@@ -85,9 +85,9 @@ export function useCallSocketListeners({
         callState,
         getSocket,
         sendOfferToRemoteUser,
-        handleReceivedOffer,
-        handleReceivedAnswer,
-        handleReceivedIceCandidate,
+        processOffer,
+        processAnswer,
+        processIceCandidate,
         onIncomingCall,
         onParticipantsList,
         onUserJoined,

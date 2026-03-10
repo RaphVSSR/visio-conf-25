@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect, useContext } from "react";
-import { SessionContext } from "contexts/SessionContext";
-import Controller from "core/Controller";
+import { useState, useCallback, useEffect } from "react";
+import { useAuth } from "hooks/useAuth";
+import { SocketIO } from "services/SocketIO";
 import type {
     ActiveCallState,
     CallStatus,
@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 import { usePeerConnections } from "./usePeerConnections";
 import { useCallSocketListeners } from "./useCallSocketListeners";
 
-export interface CallBaseHookOptions {
+interface CallBaseHookOptions {
     callType: CallType;
     mediaConstraints: MediaConstraints;
     onRemoteTrackReceived: (remoteUserId: string, stream: MediaStream) => void;
@@ -21,7 +21,7 @@ export interface CallBaseHookOptions {
     onCleanupRemoteMedia: () => void;
 }
 
-export interface CallBaseHookReturn {
+interface CallBaseHookReturn {
     callState: ActiveCallState | null;
     incomingCall: IncomingCallInfo | null;
     callEndedNotice: string | null;
@@ -36,20 +36,19 @@ export interface CallBaseHookReturn {
 }
 
 export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
-    const session = useContext(SessionContext);
-    const currentUser = session?.currentUser?.data?.user;
+    const { user } = useAuth();
 
     const [callState, setCallState] = useState<ActiveCallState | null>(null);
     const [incomingCall, setIncomingCall] = useState<IncomingCallInfo | null>(null);
     const [callEndedNotice, setCallEndedNotice] = useState<string | null>(null);
 
-    const getSocket = useCallback(() => Controller.getSocket(), []);
+    const getSocket = useCallback(() => SocketIO.canal.socket, []);
 
     useEffect(() => {
-        if (currentUser?.id) {
-            Controller.socketInit(currentUser.id);
+        if (user?._id) {
+            SocketIO.canal.socket.emit("authenticate:session", user._id);
         }
-    }, [currentUser?.id]);
+    }, [user?._id]);
 
     // --- Peer connections ---
 
@@ -70,15 +69,15 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
 
     const {
         localMediaStream,
-        acquireMediaStream,
+        getLocalMediasStream,
         sendOfferToRemoteUser,
-        handleReceivedOffer,
-        handleReceivedAnswer,
-        handleReceivedIceCandidate,
-        closePeerConnectionForUser,
-        closeAllPeerConnections,
+        processOffer,
+        processAnswer,
+        processIceCandidate,
+        closeMediasStreamRemoteConnection,
+        closeAllRemoteConnections,
     } = usePeerConnections({
-        currentUserId: currentUser?.id,
+        currentUserId: user?._id,
         getSocket,
         mediaConstraints: options.mediaConstraints,
         onRemoteTrackReceived: options.onRemoteTrackReceived,
@@ -88,11 +87,11 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
     // --- Cleanup ---
 
     const cleanupCall = useCallback(() => {
-        closeAllPeerConnections();
+        closeAllRemoteConnections();
         options.onCleanupRemoteMedia();
         setCallState(null);
         setIncomingCall(null);
-    }, [closeAllPeerConnections, options]);
+    }, [closeAllRemoteConnections, options]);
 
     // --- Socket event callbacks ---
 
@@ -167,7 +166,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
 
     const onUserLeft = useCallback(
         (payload: { callId: string; userId: string }) => {
-            closePeerConnectionForUser(payload.userId);
+            closeMediasStreamRemoteConnection(payload.userId);
             options.onRemoteTrackRemoved(payload.userId);
             setCallState((prev) => {
                 if (!prev) return prev;
@@ -179,7 +178,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
                 };
             });
         },
-        [closePeerConnectionForUser, options],
+        [closeMediasStreamRemoteConnection, options],
     );
 
     const onUserRejected = useCallback(
@@ -233,9 +232,9 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
         getSocket,
         callState,
         sendOfferToRemoteUser,
-        handleReceivedOffer,
-        handleReceivedAnswer,
-        handleReceivedIceCandidate,
+        processOffer,
+        processAnswer,
+        processIceCandidate,
         onIncomingCall,
         onParticipantsList,
         onUserJoined,
@@ -250,12 +249,12 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
 
     const initiateCall = useCallback(
         async (targetUsers: TargetUser[]) => {
-            if (!currentUser) return;
+            if (!user) return;
 
             const callId = uuidv4();
             const isGroupCall = targetUsers.length > 1;
 
-            await acquireMediaStream();
+            await getLocalMediasStream();
 
             setCallState({
                 callId,
@@ -272,7 +271,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
                     isCameraOn: options.callType === "video",
                     isConnected: false,
                 })),
-                initiatorId: currentUser.id,
+                initiatorId: user._id,
                 startTime: null,
                 isMuted: false,
                 isCameraOn: options.callType === "video",
@@ -282,18 +281,18 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
                 callId,
                 callType: options.callType,
                 targetUserIds: targetUsers.map((u) => u.userId),
-                callerName: `${currentUser.name}`,
-                callerPicture: currentUser.image || "",
+                callerName: `${user.firstname} ${user.lastname}`,
+                callerPicture: user.picture || "",
                 isGroupCall,
             });
         },
-        [currentUser, acquireMediaStream, getSocket, options.callType],
+        [user, getLocalMediasStream, getSocket, options.callType],
     );
 
     const acceptCall = useCallback(async () => {
-        if (!incomingCall || !currentUser) return;
+        if (!incomingCall || !user) return;
 
-        await acquireMediaStream();
+        await getLocalMediasStream();
 
         setCallState({
             callId: incomingCall.callId,
@@ -309,12 +308,12 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
 
         getSocket().emit("call:accept", {
             callId: incomingCall.callId,
-            userName: `${currentUser.name}`,
-            userPicture: currentUser.image || "",
+            userName: `${user.firstname} ${user.lastname}`,
+            userPicture: user.picture || "",
         });
 
         setIncomingCall(null);
-    }, [incomingCall, currentUser, acquireMediaStream, getSocket]);
+    }, [incomingCall, user, getLocalMediasStream, getSocket]);
 
     const rejectCall = useCallback(() => {
         if (!incomingCall) return;

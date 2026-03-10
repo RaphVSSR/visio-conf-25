@@ -21,13 +21,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default class Database {
-  static async init() {
-    if (process.env.VERBOSE === "true")
-      console.group("⚙️ Processing Database..");
 
-    await this.connect();
+	static async init(){
 
-    await Auth.init();
+		if (process.env.VERBOSE === "true") console.group("⚙️ Processing Database..");
 
 		await this.connect();
 
@@ -46,14 +43,9 @@ export default class Database {
 
 	}
 
-  private static async connect() {
-    if (!process.env.MONGO_URI)
-      throw new TracedError("dbConnect", "Connection URI is missing..");
+	private static async connect(){
 
-    const mongoOptions: ConnectOptions = {
-      user: process.env.MONGO_USER,
-      pass: process.env.MONGO_PASSWORD,
-    };
+		if (!process.env.MONGO_URI) throw new TracedError("dbConnect", "Connection URI is missing..");
 
 		const mongoOptions: ConnectOptions = { user: process.env.MONGO_USER, pass: process.env.MONGO_PASSWORD };
 
@@ -63,35 +55,15 @@ export default class Database {
 
 			if (process.env.VERBOSE === "true") console.log("✅ Connection succeed");
 
-      if (process.env.VERBOSE === "true") console.log("✅ Connection succeed");
-    } catch (err: any) {
-      throw new TracedError("dbConnect", err.message);
-    }
-  }
 
 		} catch (err: any) {
 
 			throw new TracedError("dbConnect", err.message);
 		}
 
-      await Auth.flushAll();
-      await Folder.flushAll();
-      await Role.flushAll();
-      await Permission.flushAll();
-      await Discussion.flushAll();
-      await TeamMember.flushAll();
-      await Team.flushAll();
-      await ChannelPost.flushAll();
-      await ChannelPostResponse.flushAll();
-      await ChannelMember.flushAll();
-      await Channel.flushAll();
+	}
 
-      if (process.env.VERBOSE === "true")
-        console.log("✅ DB flushed successfully");
-    } catch (err: any) {
-      throw new TracedError("dbFlushing", err.message);
-    }
-  }
+	private static async flushDb(){
 
 		try {
 
@@ -110,12 +82,7 @@ export default class Database {
 			await Channel.flushAll();
 			await User.model.deleteMany({});
 
-  private static verifyUploadsEnvIntegrity() {
-    try {
-      if (!fs.existsSync(FileSystem.uploadsDir))
-        fs.mkdirSync(FileSystem.uploadsDir, { recursive: true });
-      if (!fs.existsSync(FileSystem.filesDir))
-        fs.mkdirSync(FileSystem.filesDir, { recursive: true });
+			if (process.env.VERBOSE === "true") console.log("✅ DB flushed successfully");
 
 		} catch (err: any) {
 
@@ -159,7 +126,7 @@ export default class Database {
 
 	private static async prepareProjectEnv(){
 
-  //	if (!users) return console.error("Utilisateurs manquants");
+		this.verifyUploadsEnvIntegrity();
 
 		try {
 

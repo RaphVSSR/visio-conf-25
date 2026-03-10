@@ -1,4 +1,4 @@
-import { FC } from "react"
+import { FC, useEffect } from "react"
 import { Phone, PhoneOff } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAudioCall } from "contexts/call/AudioCallContext"
@@ -6,6 +6,20 @@ import "./IncomingCallModal.scss"
 
 export const IncomingCallModal: FC = () => {
     const { incomingCall, acceptCall, rejectCall } = useAudioCall()
+
+    useEffect(() => {
+        if (!incomingCall) return
+
+        const audio = new Audio("/audio/ringtone.mp3")
+        audio.loop = true
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        audio.play().catch(() => {})
+
+        return () => {
+            audio.pause()
+            audio.currentTime = 0
+        }
+    }, [incomingCall])
 
     if (!incomingCall) return null
 

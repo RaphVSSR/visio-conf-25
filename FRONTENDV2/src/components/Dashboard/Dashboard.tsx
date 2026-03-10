@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -10,9 +10,10 @@ import {
 } from "lucide-react";
 import "./Dashboard.scss";
 import { Button, Card } from "design-system/components";
+import { ContactPickerModal } from "components/call";
 
 export const Dashboard: FC = () => {
-  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [stateContactToCallModal, setStateContactToCallModal] = useState(false);
 
   return (
     <motion.section
@@ -64,12 +65,12 @@ export const Dashboard: FC = () => {
           iconSize={16}
         />
 
-        {/*handleStartCall()*/}
         <Button
           text="Démarrer un appel"
           icon="Video"
           iconPosition="left"
           iconSize={16}
+          onClick={() => setStateContactToCallModal(true)}
         />
         {/*<a href="/files" className="dashQuickAction">
 				<FileUp size={16} />
@@ -111,6 +112,11 @@ export const Dashboard: FC = () => {
           {/*)}*/}
         </ul>
       </motion.section>
+
+      <ContactPickerModal
+        isOpen={stateContactToCallModal}
+        onClose={() => setStateContactToCallModal(false)}
+      />
     </motion.section>
   );
 };
