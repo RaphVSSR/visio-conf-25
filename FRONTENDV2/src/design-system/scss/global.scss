@@ -1,28 +1,24 @@
-
 @forward "./fonts";
 @forward "./colors";
 @forward "./placeholders";
 
 * {
-	padding: 0;
-	margin: 0;
-	box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 ul {
-
-	list-style: none;
+  list-style: none;
 }
 
 fieldset {
-
-	border: none;
+  border: none;
 }
 
 dialog {
-
-	border: none;
-	background: none;
-	max-width: unset;
-	max-height: unset;
+  border: none;
+  background: none;
+  max-width: unset;
+  max-height: unset;
 }

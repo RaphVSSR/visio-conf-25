@@ -1,8 +1,7 @@
-
-import mongoose, { connect, disconnect, type ConnectOptions } from "mongoose"
+import mongoose, { connect, disconnect, type ConnectOptions } from "mongoose";
 import path from "path";
-import { fileURLToPath } from "url"
-import fs from "fs"
+import { fileURLToPath } from "url";
+import fs from "fs";
 import User from "../User.ts";
 import TracedError from "../Core/TracedError.ts";
 import FileSystem, { Folder } from "./FileSystem.ts";
@@ -17,7 +16,6 @@ import Permission from "../Permission.ts";
 import Role from "../Role.ts";
 import Session from "./authentication/Session.ts";
 import { sha256 } from "js-sha256";
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

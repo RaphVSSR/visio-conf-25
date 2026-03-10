@@ -4,9 +4,8 @@
  * pour partager une interface commune (save, flushAll).
  */
 export default abstract class Collection {
-
-	/**
-	 * Sauvegarde l'instance du modèle en base de données.
-	 */
-	abstract save(): Promise<void>;
+  /**
+   * Sauvegarde l'instance du modèle en base de données.
+   */
+  abstract save(): Promise<void>;
 }

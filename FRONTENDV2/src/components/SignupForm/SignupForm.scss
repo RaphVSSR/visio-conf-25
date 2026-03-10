@@ -1,117 +1,103 @@
-
 @use "../../design-system/scss/global.scss" as *;
 
 #signupForm {
-	@extend %flex-col-centered;
-	width: 35vw;
-	padding: 30px;
-	justify-content: unset;
-	gap: 50px;
-	background: $bg-white;
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-	border-radius: 25px;
-	transition: .4s ease;
+  @extend %flex-col-centered;
+  width: 35vw;
+  padding: 30px;
+  justify-content: unset;
+  gap: 50px;
+  background: $bg-white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  border-radius: 25px;
+  transition: 0.4s ease;
 
-	&>img {
+  & > img {
+    width: 90%;
+  }
 
-		width: 90%;
-	}
+  #pwdWrapper {
+    @extend %flex-row-centered;
+    position: relative;
 
-	#pwdWrapper{
-		@extend %flex-row-centered;
-		position: relative;
+    input {
+      flex: 5;
+      color: $primary;
+    }
 
-		input {
+    & .pwdIco {
+      flex: 1;
+      cursor: pointer;
+    }
+  }
 
-			flex: 5;
-			color: $primary;
+  #inputWrapper {
+    @extend %flex-row-centered;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 20px;
 
-		}
+    & > * {
+      flex: 1;
+      padding: 10px;
+      border-bottom: solid 2px $link !important;
+      transition: all 0.3s ease;
 
-		& .pwdIco {
+      &:hover,
+      & :focus-visible {
+        scale: 1.05;
+      }
+    }
 
-			flex: 1;
-			cursor: pointer;
-		}
-	}
+    input {
+      appearance: none;
+      border: none;
 
-	#inputWrapper{
+      &:focus-visible {
+        outline: none;
+      }
+    }
+  }
 
-		@extend %flex-row-centered;
-		flex-wrap: wrap;
-		width: 100%;
-		gap: 20px;
+  #signupFooter {
+    @extend %flex-col-centered;
+    width: 100%;
+    gap: 10px;
 
-		&>* {
+    & > * {
+      width: 90%;
+      text-align: center;
+    }
 
-			flex: 1;
-			padding: 10px;
-			border-bottom: solid 2px $link !important;
-			transition: all .3s ease;
+    #submitBtn {
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: $primary;
+      color: $bg-white;
+      cursor: pointer;
 
-			&:hover, & :focus-visible {
+      &:disabled {
+        cursor: not-allowed;
+        background-color: $bg-disabled;
+      }
 
-				scale: 1.05;
-			}
+      &:hover:not(:disabled) {
+        background-color: $primary-hover;
+      }
+    }
 
-		}
+    #loginLink {
+      color: $link;
+      text-decoration: none;
+      transition: all 0.3s ease;
 
-		input {
+      &:hover {
+        color: $link-hover;
+      }
+    }
+  }
 
-			appearance: none;
-			border: none;
-
-			&:focus-visible {
-
-				outline: none;
-			}
-
-		}
-	}
-
-	#signupFooter {
-
-		@extend %flex-col-centered;
-		width: 100%;
-		gap: 10px;
-
-		&>* {
-
-			width: 90%;
-			text-align: center;
-		}
-
-		#submitBtn {
-		  padding: 0.75rem;
-		  border: none;
-		  border-radius: 8px;
-		  background: $primary;
-		  color: $bg-white;
-		  cursor: pointer;
-
-		  &:disabled {
-			cursor: not-allowed;
-			background-color: $bg-disabled;
-		  }
-
-		  &:hover:not(:disabled) {
-			background-color: $primary-hover;
-		  }
-		}
-
-		#loginLink {
-
-			color: $link;
-			text-decoration: none;
-			transition: all .3s ease;
-
-			&:hover{
-				color: $link-hover;
-			}
-		}
-	}
-
-	.error {
-	  color: $danger-text;
-	}
+  .error {
+    color: $danger-text;
+  }
 }
