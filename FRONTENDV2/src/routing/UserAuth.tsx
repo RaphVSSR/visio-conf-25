@@ -1,25 +1,19 @@
-import { FC, useContext, useEffect } from "react";
-import { SessionContext } from "../contexts/SessionContext";
+import { FC } from "react";
 import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "hooks/useAuth";
 
+/**
+ * Garde de route pour les pages protégées.
+ * Redirige vers /login si l'utilisateur n'est pas authentifié.
+ * Affiche un écran de chargement pendant la vérification.
+ */
 export const UserAuth: FC = () => {
 
-	const session = useContext(SessionContext);
+	const { isAuthenticated, isLoading } = useAuth();
 
-	if (!session.isLoading){
-		
-		if (!session.currentUser.data){
+	if (isLoading) return <h1>Chargement du bundle...</h1>;
 
-			return <Navigate to={"/login"} replace/>;
+	if (!isAuthenticated) return <Navigate to={"/login"} replace />;
 
-		}else {
-
-			return <Outlet />;
-			
-		}
-		
-	}else {
-
-		return <><h1>Chargement du bundle...</h1></>
-	}
+	return <Outlet />;
 }

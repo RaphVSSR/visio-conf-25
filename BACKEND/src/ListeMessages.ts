@@ -1,139 +1,151 @@
 /**
- * Liste des messages émis
+ * Liste des messages émis par le client (client → serveur).
  * @type {string[]}
  */
 export const ListeMessagesEmis = [
-    "client_deconnexion", // No data
-    "login_request", // { login: string, password: string }
-    "signup_request", // { login: string, password: string, firstname: string, lastname: string, phone: string, job: string, desc: string }
-    "users_list_request", // No data
-    "messages_get_request", // { userEmail: string | undefined, otherUserEmail: string }
-    "message_send_request", // { userEmail: string, otherUserEmail: string, text: string }
-    "upload_request", // { media: string }
-    "update_user_status_request", // {user_id : ObjectId, action : string}
-    "update_user_roles_request", // {user_id : ObjectId, roles : Role._id[]}
-    "upload_request", // { media: string }
-    "update_user_request", // { any field of User }
-    "user_info_request", // { user_info_request: { userId: string } }
+    "client_deconnexion",
+    //---- AUTH ----
+    "authenticate",
+    "login",
+    "register",
+    "user_disconnect",
+    "session_refresh",
+    "session_pending_choice",
+    "users_list_request",
+    "messages_get_request",
+    "message_send_request",
+    "upload_request",
+    "update_user_status_request",
+    "update_user_roles_request",
+    "update_user_request",
+    "user_info_request",
     //---- DISCUSS ----
-    "messages_get_request", // { convId: uuid }
-    "message_send_request", // { userEmail: string, otherUserEmail?: string[], convId?:uuid , text: string }
-    "discuss_list_request", // { userId : uuid }
-    "users_search_request", // { requestArgs : string }
-    "discuss_remove_member_request", // { UserId : uuid, convId : uuid }
-    "discuss_remove_message_request", // { messageId : uuid, convId : uuid }
-    "message_status_request", // { convId: uuid }
+    "discuss_list_request",
+    "users_search_request",
+    "discuss_remove_member_request",
+    "discuss_remove_message_request",
+    "message_status_request",
     //---- ROLES ----
-    "roles_list_request", // No data
-    "one_role_request", // { role_id : ObjectId}=
-    "create_role_request", // { name : string, perms : Permission._id[], action : string}=
-    "update_role_request", // { role_id : ObjectId, perms : Permission._id[]}
-    "delete_role_request", // {role_id : ObjectId}
+    "roles_list_request",
+    "one_role_request",
+    "create_role_request",
+    "update_role_request",
+    "delete_role_request",
     //---- PERMISSIONS ----
-    "perms_list_request", // No data=
-    "user_perms_request", //{ userId : ObjectId}
-    "update_perm_request", // { perm_id : ObjectId, newLabel : string}
-    "add_perm_request", // { newLabel : string, newUuid : string}=    //---- FILES ----
-    "files_list_request", // { folderId?: string }
-    "file_delete_request", // { fileId: string }
-    "file_rename_request", // { fileId: string, newName: string }
-    "file_move_request", // { fileId: string, newParentId: string }
-    "file_share_to_team_request", // { fileId: string, teamId: string }
-    "shared_files_list_request", // { teamId?: string }
-    "folders_list_request", // { ownerId?: string }
-    "folder_create_request", // { name: string, parentId?: string }
+    "perms_list_request",
+    "user_perms_request",
+    "update_perm_request",
+    "add_perm_request",
+    //---- FILES ----
+    "files_list_request",
+    "file_delete_request",
+    "file_rename_request",
+    "file_move_request",
+    "file_share_to_team_request",
+    "shared_files_list_request",
+    "folders_list_request",
+    "folder_create_request",
     //---- CHANNELS ----
-    "channels_list_request", // { teamId?: string }
-    "channel_create_request", // { name: string, teamId: string, isPublic: boolean, members?: string[] }
-    "channel_update_request", // { id: string, name?: string, isPublic?: boolean }
-    "channel_delete_request", // { channelId: string }
-    "channel_leave_request", // { channelId: string }
-    "channel_members_request", // { channelId: string }
-    "channel_add_member_request", // { channelId: string, userId: string }
-    "channel_remove_member_request", // { channelId: string, userId: string }
-    "channel_posts_request", // { channelId: string }
-    "channel_post_create_request", // { channelId: string, content: string }
-    "channel_post_responses_request", // { postId: string }
-    "channel_post_response_create_request", // { postId: string, content: string }
+    "channels_list_request",
+    "channel_create_request",
+    "channel_update_request",
+    "channel_delete_request",
+    "channel_leave_request",
+    "channel_members_request",
+    "channel_add_member_request",
+    "channel_remove_member_request",
+    "channel_posts_request",
+    "channel_post_create_request",
+    "channel_post_responses_request",
+    "channel_post_response_create_request",
     //---- TEAMS ----
-    "teams_list_request", // No data
-    "team_create_request", // { name: string, description?: string, picture?: string, members?: string[] }
-    "team_update_request", // { teamId: string, name?: string, description?: string, picture?: string }
-    "team_delete_request", // { teamId: string }
-    "team_leave_request", // { teamId: string }
-    "team_members_request", // { teamId: string }
-    "team_add_member_request", // { teamId: string, userId: string }
-    "team_remove_member_request", // { teamId: string, userId: string }
-    "all_teams_request", // No data
+    "teams_list_request",
+    "team_create_request",
+    "team_update_request",
+    "team_delete_request",
+    "team_leave_request",
+    "team_members_request",
+    "team_add_member_request",
+    "team_remove_member_request",
+    "all_teams_request",
 ]
 
 /**
- * Liste des messages reçus
+ * Liste des messages reçus par le client (serveur → client).
  * @type {string[]}
  */
 export const ListeMessagesRecus = [
-    "client_deconnexion", // No data
-    "login_response", // { etat: boolean, token?: string }
-    "signup_response", // { etat: boolean, token?: string }
-    "users_list_response", // { etat: boolean, users?: User[], error?: string }=
-    "messages_get_response", // { etat: boolean, messages?: Message[], error?: string }
-    "message_send_response", // { etat: boolean, error?: string }
-    "upload_response", // { etat: boolean, error?: string, url?: string }
-    "update_user_response", // { etat: boolean, newUserInfo: User | null,  error?: string }
-    "update_user_status_response", // {etat: boolean, action : string}
-    "update_user_roles_response", // {userId : ObjectId}=
-    "upload_response", // { etat: boolean, error?: string, fileName?: string }
-    "update_user_response", // { etat: boolean, newUserInfo: User | null,  error?: string }=
-    "user_info_response", // { user_info_response: { etat: boolean, userInfo?: User, error?: string } }
+    "client_deconnexion",
+    //---- AUTH ----
+    "auth_success",
+    "auth_failure",
+    "login_success",
+    "login_failure",
+    "login_pending",
+    "registration_success",
+    "registration_failure",
+    "user_disconnect_success",
+    "session_refreshed",
+    "session_expired",
+    "session_pending",
+    "session_pending_accepted",
+    "session_pending_rejected",
+    "users_list_response",
+    "messages_get_response",
+    "message_send_response",
+    "upload_response",
+    "update_user_response",
+    "update_user_status_response",
+    "update_user_roles_response",
+    "user_info_response",
     //---- DISCUSS ----
-    "messages_get_response", // { etat: boolean, messages?: Message[], error?: string }
-    "message_send_response", // { etat: boolean, error?: string }
-    "discuss_list_response", //{ etat: boolean, discussList? : Discussion[], error?: string }
-    "users_search_response", // {  etat: boolean, users?: User[], error?: string }
-    "discuss_remove_member_response", // { etat: boolean, error?: string }
-    "discuss_remove_message_response", // { etat: boolean, error?: string }
-    "message_status_response", // {etat: boolean, error?: string }
+    "discuss_list_response",
+    "users_search_response",
+    "discuss_remove_member_response",
+    "discuss_remove_message_response",
+    "message_status_response",
     //---- ROLES ----
-    "roles_list_response", // {role_list : Role[]}
-    "one_role_response", // {role : Role}
-    "created_role", // { role_id : ObjectId }
-    "role_already_exists", // { state : boolean }
-    "updated_role", //{ state : boolean}
-    "deleted_role", // {state : boolean}
-    //---- PERMISSIONS ----=
-    "perms_list_response", // { perms?: Permission[]}
-    "user_perms_response", // { perms : Permission[]}
-    "update_perm_response", // { state : boolean }
-    "add_perm_response", // {message : string }=    //---- FILES ----
-    "files_list_response", // { etat: boolean, files?: File[], error?: string }
-    "file_delete_response", // { etat: boolean, fileId?: string, error?: string }
-    "file_rename_response", // { etat: boolean, error?: string }
-    "file_move_response", // { etat: boolean,  error?: string }
-    "file_share_to_team_response", // { etat: boolean, fileId?: string, teamId?: string, error?: string }
-    "shared_files_list_response", // { etat: boolean, files?: File[], teamId?: string, error?: string }
-    "folders_list_response", // { etat: boolean, folders?: File[], error?: string }
-    "folder_create_response", // { etat: boolean, error?: string }
+    "roles_list_response",
+    "one_role_response",
+    "created_role",
+    "role_already_exists",
+    "updated_role",
+    "deleted_role",
+    //---- PERMISSIONS ----
+    "perms_list_response",
+    "user_perms_response",
+    "update_perm_response",
+    "add_perm_response",
+    //---- FILES ----
+    "files_list_response",
+    "file_delete_response",
+    "file_rename_response",
+    "file_move_response",
+    "file_share_to_team_response",
+    "shared_files_list_response",
+    "folders_list_response",
+    "folder_create_response",
     //---- CHANNELS ----
-    "channels_list_response", // { etat: boolean, channels?: Channel[], error?: string }
-    "channel_create_response", // { etat: boolean, channel?: Channel, error?: string }
-    "channel_update_response", // { etat: boolean, channel?: Channel, error?: string }
-    "channel_delete_response", // { etat: boolean, channelId?: string, error?: string }
-    "channel_leave_response", // { etat: boolean, channelId?: string, error?: string }
-    "channel_members_response", // { etat: boolean, channelId?: string, members?: ChannelMember[], error?: string }
-    "channel_add_member_response", // { etat: boolean, channelId?: string, member?: ChannelMember, error?: string }
-    "channel_remove_member_response", // { etat: boolean, channelId?: string, userId?: string, error?: string }
-    "channel_posts_response", // { etat: boolean, channelId?: string, posts?: ChannelPost[], error?: string }
-    "channel_post_create_response", // { etat: boolean, post?: ChannelPost, error?: string }
-    "channel_post_responses_response", // { etat: boolean, postId?: string, responses?: ChannelPostResponse[], error?: string }
-    "channel_post_response_create_response", // { etat: boolean, postId?: string, response?: ChannelPostResponse, error?: string }
+    "channels_list_response",
+    "channel_create_response",
+    "channel_update_response",
+    "channel_delete_response",
+    "channel_leave_response",
+    "channel_members_response",
+    "channel_add_member_response",
+    "channel_remove_member_response",
+    "channel_posts_response",
+    "channel_post_create_response",
+    "channel_post_responses_response",
+    "channel_post_response_create_response",
     //---- TEAMS ----
-    "teams_list_response", // { etat: boolean, teams?: Team[], error?: string }
-    "team_create_response", // { etat: boolean, team?: Team, error?: string }
-    "team_update_response", // { etat: boolean, team?: Team, error?: string }
-    "team_delete_response", // { etat: boolean, teamId?: string, error?: string }
-    "team_leave_response", // { etat: boolean, teamId?: string, error?: string }
-    "team_members_response", // { etat: boolean, teamId?: string, members?: TeamMember[], error?: string }
-    "team_add_member_response", // { etat: boolean, teamId?: string, member?: TeamMember, error?: string }
-    "team_remove_member_response", // { etat: boolean, teamId?: string, userId?: string, error?: string }
-    "all_teams_response", // No data
+    "teams_list_response",
+    "team_create_response",
+    "team_update_response",
+    "team_delete_response",
+    "team_leave_response",
+    "team_members_response",
+    "team_add_member_response",
+    "team_remove_member_response",
+    "all_teams_response",
 ]

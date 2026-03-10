@@ -337,7 +337,8 @@ export default class Permission extends Collection {
     }
 
     static async flushAll() {
-        
+
         return this.model.deleteMany({});
     }
+
 }

@@ -92,6 +92,7 @@ const ErrorsType = {
 		message: "❌ Error channels collection is empty.\n",
 	},
 
+
 } as const;
 
 type ErrorsType = typeof ErrorsType;

@@ -3,6 +3,8 @@ import Collection from "./core/Collection.ts"
 import TracedError from "./core/TracedError.ts";
 import User, { type UserType } from "./User.ts";
 import TeamMember, { type TeamMemberType } from "./TeamMember.ts";
+import Channel from "./Channel.ts";
+import ChannelMember from "./ChannelMember.ts";
 
 const { models } = mongoose;
 
@@ -181,8 +183,9 @@ export default class Team extends Collection {
             }
 
         } catch (err: any) {
-            
+
             console.trace(err);
         }
     }
+
 }

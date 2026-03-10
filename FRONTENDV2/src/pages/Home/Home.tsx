@@ -1,31 +1,41 @@
-import { FC, useContext, useEffect } from 'react';
+import { FC } from 'react';
 import { motion } from 'framer-motion'
-import { Search, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import "./Home.scss";
 import { Dashboard } from 'components';
-import { SearchBar } from 'design-system/components';
-import { SessionContext } from 'contexts/SessionContext';
+import { Button, SearchBar } from 'design-system/components';
+import { useAuth } from 'hooks/useAuth';
 import { Navigate } from 'react-router-dom';
-import { useSession } from 'core/AuthClient';
-import { Socket } from 'socket.io-client';
-import Controller from 'core/Controller';
 
 export const Home: FC = () => {
 
-    const session = useContext(SessionContext);
-    
-    if (!session.currentUser) return <Navigate to={"/login"} replace/>;
+    const { isAuthenticated, user, logout } = useAuth();
 
-    useEffect(() => {
-
-        Controller.socketInit();
-        
-    }, []);
+    if (!isAuthenticated) return <Navigate to={"/login"} replace/>;
 
     return (
         <main id='homePage'>
-                
-            <Dashboard/> 
+
+            <motion.nav
+                id="topBar"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35 }}
+            >
+                <span id="topBarGreeting">
+                    {user?.firstname && `Bonjour, ${user.firstname}`}
+                </span>
+                <Button
+                    id="disconnectBtn"
+                    text="Déconnexion"
+                    icon="LogOut"
+                    iconPosition="left"
+                    iconSize={16}
+                    onClick={logout}
+                />
+            </motion.nav>
+
+            <Dashboard/>
 
             {/* Colonne des contacts */}
             <motion.section
@@ -35,34 +45,14 @@ export const Home: FC = () => {
                 transition={{ duration: 0.5, delay: 0.3 }}
             >
 
-            <div id="friendsHeader">
+            <header id="friendsHeader">
 
                 <h2 className='sectionTitle'><Users size={20} /> Contacts</h2>
                 <SearchBar dDownNeeded="false" id="friendsSearch" placeholder='Rechercher un contact...'/>
 
-            </div>
+            </header>
 
-                {/*{filteredUsers.length > 0 ? (
-                    //<UserListAmis users={filteredUsers} currentUserEmail={currentUser.email}/>
-                ) : (*/}
-                    <div id="noFriends">
-                        {/*{searchQuery ? (
-                            <>
-                                <Search size={40} />
-                                <h3>Aucun ami trouvé</h3>
-                                <p>
-                                    Aucun de vos amis ne correspond à votre
-                                    recherche "{searchQuery}"
-                                </p>
-                                <button
-                                    onClick={clearSearch}
-                                    className="resetButton"
-                                >
-                                    Réinitialiser la recherche
-                                </button>
-                            </>
-                        ) : (*/}
-                            <>
+                    <section id="noFriends">
                                 <Users size={40} />
                                 <h3>Aucun contact</h3>
                                 <p>
@@ -71,15 +61,11 @@ export const Home: FC = () => {
                                     voir vos contacts ici.
                                 </p>
                                 <button
-                                    //onClick={handleNewDiscussion}
                                     className="resetButton"
                                 >
                                     Nouvelle discussion
                                 </button>
-                            </>
-                        {/*)}*/}
-                    </div>
-                {/*)}*/}
+                    </section>
             </motion.section>
         </main>
     );

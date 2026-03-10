@@ -6,39 +6,78 @@
 	height: 100vh;
 	padding: 2%;
 	gap: 20px;
-	color: #060d19;
+	color: $text;
 	overflow: hidden;
-	background-color: #f5f7fa;
+	background-color: $bg-page;
+
+	#topBar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		width: 100%;
+		padding: 8px 0 16px;
+
+		#topBarGreeting {
+			font-size: 1.6rem;
+			font-weight: 700;
+			color: $primary;
+			letter-spacing: -0.02em;
+		}
+
+		#disconnectBtn {
+			background-color: transparent;
+			border: 1px solid rgba($danger, 0.2);
+			color: $danger;
+
+			.btnIco {
+				color: $danger;
+			}
+
+			span {
+				color: $danger;
+				font-weight: 500;
+			}
+
+			&:hover {
+				background-color: $danger;
+				border-color: $danger;
+
+				.btnIco, span {
+					color: $bg-white;
+				}
+			}
+		}
+	}
 
 	&::-webkit-scrollbar {
 		width: 6px;
 	}
 
 	&::-webkit-scrollbar-track {
-		background: #f1f5f9;
+		background: $bg-hover;
 		border-radius: 10px;
 	}
 
 	&::-webkit-scrollbar-thumb {
-		background: #cbd5e1;
+		background: $bg-skeleton;
 		border-radius: 10px;
 
 		&:hover {
-			background: #94a3b8;
+			background: $bg-skeleton-dark;
 		}
 	}
 
 	.sectionTitle {
 		font-size: 1.25rem;
 		margin: 0 0 10px 0;
-		color: $primaryCol;
+		color: $primary;
 		display: flex;
 		align-items: center;
 		gap: 10px;
 		font-weight: 600;
 
 		svg {
-			color: $primaryCol;
+			color: $primary;
 		}
 	}
 
@@ -53,9 +92,9 @@
 		width: 100%;
 		padding: 20px;
 		gap: 20px;
-		color: var(--Texte, #060d19);
+		color: $text;
 		border-radius: 16px;
-		background: #fff;
+		background: $bg-white;
 
 		#friendsHeader{
 
@@ -74,23 +113,23 @@
 			@extend %flex-col-centered;
 			padding: 40px 20px;
 			text-align: center;
-			color: #6b7280;
+			color: $text-subtle;
 			height: 100%;
 			flex: 1;
 
 			svg {
-				color: #9ca3af;
+				color: $text-placeholder;
 				margin-bottom: 16px;
 				width: 48px;
 				height: 48px;
 			}
-	
+
 			h3 {
 				margin: 0 0 8px 0;
 				font-size: 1.1rem;
-				color: #4b5563;
+				color: $text-body;
 			}
-	
+
 			p {
 				margin: 0 0 16px 0;
 				font-size: 0.9rem;
@@ -102,16 +141,16 @@
 		.resetButton {
 			margin-top: 16px;
 			padding: 8px 16px;
-			background-color: #f3f4f6;
+			background-color: $bg-muted;
 			border: none;
 			border-radius: 8px;
-			color: $primaryCol;
+			color: $primary;
 			font-size: 0.9rem;
 			cursor: pointer;
 			transition: all 0.2s ease;
 
 			&:hover {
-				background-color: #e5e7eb;
+				background-color: $bg-divider;
 			}
 		}
 
@@ -131,12 +170,12 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #fff;
+  background: $bg-white;
   border-radius: 16px;
   margin-bottom: 16px;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  color: #060d19;
+  color: $text;
   position: relative;
   overflow: hidden;
   gap: 16px;
@@ -150,7 +189,7 @@
 .section h1 {
   font-size: 1.5rem;
   margin-bottom: 16px;
-  color: $primaryCol;
+  color: $primary;
   display: flex;
   align-items: center;
   gap: 10px;
