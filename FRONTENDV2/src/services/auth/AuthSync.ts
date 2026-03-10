@@ -1,7 +1,7 @@
 import { ControllerService } from "Controller/Controller.service"
 import type { Controller, ControllerMessage } from "Controller/Controller.types"
 import { SocketIO } from "services/SocketIO"
-import type { AuthState, PendingSessionRequest } from "./AuthService.types"
+import type { AuthState, PendingSessionRequest } from "./AuthSync.types"
 
 type StateUpdater = (updater: (prev: AuthState) => AuthState) => void
 
@@ -43,13 +43,13 @@ function clearSessionId(): void {
 	sessionStorage.removeItem(process.env.REACT_APP_SESSION_STORAGE_KEY!)
 }
 
-export class AuthService extends ControllerService {
+export class AuthSync extends ControllerService {
 
 	private onStateChange: StateUpdater
 	private expiryTimer: ReturnType<typeof setTimeout> | null = null
 
 	constructor(controleur: Controller, onStateChange: StateUpdater) {
-		super(controleur, "AuthService", MESSAGES_EMITTED, MESSAGES_RECEIVED)
+		super(controleur, "AuthSync", MESSAGES_EMITTED, MESSAGES_RECEIVED)
 
 		this.onStateChange = onStateChange
 
