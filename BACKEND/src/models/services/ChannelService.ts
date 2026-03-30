@@ -31,7 +31,7 @@ export default class ChannelService {
 	}
 
 	traitementMessage(msg: any) {
-		const action = Object.keys(msg).find(k => k !== "id")
+		const action = Object.keys(msg).find(prop => prop !== "id")
 		if (!action) return
 		const handler = this.handlers.get(action)
 		if (handler) handler(msg.id, msg[action])

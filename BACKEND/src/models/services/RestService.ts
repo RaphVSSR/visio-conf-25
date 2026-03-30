@@ -5,7 +5,6 @@ import express, { type Express, Router, type Request, type Response, type NextFu
 import session from "express-session"
 import ConnectMongoDBSession from "connect-mongodb-session"
 import cors from "cors"
-// import FileRoutes from "../../routes/FileRoutes.ts"
 import AuthRoutes from "../../routes/AuthRoutes.ts"
 import TracedError from "../core/TracedError.ts";
 import SessionManager from "./authentication/SessionManager.ts";
@@ -122,7 +121,6 @@ export default class RestService {
 
 			const coreRouter = Router();
 
-			// coreRouter.use("/files", FileRoutes);
 			coreRouter.use("/auth", AuthRoutes);
 
 			this.server.use(process.env.API_BASE_PREFIX?.startsWith("/") ? process.env.API_BASE_PREFIX : "/", coreRouter);

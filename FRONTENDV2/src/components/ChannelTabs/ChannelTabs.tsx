@@ -5,8 +5,6 @@ import { Channel } from "pages/Teams/Teams.types";
 import "./ChannelTabs.scss";
 
 
-// ─── Types ───────────────────────────────────────────────
-
 export interface ChannelTabsProps {
 	channels: Channel[];
 	selectedChannel: Channel | null;
@@ -14,8 +12,6 @@ export interface ChannelTabsProps {
 	onCreateChannel: () => void;
 }
 
-
-// ─── Component ───────────────────────────────────────────
 
 export const ChannelTabs: FC<ChannelTabsProps> = ({
 	channels,

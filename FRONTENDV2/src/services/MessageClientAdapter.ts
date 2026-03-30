@@ -1,4 +1,4 @@
-import io, { type Socket } from "socket.io-client"
+import socketClient, { type Socket } from "socket.io-client"
 
 type MessageHandler = (payload: any) => void
 
@@ -11,24 +11,24 @@ export default class MessageClientAdapter {
 
 	constructor(url: string) {
 
-		this.socket = io(url, { autoConnect: true, reconnection: true, withCredentials: true })
+		this.socket = socketClient(url, { autoConnect: true, reconnection: true, withCredentials: true })
 
 		this.socket.on("message", (raw: string) => {
-			const msg = JSON.parse(raw)
-			const action = Object.keys(msg)[0]
+			const parsed = JSON.parse(raw)
+			const action = Object.keys(parsed)[0]
 			if (!action) return
 
 			const handlers = this.handlers.get(action)
 			if (!handlers) return
 
 			for (const handler of handlers) {
-				handler(msg[action])
+				handler(parsed[action])
 			}
 		})
 
 		this.socket.on("donne_liste", () => {
 			this.ready = true
-			this.readyCallbacks.forEach(cb => cb())
+			this.readyCallbacks.forEach(callback => callback())
 			this.readyCallbacks = []
 		})
 

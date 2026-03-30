@@ -4,10 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import "./SignupForm.scss"
 import { useAuth } from 'hooks/useAuth';
 
-/**
- * Formulaire d'inscription.
- * Utilise le contrôleur pour envoyer le message `register` via Socket.io.
- */
 export const SignupForm = () => {
 
 	const [showPwd, setShowPwd] = useState<boolean>(false);

@@ -100,7 +100,7 @@ export class AuthSync {
 
 	login(email: string, password: string): void {
 		this.onStateChange(prev => ({ ...prev, isLoading: true, loginRejected: false }))
-		this.socket.send("login", { email, password, deviceInfo: navigator.userAgent })
+		this.socket.send("login", { email, password })
 	}
 
 	register(data: { password: string, firstname: string, lastname: string, email: string, phone: string }): void {

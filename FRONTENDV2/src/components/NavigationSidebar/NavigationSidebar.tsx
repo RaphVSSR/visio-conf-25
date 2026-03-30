@@ -7,8 +7,6 @@ import { LucideIcons } from "design-system/components";
 import "./NavigationSidebar.scss";
 
 
-// ─── Types ───────────────────────────────────────────────
-
 export interface NavigationItem {
 	label: string;
 	path: string;
@@ -32,8 +30,6 @@ export interface NavigationSidebarProps {
 }
 
 
-// ─── Configuration ───────────────────────────────────────
-
 export const NAVIGATION_ITEMS: NavigationItem[] = [
 	{ label: "Discussions", path: "/discussions", icon: "MessageSquare" },
 	{ label: "Equipes",     path: "/equipes",     icon: "Users" },
@@ -48,8 +44,6 @@ export const SIDEBAR_BRAND = {
 	brandLabel: "Université de Toulon",
 } as const;
 
-
-// ─── Component ───────────────────────────────────────────
 
 export const NavigationSidebar: FC<NavigationSidebarProps> = ({
 	items,

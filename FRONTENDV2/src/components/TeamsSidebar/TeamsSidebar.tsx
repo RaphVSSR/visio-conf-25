@@ -6,8 +6,6 @@ import { Team } from "pages/Teams/Teams.types";
 import "./TeamsSidebar.scss";
 
 
-// ─── Types ───────────────────────────────────────────────
-
 export interface TeamsSidebarProps {
 	teams: Team[];
 	selectedTeam: Team | null;
@@ -17,8 +15,6 @@ export interface TeamsSidebarProps {
 	isLoading: boolean;
 }
 
-
-// ─── Component ───────────────────────────────────────────
 
 export const TeamsSidebar: FC<TeamsSidebarProps> = ({
 	teams,

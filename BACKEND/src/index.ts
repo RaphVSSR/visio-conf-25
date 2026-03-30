@@ -41,18 +41,18 @@ try {
 	const expressApp = await RestService.implement()
 	HTTPServer.createFromExpress(expressApp)
 
-	const io = new Server(HTTPServer.server, {
+	const socketServer = new Server(HTTPServer.server, {
 		cors: {
 			origin: process.env.FRONTEND_URL || "http://localhost:3000",
 			methods: ["GET", "POST"],
 			credentials: true,
 		}
 	})
-	SessionManager.bindToServer(io)
-	io.engine.use(RestService.sessionMiddleware)
+	SessionManager.bindToServer(socketServer)
+	socketServer.engine.use(RestService.sessionMiddleware)
 
 	const controleur = new Controleur()
-	new CanalSocketIO(io, controleur, "canalsocketio")
+	new CanalSocketIO(socketServer, controleur, "canalsocketio")
 
 	registerServices(controleur)
 

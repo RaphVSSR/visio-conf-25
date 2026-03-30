@@ -1,5 +1,4 @@
 
-export * from "./AdminMenu/AdminMenu";
 export * from "./AdminTabPanel/AdminTabPanel";
 export * from "./AuthenticatedLayout/AuthenticatedLayout";
 export * from "./Dashboard/Dashboard";

@@ -26,7 +26,7 @@ export default class AuthService {
 	}
 
 	traitementMessage(msg: any) {
-		const action = Object.keys(msg).find(k => k !== "id")
+		const action = Object.keys(msg).find(prop => prop !== "id")
 		if (!action) return
 		const handler = this.handlers.get(action)
 		if (handler) handler(msg.id, msg[action])
@@ -42,7 +42,7 @@ export default class AuthService {
 		this.controleur.inscription(this, outgoing, [...this.handlers.keys()])
 	}
 
-	private login = async (socketId: string, payload: { email: string, password: string, deviceInfo: string }) => {
+	private login = async (socketId: string, payload: { email: string, password: string }) => {
 
 		const { email, password } = payload
 
@@ -98,26 +98,6 @@ export default class AuthService {
 	private socketDisconnect = (socketId: string) => {
 
 		SessionManager.unbind(socketId)
-	}
-
-	private static parseDeviceInfo(ua: string): string {
-		const browser =
-			/Edg\//i.test(ua) ? "Edge" :
-			/OPR|Opera/i.test(ua) ? "Opera" :
-			/Chrome/i.test(ua) ? "Chrome" :
-			/Firefox/i.test(ua) ? "Firefox" :
-			/Safari/i.test(ua) ? "Safari" :
-			"Inconnu"
-
-		const os =
-			/Windows/i.test(ua) ? "Windows" :
-			/Mac OS/i.test(ua) ? "macOS" :
-			/Android/i.test(ua) ? "Android" :
-			/iPhone|iPad/i.test(ua) ? "iOS" :
-			/Linux/i.test(ua) ? "Linux" :
-			"Inconnu"
-
-		return `${browser} sur ${os}`
 	}
 
 	private static bindSession(socketId: string, userId: string): number {
