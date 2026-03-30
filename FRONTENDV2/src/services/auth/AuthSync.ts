@@ -1,7 +1,9 @@
 import type MessageClientAdapter from "services/MessageClientAdapter"
-import type { AuthState, PendingSessionRequest } from "./AuthSync.types"
+import type { AuthState } from "./AuthSync.types"
 
 type StateUpdater = (updater: (prev: AuthState) => AuthState) => void
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:3220"
 
 export class AuthSync {
 
@@ -20,7 +22,6 @@ export class AuthSync {
 					isAuthenticated: true,
 					isLoading: false,
 					expiresAt: data.expiresAt,
-					pendingLoginRequestId: null,
 				}))
 				break
 
@@ -28,16 +29,7 @@ export class AuthSync {
 				this.onStateChange(prev => ({
 					...prev,
 					isLoading: false,
-					loginRejected: prev.pendingLoginRequestId !== null,
-					pendingLoginRequestId: null,
-				}))
-				break
-
-			case "pending":
-				this.onStateChange(prev => ({
-					...prev,
-					isLoading: false,
-					pendingLoginRequestId: data.requestId,
+					loginRejected: true,
 				}))
 				break
 		}
@@ -92,70 +84,6 @@ export class AuthSync {
 		}
 	}
 
-	private handleSessionResponse = (data: { status: string, [key: string]: any }) => {
-
-		switch (data.status) {
-			case "disconnected":
-				this.clearExpiryTimer()
-				this.onStateChange(prev => ({
-					...prev,
-					user: null,
-					isAuthenticated: false,
-					isLoading: false,
-					expiresAt: null,
-					pendingSessionRequests: [],
-					showExpiryWarning: false,
-				}))
-				break
-
-			case "refreshed":
-				this.onStateChange(prev => ({
-					...prev,
-					expiresAt: data.expiresAt,
-					showExpiryWarning: false,
-				}))
-				this.startExpiryTimer(data.expiresAt)
-				break
-
-			case "expired":
-				this.clearExpiryTimer()
-				this.onStateChange(prev => ({
-					...prev,
-					user: null,
-					isAuthenticated: false,
-					isLoading: false,
-					expiresAt: null,
-					showExpiryWarning: false,
-				}))
-				break
-
-			case "pending_request":
-				this.onStateChange(prev => ({
-					...prev,
-					pendingSessionRequests: [...prev.pendingSessionRequests, data as unknown as PendingSessionRequest],
-				}))
-				break
-
-			case "pending_accepted":
-				this.onStateChange(prev => ({
-					...prev,
-					pendingSessionRequests: prev.pendingSessionRequests.filter(
-						r => r.requestId !== data.requestId
-					),
-				}))
-				break
-
-			case "pending_rejected":
-				this.onStateChange(prev => ({
-					...prev,
-					pendingSessionRequests: prev.pendingSessionRequests.filter(
-						r => r.requestId !== data.requestId
-					),
-				}))
-				break
-		}
-	}
-
 	constructor(socket: MessageClientAdapter, onStateChange: StateUpdater) {
 		this.socket = socket
 		this.onStateChange = onStateChange
@@ -163,7 +91,6 @@ export class AuthSync {
 		this.socket.on("login_response", this.handleLoginResponse)
 		this.socket.on("authenticate_response", this.handleAuthenticateResponse)
 		this.socket.on("register_response", this.handleRegisterResponse)
-		this.socket.on("session_response", this.handleSessionResponse)
 
 		this.socket.onReady(() => {
 			this.socket.onReconnect(() => this.socket.send("authenticate", {}))
@@ -181,16 +108,56 @@ export class AuthSync {
 		this.socket.send("register", data)
 	}
 
-	logout(): void {
-		this.socket.send("session", { type: "disconnect" })
+	async logout(): Promise<void> {
+		try {
+			await fetch(`${BACKEND_URL}/auth/logout`, {
+				method: "POST",
+				credentials: "include",
+			})
+		} catch (error) {
+			console.error("Logout request failed:", error)
+		}
+
+		this.clearExpiryTimer()
+		this.onStateChange(prev => ({
+			...prev,
+			user: null,
+			isAuthenticated: false,
+			isLoading: false,
+			expiresAt: null,
+			showExpiryWarning: false,
+		}))
 	}
 
-	refreshSession(): void {
-		this.socket.send("session", { type: "refresh" })
-	}
+	async refreshSession(): Promise<void> {
+		try {
+			const resp = await fetch(`${BACKEND_URL}/auth/refresh`, {
+				method: "POST",
+				credentials: "include",
+			})
+			const data = await resp.json()
 
-	respondToPendingSession(requestId: string, accepted: boolean): void {
-		this.socket.send("session", { type: "pending_choice", requestId, accepted })
+			if (data.status === "refreshed") {
+				this.startExpiryTimer(data.expiresAt)
+				this.onStateChange(prev => ({
+					...prev,
+					expiresAt: data.expiresAt,
+					showExpiryWarning: false,
+				}))
+			} else {
+				this.clearExpiryTimer()
+				this.onStateChange(prev => ({
+					...prev,
+					user: null,
+					isAuthenticated: false,
+					isLoading: false,
+					expiresAt: null,
+					showExpiryWarning: false,
+				}))
+			}
+		} catch (error) {
+			console.error("Refresh request failed:", error)
+		}
 	}
 
 	destroy(): void {
@@ -198,7 +165,6 @@ export class AuthSync {
 		this.socket.off("login_response", this.handleLoginResponse)
 		this.socket.off("authenticate_response", this.handleAuthenticateResponse)
 		this.socket.off("register_response", this.handleRegisterResponse)
-		this.socket.off("session_response", this.handleSessionResponse)
 	}
 
 	private startExpiryTimer(expiresAt: number): void {

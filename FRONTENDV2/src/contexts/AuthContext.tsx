@@ -3,7 +3,7 @@ import MessageClientAdapter from "services/MessageClientAdapter"
 import { AuthSync } from "services/auth/AuthSync"
 import type { AuthState, AuthContextType } from "services/auth/AuthSync.types"
 
-export type { AuthUser, PendingSessionRequest, AuthState, AuthActions, AuthContextType } from "services/auth/AuthSync.types"
+export type { AuthUser, AuthState, AuthActions, AuthContextType } from "services/auth/AuthSync.types"
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
@@ -12,8 +12,6 @@ const INITIAL_STATE: AuthState = {
 	isAuthenticated: false,
 	isLoading: true,
 	expiresAt: null,
-	pendingLoginRequestId: null,
-	pendingSessionRequests: [],
 	showExpiryWarning: false,
 	loginRejected: false,
 }
@@ -44,7 +42,6 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
 		register: (data) => authRef.current?.register(data),
 		logout: () => authRef.current?.logout(),
 		refreshSession: () => authRef.current?.refreshSession(),
-		respondToPendingSession: (requestId, accepted) => authRef.current?.respondToPendingSession(requestId, accepted),
 		dismissExpiryWarning: () => setState(prev => ({ ...prev, showExpiryWarning: false })),
 	}
 

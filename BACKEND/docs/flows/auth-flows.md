@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-L'authentification passe entièrement par **Socket.io + Controleur.js** (pattern pub/sub). Pas de REST pour l'auth. Les sessions sont basées sur des cookies via `connect-mongodb-session`.
+L'authentification passe entièrement par **Socket.io + Controleur.js** (pattern pub/sub). Pas de REST pour l'auth de base (login, register, authenticate). Les sessions sont basées sur des cookies via `connect-mongodb-session`.
 
 ```
 FRONTENDV2                                              BACKEND
@@ -25,7 +25,7 @@ FRONTENDV2                                              BACKEND
               |         ^                          |
               +=========|=== Socket.io ============+
                         |
-  SessionExpiryModal <--+ (affiche les infos depuis AuthContext)
+  AuthToasts <--+ (affiche les infos depuis AuthContext)
 ```
 
 ### Routage symétrique des messages
@@ -80,8 +80,8 @@ Réception: Service.envoie() --> controleur --> canalsocketio.traitementMessage(
 | Lit `expiresAt` pour la modale | Crée / rafraîchit / invalide les sessions |
 | Affiche le statut de session, alertes | Gère le store de sessions via connect-mongodb-session |
 | Calcule le timer local à partir des données | Mappe socket → session en mémoire (SessionManager) |
-| Envoie les décisions utilisateur via messages | Approuve / rejette les demandes multi-session |
-| Cookie géré automatiquement par le navigateur | Configure le cookie via express-session + connect-mongodb-session |
+| Envoie les décisions utilisateur via messages | Configure le cookie via express-session + connect-mongodb-session |
+| Cookie géré automatiquement par le navigateur | |
 
 ---
 
@@ -117,59 +117,6 @@ Réception: Service.envoie() --> controleur --> canalsocketio.traitementMessage(
 
 ---
 
-## Flux d'approbation multi-session
-
-Déclenché quand un utilisateur tente un **login** ou **authenticate** et que des sockets actifs existent déjà pour cet utilisateur.
-
-```
-APPAREIL 2 (nouveau)      SERVEUR                    APPAREIL 1 (existant)
---------------------      -------                    --------------------
-login {email, password, deviceInfo}
-        |
-        | ==========>     Identifiants valides
-                          Sessions actives ?
-                          OUI --> créer demande en attente
-                                |                           |
-        <========== |     login_response --------->   session_response
-                          { status: "pending" }       { status: "pending_request",
-                                                        requestId,
-                                                        requesterInfo }
-                                                           |
-                                                     [ACCEPTER / REFUSER]
-                                                           |
-                          <===========================   session
-                                                     { type: "pending_choice",
-                                                       requestId, accepted }
-                          |
-                    +-----+------+
-                ACCEPTÉ        REFUSÉ
-                    |            |
-              Créer session   Refuser login
-                    |            |
-                    |             |
-        <========== |    login_response ----------> session_response
-        login_response     { status: "failure",      { status: "pending_rejected",
-        { status:            reason: "rejected" }      requestId }
-          "success",
-          user, expiresAt }
-                    |
-        session_response ---------->
-        { status: "pending_accepted",
-          requestId }
-
-                    --- TIMEOUT (pas de réponse) ---
-              Rejet automatique après le délai configuré
-              login_response { status: "failure", reason: "timeout" }
-              + session_response { status: "pending_rejected" } --> Appareil 1
-```
-
-**Règles :**
-- **Premier arrivé, premier servi** : si plusieurs sessions existent, la première à répondre fait autorité
-- **Rejet automatique au timeout** : si aucune session ne répond dans le délai, le login est refusé
-- **Réponses tardives ignorées** : une fois résolu, les réponses suivantes sont ignorées
-
----
-
 ## Flux par scénario
 
 ### Flux 1 — Login (connexion fraîche)
@@ -181,14 +128,9 @@ login { email, password, deviceInfo }
     |======================================>     AuthService.login()
                                                     +-- User.getUser(email)
                                                     +-- verifyPassword(password, user.password)
-                                                    +-- SessionManager.hasActiveSessions(userId)
+                                                    +-- bindSession(socketId, userId)
                                                     |
-                                            +-------+-------+
-                                      Pas de sockets actifs  Sockets actifs existants
-                                            |               |
-                                      bindSession()    Flux 7 (multi-session)
-                                            |
-    <======================================  |
+    <======================================
     login_response { status: "success", user, expiresAt }
     OU
     login_response { status: "failure", reason }
@@ -205,14 +147,9 @@ authenticate {}    (pas de payload — session lue depuis socket.request.session
     |======================================>     AuthService.authenticate()
                                                     +-- SessionManager.getUserId(socketId)
                                                     +-- User.model.findById(userId)
-                                                    +-- SessionManager.getUserSocketIds(userId)
+                                                    +-- bindSession(socketId, userId)
                                                     |
-                                            +-------+-------+
-                                      Pas de sockets actifs  Sockets actifs existants
-                                            |               |
-                                      bindSession()     Flux 7 (multi-session)
-                                            |
-    <======================================  |
+    <======================================
     authenticate_response { status: "success", user, expiresAt }
     OU
     authenticate_response { status: "failure", reason: "session_expired"
@@ -248,19 +185,16 @@ register { password, firstname, lastname, email, phone }
 ```
 Client                                          Serveur
 ------                                          -------
-session { type: "disconnect" }
-    |======================================>     AuthService.handleSession()
-                                                    -> userDisconnect(socketId)
-                                                    +-- SessionManager.getUserId(socketId)
-                                                    +-- SessionManager.unbind(socketId)
-                                                    |
-    <======================================
-    session_response { status: "disconnected" }
-    OU (si pas de session trouvée)
-    session_response { status: "failure", reason: "not_authenticated" }
+POST /api/auth/logout  (cookie envoyé automatiquement)
+    |======================================>     Lit la session depuis le cookie
+                                                    +-- SessionManager.unbind() pour chaque socket
+                                                    +-- session.destroy()
+    <==== HTTP Response ================
+    Set-Cookie: visioconf_session=; maxAge=0
+    Body: { status: "disconnected" }
 ```
 
-**Côté frontend :** Sur `session_response { status: "disconnected" }`, le timer est nettoyé et tout le state est réinitialisé.
+**Côté frontend :** Sur réception de la réponse, le timer est nettoyé et tout le state est réinitialisé.
 
 ### Flux 5 — Avertissement d'expiration
 
@@ -269,16 +203,16 @@ Client (timer local)                            Serveur
 ------                                          -------
 Le timer déclenche REACT_APP_SESSION_EXPIRY_WARNING_MS
 avant expiresAt
-SessionExpiryModal s'affiche
+AuthToasts affiche le toast d'expiration
     |
     +-- [OUI - Prolonger]
-    |   session { type: "refresh" }
-    |   |==============================>     AuthService.handleSession()
-    |                                           -> sessionRefresh(socketId)
-    |                                           +-- SessionManager.getUserId(socketId)
-    |                                           +-- SessionManager.refreshSession(socketId)
-    |   <==============================
-    |   session_response { status: "refreshed", expiresAt }
+    |   POST /api/auth/refresh  (cookie envoyé automatiquement)
+    |   |==============================>     Lit la session depuis le cookie
+    |                                           +-- session.cookie.maxAge = nouvelle durée
+    |                                           +-- session.save()
+    |   <==== HTTP Response ============
+    |   Set-Cookie: visioconf_session=...; maxAge=24h
+    |   Body: { status: "refreshed", expiresAt }
     |
     +-- [NON - Ignorer]
     |   Modale fermée, la session expire naturellement
@@ -287,7 +221,7 @@ SessionExpiryModal s'affiche
     |   --> Flux 6 au prochain accès
 ```
 
-**Côté frontend :** Le timer est géré par AuthSync. Sur `session_response { status: "refreshed" }`, un nouveau timer démarre et `showExpiryWarning` passe à `false`.
+**Côté frontend :** Le timer est géré par AuthSync. Sur réception de `{ status: "refreshed" }`, un nouveau timer démarre et `showExpiryWarning` passe à `false`.
 
 ### Flux 6 — Retour après expiration hors ligne
 
@@ -305,53 +239,7 @@ authenticate {}
 Page de login affichée
 ```
 
-**Si `session { type: "refresh" }` est tenté quand la session n'existe plus :** le serveur répond `session_response { status: "expired" }` au lieu de `{ status: "refreshed" }`. Côté frontend, cela déclenche un nettoyage complet (timer, state).
-
-### Flux 7 — Approbation multi-session
-
-Déclenché par Flux 1 (login) ou Flux 2 (authenticate) quand des sockets actifs existent pour l'utilisateur.
-
-```
-Appareil 2 (nouveau)       Serveur               Appareil 1 (existant)
---------------------       -------               --------------------
-login / authenticate
-    |===============>     Sockets actifs ?
-                          OUI -->
-    <===============      login_response =====>    session_response
-    { status:             { status: "pending" }    { status: "pending_request",
-      "pending" }                                    requestId,
-                                                     deviceInfo,
-                                                     requesterInfo }
-                                                       |
-                                                 [ACCEPTER/REFUSER]
-                                                       |
-                          <====================    session
-                                                 { type: "pending_choice",
-                                                   requestId, accepted }
-                          |
-                    +-----+------+
-                ACCEPTÉ        REFUSÉ/TIMEOUT
-                    |              |
-    <=========      |              | =========>
-    login_response  |          login_response
-    { status:       |          { status: "failure" }
-      "success" }   |
-              =============================>
-              session_response
-              { status: "pending_accepted" }
-```
-
-**Côté frontend (Appareil 2) :** `login_response { status: "pending" }` met le state en attente dans AuthSync → l'UI affiche un état d'attente.
-
-**Côté frontend (Appareil 1) :** `session_response { status: "pending_request" }` ajoute la demande à la liste → `SessionPendingModal` s'affiche. L'utilisateur clique accepter/refuser → `session { type: "pending_choice" }` envoyé. Sur `session_response { status: "pending_accepted" }` / `{ status: "pending_rejected" }`, la demande est retirée du state.
-
-**Règles :**
-- **Premier arrivé, premier servi** : si plusieurs sessions existent, la première à répondre fait autorité
-- **Rejet automatique au timeout** : si aucune session ne répond dans le délai (`SESSION_APPROVAL_TIMEOUT_SECONDS`), le login est refusé
-- **Réponses tardives ignorées** : une fois résolu, les réponses suivantes sont ignorées
-- **Même résultat pour login et authenticate** : dans les deux cas, l'approbation crée une **nouvelle** session
-
-### Flux 8 — Déconnexion socket (perte de connexion)
+### Flux 7 — Déconnexion socket (perte de connexion)
 
 ```
 Client                                          Serveur
@@ -391,16 +279,9 @@ SessionManager utilise les **rooms Socket.io** + **express-session** pour le map
 | Délier un socket | `SessionManager.unbind(socketId)` | socket.leave(userId) + supprime session.userId |
 | Obtenir la durée de session | `SessionManager.getSessionDurationMs()` | Parse la variable SESSION_DURATION |
 
-### État en mémoire (AuthService)
-
-| Structure | Type | Contenu |
-|-----------|------|---------|
-| `pendingRequests` | `Map<requestId, PendingRequest>` | Demandes d'approbation multi-session en attente |
-
 **Nettoyage :**
 - **Déconnexion socket** : `SessionManager.unbind()` quitte le room Socket.io + efface session.userId. La session reste dans le store (reconnexion possible).
 - **Invalidation de session** (logout) : `SessionManager.unbind()` efface session.userId, la session reste dans le store MongoDB jusqu'à expiration TTL.
-- **Demandes en attente** : nettoyées à la résolution ou au timeout (+ `clearTimeout`).
 
 ### Nettoyage des sessions dans le store
 - Les sessions ont un champ `expiresAt` avec un index TTL → MongoDB supprime automatiquement les documents expirés.
@@ -415,11 +296,11 @@ SessionManager utilise les **rooms Socket.io** + **express-session** pour le map
 Cookie défini par le serveur | httpOnly | secure (en prod) | sameSite | envoyé automatiquement à chaque requête
 ```
 
-Le navigateur envoie automatiquement le cookie de session avec chaque connexion Socket.io. Pas de gestion manuelle de sessionId côté frontend. Pas de `sessionStorage`, pas de `localStorage`.
+Le navigateur envoie automatiquement le cookie de session avec chaque connexion Socket.io et chaque requête HTTP REST. Pas de gestion manuelle de sessionId côté frontend. Pas de `sessionStorage`, pas de `localStorage`.
 
 Le store de sessions est sauvegardé dans MongoDB via `connect-mongodb-session`. Le serveur lit la session depuis le cookie à chaque requête `authenticate`.
 
-**Pourquoi les cookies plutôt que sessionStorage :** Les cookies sont envoyés automatiquement par le navigateur, éliminant le besoin de gestion manuelle du sessionId. `httpOnly` empêche l'accès XSS à l'identifiant de session. Le flux d'approbation multi-session gère le scénario multi-onglet/appareil au niveau applicatif plutôt qu'au niveau stockage.
+**Pourquoi les cookies plutôt que sessionStorage :** Les cookies sont envoyés automatiquement par le navigateur, éliminant le besoin de gestion manuelle du sessionId. `httpOnly` empêche l'accès XSS à l'identifiant de session.
 
 ---
 
@@ -430,7 +311,6 @@ Le store de sessions est sauvegardé dans MongoDB via `connect-mongodb-session`.
 | Variable | Type | Exemple | Description |
 |----------|------|---------|-------------|
 | `SESSION_DURATION` | string (zeit/ms) | `24h` | Durée de vie d'une session |
-| `SESSION_APPROVAL_TIMEOUT_SECONDS` | int | `60` | Timeout pour l'approbation multi-session |
 | `SESSION_SECRET` | string | `"your-secret"` | Secret pour la signature du cookie express-session |
 
 ### Frontend
@@ -447,8 +327,7 @@ Le store de sessions est sauvegardé dans MongoDB via `connect-mongodb-session`.
 2. **Sessions** : vérifiées via le store cookie à chaque reconnexion.
 3. **Pas de vérification par message** : la connexion TCP persistante EST l'ancre de confiance.
 4. **Sessions dans le store** : suppression automatique via MongoDB TTL.
-5. **Multi-session** : les nouvelles connexions doivent être approuvées par les sessions existantes.
-6. **Cookie de session** : `httpOnly`, géré automatiquement par le navigateur, envoyé via le handshake Socket.io.
+5. **Cookie de session** : `httpOnly`, géré automatiquement par le navigateur, envoyé via le handshake Socket.io et les requêtes REST.
 
 ---
 
@@ -473,7 +352,7 @@ Le store de sessions est sauvegardé dans MongoDB via `connect-mongodb-session`.
 | `src/services/auth/AuthSync.ts` | Service de synchronisation auth, gère les messages et le state |
 | `src/services/auth/AuthSync.types.ts` | Types pour AuthState, AuthUser, AuthActions |
 | `src/contexts/AuthContext.tsx` | Provider React, instancie AuthSync + expose le state |
-| `src/components/SessionExpiryModal/` | Modales d'expiration et d'approbation |
+| `src/components/AuthToasts/` | Toast d'avertissement d'expiration |
 | `src/components/LoginForm/` | Formulaire de login |
 | `src/components/SignupForm/` | Formulaire d'inscription |
 

@@ -18,7 +18,6 @@
 | `AuthContext` | `Context<AuthContextType \| null>` | Le context React |
 | `AuthProvider` | `FC<PropsWithChildren>` | Le composant provider |
 | `AuthUser` | type (re-export) | Type utilisateur |
-| `PendingSessionRequest` | type (re-export) | Type demande multi-session |
 | `AuthState` | type (re-export) | Type state d'authentification |
 | `AuthActions` | type (re-export) | Type actions d'authentification |
 | `AuthContextType` | type (re-export) | Union AuthState & AuthActions & { socket } |
@@ -33,8 +32,6 @@ const INITIAL_STATE: AuthState = {
     isAuthenticated: false,
     isLoading: true,
     expiresAt: null,
-    pendingLoginRequestId: null,
-    pendingSessionRequests: [],
     showExpiryWarning: false,
     loginRejected: false,
 }
@@ -73,7 +70,6 @@ const INITIAL_STATE: AuthState = {
 | `register` | `data: { password, firstname, lastname, email, phone }` | Délègue à `AuthSync.register()` |
 | `logout` | — | Délègue à `AuthSync.logout()` |
 | `refreshSession` | — | Délègue à `AuthSync.refreshSession()` |
-| `respondToPendingSession` | `requestId: string, accepted: boolean` | Délègue à `AuthSync.respondToPendingSession()` |
 | `dismissExpiryWarning` | — | `setState({ showExpiryWarning: false })` (action locale) |
 
 ---

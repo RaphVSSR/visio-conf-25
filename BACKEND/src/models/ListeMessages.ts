@@ -9,11 +9,10 @@ const MessageRegistry: Record<string, MessageDomain> = {
 
 	auth: {
 		emitted: [
-			"login", "register", "authenticate", "session",
+			"login", "register", "authenticate",
 		],
 		received: [
 			"login_response", "register_response", "authenticate_response",
-			"session_response",
 		],
 	},
 

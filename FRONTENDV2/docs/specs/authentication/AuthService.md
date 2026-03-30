@@ -1,4 +1,4 @@
-# Référence de la classe AuthSync — VisioConf (Frontend)
+# Referentiel de la classe AuthSync — VisioConf (Frontend)
 
 **Fichier source** : `FRONTENDV2/src/services/auth/AuthSync.ts`
 **Types** : `FRONTENDV2/src/services/auth/AuthSync.types.ts`
@@ -7,17 +7,17 @@
 
 ## 1. Description
 
-`AuthSync` gère toute l'authentification frontend via `MessageClientAdapter` (Socket.io). Elle s'abonne à 4 messages groupés du serveur (`login_response`, `authenticate_response`, `register_response`, `session_response`) et dispatche les mises à jour de state React via un callback `setState`.
+`AuthSync` gere toute l'authentification frontend via `MessageClientAdapter` (Socket.io). Elle s'abonne a 3 messages du serveur (`login_response`, `authenticate_response`, `register_response`) et dispatche les mises a jour de state React via un callback `setState`.
 
-Les sessions sont gérées côté serveur par `connect-mongodb-session` (cookie-based) — aucun sessionStorage n'est utilisé.
+Les sessions sont gerees cote serveur par `connect-mongodb-session` (cookie-based). Le logout et le refresh de session passent par des routes REST (`/auth/logout`, `/auth/refresh`).
 
 ---
 
-## 2. Propriétés de la classe
+## 2. Proprietes de la classe
 
-| Propriété | Type | Visibilité | Description |
+| Propriete | Type | Visibilite | Description |
 |-----------|------|------------|-------------|
-| `socket` | `MessageClientAdapter` | `private` | Wrapper Socket.io pour l'envoi/réception des messages |
+| `socket` | `MessageClientAdapter` | `private` | Wrapper Socket.io pour l'envoi/reception des messages |
 | `onStateChange` | `StateUpdater` | `private` | Callback `setState` du AuthContext |
 | `expiryTimer` | `ReturnType<typeof setTimeout> \| null` | `private` | Timer d'avertissement d'expiration de session |
 
@@ -27,21 +27,21 @@ Les sessions sont gérées côté serveur par `connect-mongodb-session` (cookie-
 
 | Nom | Type | Description | Exemple |
 |-----|------|-------------|---------|
+| `BACKEND_URL` | `string` | URL du backend pour les requetes REST | `"http://localhost:3220"` |
 | `REACT_APP_SESSION_EXPIRY_WARNING_MS` | `env` | Millisecondes avant expiration pour afficher l'avertissement | `"1800000"` (30 min) |
 
 ---
 
-## 4. Méthodes
+## 4. Methodes
 
-| Méthode | Paramètres | Retour | Description |
+| Methode | Parametres | Retour | Description |
 |---------|------------|--------|-------------|
-| `constructor` | `socket: MessageClientAdapter, onStateChange: StateUpdater` | `AuthSync` | S'abonne aux 4 messages response, envoie `authenticate` dès que le socket est prêt |
+| `constructor` | `socket: MessageClientAdapter, onStateChange: StateUpdater` | `AuthSync` | S'abonne aux 3 messages response, envoie `authenticate` des que le socket est pret |
 | `login` | `email: string, password: string` | `void` | Envoie `login` avec email, password, et `navigator.userAgent` comme deviceInfo |
 | `register` | `data: { password, firstname, lastname, email, phone }` | `void` | Envoie `register` |
-| `logout` | — | `void` | Envoie `session { type: "disconnect" }` |
-| `refreshSession` | — | `void` | Envoie `session { type: "refresh" }` |
-| `respondToPendingSession` | `requestId: string, accepted: boolean` | `void` | Envoie `session { type: "pending_choice", requestId, accepted }` |
-| `destroy` | — | `void` | Nettoie le timer d'expiration et se désabonne des 4 messages |
+| `logout` | — | `Promise<void>` | POST `/auth/logout` (REST), clear timer, reset state |
+| `refreshSession` | — | `Promise<void>` | POST `/auth/refresh` (REST), relance timer si `refreshed` |
+| `destroy` | — | `void` | Nettoie le timer d'expiration et se desabonne des 3 messages |
 | `startExpiryTimer` | `expiresAt: number` | `void` | `private` — Double timer : avertissement puis expiration |
 | `clearExpiryTimer` | — | `void` | `private` — Annule le timer en cours |
 
@@ -52,57 +52,56 @@ Les sessions sont gérées côté serveur par `connect-mongodb-session` (cookie-
 ```typescript
 new AuthSync(socket, setState)
 
-// Abonnements (serveur → client) — 4 messages groupés
-socket.on("login_response", handleLoginResponse)         // status: success | failure | pending
+// Abonnements (serveur -> client) — 3 messages
+socket.on("login_response", handleLoginResponse)         // status: success | failure
 socket.on("authenticate_response", handleAuthenticateResponse) // status: success | failure
 socket.on("register_response", handleRegisterResponse)   // status: success | failure
-socket.on("session_response", handleSessionResponse)     // status: refreshed | expired | disconnected | pending_request | pending_accepted | pending_rejected
 
-// Envois (client → serveur) — 4 messages
+// Envois (client -> serveur) — 3 messages Socket.io
 socket.send("login", { email, password, deviceInfo })
 socket.send("register", { password, firstname, lastname, email, phone })
 socket.send("authenticate", {})
-socket.send("session", { type: "disconnect" | "refresh" | "pending_choice", ... })
+
+// Requetes REST (client -> serveur) — 2 endpoints
+fetch("POST /auth/logout", { credentials: "include" })
+fetch("POST /auth/refresh", { credentials: "include" })
 ```
 
 ---
 
 ## 6. Catalogue des messages
 
-**Total : 4 client→serveur + 4 serveur→client = 8 messages**
+**Total : 3 client->serveur (Socket.io) + 2 client->serveur (REST) + 3 serveur->client = 8 messages**
 
-### Client → Serveur
+### Client -> Serveur (Socket.io)
 
 | Message | Payload | Description |
 |---------|---------|-------------|
 | `login` | `{ email: string, password: string, deviceInfo: string }` | Connexion avec identifiants |
-| `register` | `{ password, firstname, lastname, email, phone }` | Création de compte |
-| `authenticate` | `{}` | Ré-authentification via cookie (page refresh, reconnexion socket) |
-| `session` | `{ type: "disconnect" }` | Déconnexion volontaire |
-| `session` | `{ type: "refresh" }` | Prolongation de session |
-| `session` | `{ type: "pending_choice", requestId: string, accepted: boolean }` | Réponse à une demande d'approbation multi-session |
+| `register` | `{ password, firstname, lastname, email, phone }` | Creation de compte |
+| `authenticate` | `{}` | Re-authentification via cookie (page refresh, reconnexion socket) |
 
-### Serveur → Client
+### Client -> Serveur (REST)
+
+| Endpoint | Methode | Description |
+|----------|---------|-------------|
+| `/auth/logout` | `POST` | Deconnexion volontaire, destroy session + clear cookie |
+| `/auth/refresh` | `POST` | Prolongation de session, renvoie `{ status, expiresAt }` |
+
+### Serveur -> Client
 
 | Message | Status | Payload | Action sur le state |
 |---------|--------|---------|---------------------|
 | `login_response` | `success` | `{ user, expiresAt }` | `isAuthenticated: true`, lance le timer |
-| `login_response` | `failure` | `{ reason }` | `loginRejected: true` si était en pending |
-| `login_response` | `pending` | `{ requestId }` | `pendingLoginRequestId: requestId` |
+| `login_response` | `failure` | `{ reason }` | `loginRejected: true` |
 | `authenticate_response` | `success` | `{ user, expiresAt }` | `isAuthenticated: true`, lance le timer |
-| `authenticate_response` | `failure` | `{ reason }` | Reset du state (non authentifié) |
+| `authenticate_response` | `failure` | `{ reason }` | Reset du state (non authentifie) |
 | `register_response` | `success` | `{ user, expiresAt }` | `isAuthenticated: true`, lance le timer |
 | `register_response` | `failure` | `{ reason }` | `isLoading: false` |
-| `session_response` | `disconnected` | `{}` | Clear timer, reset complet du state |
-| `session_response` | `refreshed` | `{ expiresAt }` | Nouveau `expiresAt`, relance le timer |
-| `session_response` | `expired` | `{}` | Clear timer, reset complet du state |
-| `session_response` | `pending_request` | `{ requestId, deviceInfo, requesterInfo }` | Ajoute à `pendingSessionRequests[]` |
-| `session_response` | `pending_accepted` | `{ requestId }` | Retire de `pendingSessionRequests[]` |
-| `session_response` | `pending_rejected` | `{ requestId }` | Retire de `pendingSessionRequests[]` |
 
 ---
 
-## 7. Flux par scénario
+## 7. Flux par scenario
 
 > Voir [auth-flows.md](../../flows/auth-flows.md)
 
@@ -128,19 +127,11 @@ type AuthUser = {
     roles: string[]
 }
 
-type PendingSessionRequest = {
-    requestId: string
-    deviceInfo: string
-    requesterInfo: string
-}
-
 type AuthState = {
     user: AuthUser | null
     isAuthenticated: boolean
     isLoading: boolean
     expiresAt: number | null
-    pendingLoginRequestId: string | null
-    pendingSessionRequests: PendingSessionRequest[]
     showExpiryWarning: boolean
     loginRejected: boolean
 }
@@ -150,7 +141,6 @@ type AuthActions = {
     register: (data: { password, firstname, lastname, email, phone }) => void
     logout: () => void
     refreshSession: () => void
-    respondToPendingSession: (requestId: string, accepted: boolean) => void
     dismissExpiryWarning: () => void
 }
 
@@ -164,4 +154,4 @@ type AuthContextType = AuthState & AuthActions & { socket: MessageClientAdapter 
 | Classe | Relation | Description |
 |--------|----------|-------------|
 | `MessageClientAdapter` | AuthSync utilise socket.on/off/send | Communication Socket.io |
-| `AuthContext` | AuthContext crée et détruit AuthSync | Le provider React gère le lifecycle |
+| `AuthContext` | AuthContext cree et detruit AuthSync | Le provider React gere le lifecycle |

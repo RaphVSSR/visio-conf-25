@@ -1,4 +1,4 @@
-# Référence du composant AuthToasts — VisioConf
+# Referentiel du composant AuthToasts — VisioConf
 
 **Fichier source** : `FRONTENDV2/src/components/AuthToasts/AuthToasts.tsx`
 **Styles** : `FRONTENDV2/src/components/AuthToasts/AuthToasts.scss`
@@ -8,9 +8,9 @@
 
 ## 1. Description
 
-`AuthToasts` est le composant global de notifications d'authentification. Il affiche des toasts pour les demandes de session multi-appareil et l'avertissement d'expiration de session. Monté en dehors du router dans `App.tsx` — visible sur toutes les pages.
+`AuthToasts` est le composant global de notifications d'authentification. Il affiche un toast pour l'avertissement d'expiration de session. Monte en dehors du router dans `App.tsx` — visible sur toutes les pages.
 
-Remplace les modales `SessionExpiryModal` et `SessionPendingModal` par des toasts non-intrusifs.
+Affiche les notifications d'authentification sous forme de toast non-intrusif.
 
 ---
 
@@ -18,43 +18,31 @@ Remplace les modales `SessionExpiryModal` et `SessionPendingModal` par des toast
 
 | State | Type | Description |
 |-------|------|-------------|
-| `timeLeft` | `string` | Temps restant formaté "M:SS" pour l'expiration |
+| `timeLeft` | `string` | Temps restant formate "M:SS" pour l'expiration |
 
 ---
 
 ## 3. State depuis useAuth
 
-| Propriété | Utilisation |
+| Propriete | Utilisation |
 |-----------|-------------|
 | `showExpiryWarning` | Condition d'affichage du toast d'expiration |
-| `expiresAt` | Calcul du compte à rebours |
+| `expiresAt` | Calcul du compte a rebours |
 | `refreshSession` | Action "Prolonger" sur le toast d'expiration |
 | `dismissExpiryWarning` | Action "Ignorer" sur le toast d'expiration |
-| `pendingSessionRequests` | Liste des demandes multi-session → un toast par demande |
-| `respondToPendingSession` | Actions "Accepter"/"Refuser" sur les toasts de demande |
 
 ---
 
-## 4. Structure HTML sémantique
+## 4. Structure HTML semantique
 
 ```html
 <aside class="authToasts" aria-live="assertive">
     <AnimatePresence mode="popLayout">
 
-        <!-- Un toast par demande de session -->
-        {pendingSessionRequests.map(request =>
-            <Toast
-                variant="warning"
-                message="Nouvelle demande de connexion"
-                subtitle="{requesterInfo}\n{deviceInfo}"
-                actions={[Accepter, Refuser]}
-            />
-        )}
-
         <!-- Toast d'expiration (si showExpiryWarning) -->
         <Toast
             variant="info"
-            message="Session bientôt expirée"
+            message="Session bientot expiree"
             subtitle="Expire dans {timeLeft}"
             actions={[Prolonger, Ignorer]}
         />
@@ -65,18 +53,17 @@ Remplace les modales `SessionExpiryModal` et `SessionPendingModal` par des toast
 
 ---
 
-## 5. Toasts affichés
+## 5. Toasts affiches
 
 | Toast | Variant | Condition | Actions |
 |-------|---------|-----------|---------|
-| Demande de session | `warning` | `pendingSessionRequests.length > 0` | Accepter (primary), Refuser (ghost) |
 | Expiration de session | `info` | `showExpiryWarning` | Prolonger (primary), Ignorer (ghost) |
 
 ---
 
-## 6. Accessibilité
+## 6. Accessibilite
 
-- `aria-live="assertive"` : annonce immédiate aux screen readers (priorité haute car les demandes de session sont urgentes)
+- `aria-live="assertive"` : annonce immediate aux screen readers
 - Chaque toast a des boutons d'action cliquables
 
 ---
@@ -85,8 +72,7 @@ Remplace les modales `SessionExpiryModal` et `SessionPendingModal` par des toast
 
 | Classe | Relation | Description |
 |--------|----------|-------------|
-| `useAuth` | AuthToasts utilise useAuth() | Toutes les propriétés d'expiration et multi-session |
+| `useAuth` | AuthToasts utilise useAuth() | showExpiryWarning, expiresAt, refreshSession, dismissExpiryWarning |
 | `Toast` | AuthToasts rend des Toast | Primitif UI du design system |
 | `App` | App monte AuthToasts | En dehors du BrowserRouter |
-| `SessionExpiryModal` | Remplacé par AuthToasts | Alternative modale (non montée) |
-| `SessionPendingModal` | Remplacé par AuthToasts | Alternative modale (non montée) |
+

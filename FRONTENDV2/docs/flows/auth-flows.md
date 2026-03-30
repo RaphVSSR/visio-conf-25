@@ -15,7 +15,6 @@ AuthContext.useEffect()
     │       ├─ socket.on("login_response", ...)
     │       ├─ socket.on("authenticate_response", ...)
     │       ├─ socket.on("register_response", ...)
-    │       ├─ socket.on("session_response", ...)
     │       │
     │       └─ socket.onReady(() => {
     │              socket.onReconnect(() => socket.send("authenticate", {}))
@@ -40,10 +39,9 @@ LoginForm.handleSubmit()
     │   ┌──────────────────────────────────
     │   status: "success" → setState({ isAuthenticated: true }), startExpiryTimer()
     │   status: "failure" → setState({ loginRejected: true })
-    │   status: "pending" → setState({ pendingLoginRequestId })
 ```
 
-**Composants impliqués** : `LoginForm`, `AuthSync`, `SessionPendingModal` (si pending)
+**Composants impliqués** : `LoginForm`, `AuthSync`
 
 ---
 
@@ -89,11 +87,12 @@ AuthSync.startExpiryTimer(expiresAt)
     │
     ├─ Timer 1 : REACT_APP_SESSION_EXPIRY_WARNING_MS avant expiration
     │   → setState({ showExpiryWarning: true })
-    │   → SessionExpiryModal s'affiche
+    │   → AuthToasts affiche le toast d'expiration
     │       │
     │       ├─ [Prolonger] → authSync.refreshSession()
-    │       │   └─ socket.send("session", { type: "refresh" })
-    │       │   → session_response { status: "refreshed", expiresAt }
+    │       │   └─ fetch("POST /api/auth/refresh", { credentials: "include" })
+    │       │   → Set-Cookie mis à jour par le navigateur
+    │       │   → Body: { status: "refreshed", expiresAt }
     │       │   → Nouveau timer démarré
     │       │
     │       └─ [Ignorer] → dismissExpiryWarning()
@@ -102,7 +101,7 @@ AuthSync.startExpiryTimer(expiresAt)
     │   → setState reset complet (non authentifié)
 ```
 
-**Composants impliqués** : `AuthSync`, `SessionExpiryModal`
+**Composants impliqués** : `AuthSync`, `AuthToasts`
 
 ---
 
@@ -112,32 +111,9 @@ AuthSync.startExpiryTimer(expiresAt)
 NavigationSidebar / bouton logout
     │
     ├─ authSync.logout()
-    │   └─ socket.send("session", { type: "disconnect" })
-    │
-    │   → session_response { status: "disconnected" }
+    │   └─ fetch("POST /api/auth/logout", { credentials: "include" })
+    │   → Set-Cookie supprimé par le navigateur
     │   → clearExpiryTimer(), setState reset complet
 ```
 
 **Composants impliqués** : `AuthSync`, composant déclencheur
-
----
-
-### Flux 7 — Approbation multi-session (côté session existante)
-
-```
-session_response { status: "pending_request", requestId, requesterInfo, deviceInfo }
-    │
-    → setState: ajoute à pendingSessionRequests[]
-    → SessionPendingModal s'affiche
-        │
-        ├─ [Accepter] → authSync.respondToPendingSession(requestId, true)
-        │   └─ socket.send("session", { type: "pending_choice", requestId, accepted: true })
-        │
-        └─ [Refuser] → authSync.respondToPendingSession(requestId, false)
-            └─ socket.send("session", { type: "pending_choice", requestId, accepted: false })
-
-session_response { status: "pending_accepted" | "pending_rejected" }
-    → Retire la demande de pendingSessionRequests[]
-```
-
-**Composants impliqués** : `AuthSync`, `SessionPendingModal`

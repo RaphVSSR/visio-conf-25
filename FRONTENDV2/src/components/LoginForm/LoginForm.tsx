@@ -7,7 +7,7 @@ import { useAuth } from "hooks/useAuth";
 export const LoginForm = () => {
 
     const [pwdStatus, setPwdStatus] = useState<"shown" | "hidden">("hidden");
-    const { login, isLoading, isAuthenticated, pendingLoginRequestId, loginRejected } = useAuth();
+    const { login, isLoading, isAuthenticated, loginRejected } = useAuth();
     const [error, setError] = useState<string>("");
     const navigate = useNavigate();
 
@@ -33,22 +33,6 @@ export const LoginForm = () => {
         login(email, password);
     }
 
-    if (pendingLoginRequestId) {
-        return (
-            <section id="loginForm">
-                <img
-                    src="logos/logo_univ_grand.svg"
-                    alt="Logo du formulaire de connexion."
-                />
-                <h1>En attente d'approbation</h1>
-                <p className="pendingMessage">
-                    Une session active existe sur un autre appareil.
-                    En attente de l'approbation...
-                </p>
-            </section>
-        );
-    }
-
     return (
 
         <form id="loginForm" onSubmit={handleSubmit}>
@@ -58,7 +42,7 @@ export const LoginForm = () => {
             />
 
             <h1>Se connecter</h1>
-            {loginRejected && <p className="rejectedMessage">Connexion refusée — la session active a refusé votre demande.</p>}
+            {loginRejected && <p className="rejectedMessage">Email ou mot de passe incorrect.</p>}
             {error && <p className="error">{error}</p>}
             <fieldset id="inputWrapper">
 

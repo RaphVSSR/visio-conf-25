@@ -15,19 +15,11 @@ export type AuthUser = {
 	roles: string[],
 }
 
-export type PendingSessionRequest = {
-	requestId: string,
-	deviceInfo: string,
-	requesterInfo: string,
-}
-
 export type AuthState = {
 	user: AuthUser | null,
 	isAuthenticated: boolean,
 	isLoading: boolean,
 	expiresAt: number | null,
-	pendingLoginRequestId: string | null,
-	pendingSessionRequests: PendingSessionRequest[],
 	showExpiryWarning: boolean,
 	loginRejected: boolean,
 }
@@ -37,7 +29,6 @@ export type AuthActions = {
 	register: (data: { password: string, firstname: string, lastname: string, email: string, phone: string }) => void,
 	logout: () => void,
 	refreshSession: () => void,
-	respondToPendingSession: (requestId: string, accepted: boolean) => void,
 	dismissExpiryWarning: () => void,
 }
 

@@ -34,11 +34,8 @@ function useAuth(): AuthContextType
 | `isAuthenticated` | `boolean` | L'utilisateur est-il authentifié ? |
 | `isLoading` | `boolean` | Une opération d'auth est en cours ? |
 | `expiresAt` | `number \| null` | Timestamp d'expiration de la session |
-| `sessionId` | `string \| null` | ID de la session courante |
-| `pendingLoginRequestId` | `string \| null` | ID de la demande multi-session en attente (côté demandeur) |
-| `pendingSessionRequests` | `PendingSessionRequest[]` | Demandes multi-session à approuver (côté session existante) |
 | `showExpiryWarning` | `boolean` | Faut-il afficher l'avertissement d'expiration ? |
-| `loginRejected` | `boolean` | La dernière tentative de login a été rejetée par une session existante ? |
+| `loginRejected` | `boolean` | La derniere tentative de login a echoue ? |
 
 ### Actions (AuthActions)
 
@@ -48,7 +45,6 @@ function useAuth(): AuthContextType
 | `register` | `data: { password, firstname, lastname, email, phone }` | Lance une inscription |
 | `logout` | — | Déconnecte l'utilisateur |
 | `refreshSession` | — | Prolonge la session |
-| `respondToPendingSession` | `requestId: string, accepted: boolean` | Accepte ou refuse une demande multi-session |
 | `dismissExpiryWarning` | — | Ferme l'avertissement d'expiration |
 
 ---
@@ -57,7 +53,7 @@ function useAuth(): AuthContextType
 
 | Composant | Propriétés utilisées |
 |-----------|----------------------|
-| `LoginForm` | `login`, `isLoading`, `isAuthenticated`, `pendingLoginRequestId`, `loginRejected` |
+| `LoginForm` | `login`, `isLoading`, `isAuthenticated`, `loginRejected` |
 | `SignupForm` | `register`, `isLoading`, `isAuthenticated` |
 | `Home` | `isAuthenticated`, `user`, `logout` |
 | `UserAuth` | `isAuthenticated`, `isLoading` |
@@ -67,9 +63,7 @@ function useAuth(): AuthContextType
 | `TeamForm` | `user` (controleur et userId) |
 | `ChannelForm` | `user` (controleur et userId) |
 | `ChannelView` | `user` (controleur) |
-| `SessionExpiryModal` | `showExpiryWarning`, `expiresAt`, `refreshSession`, `dismissExpiryWarning` |
-| `SessionPendingModal` | `pendingSessionRequests`, `respondToPendingSession` |
-| `AuthToasts` | `showExpiryWarning`, `expiresAt`, `refreshSession`, `dismissExpiryWarning`, `pendingSessionRequests`, `respondToPendingSession` |
+| `AuthToasts` | `showExpiryWarning`, `expiresAt`, `refreshSession`, `dismissExpiryWarning` |
 
 ---
 

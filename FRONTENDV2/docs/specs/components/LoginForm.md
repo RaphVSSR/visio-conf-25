@@ -8,7 +8,7 @@
 
 ## 1. Description
 
-`LoginForm` est le formulaire de connexion. Il gère trois états visuels : le formulaire de saisie, l'attente d'approbation multi-session, et le message de rejet. Utilise la validation HTML5 native et redirige automatiquement vers `/home` si l'utilisateur est déjà authentifié.
+`LoginForm` est le formulaire de connexion. Utilise la validation HTML5 native et redirige automatiquement vers `/home` si l'utilisateur est deja authentifie. Affiche un message d'erreur si le login echoue.
 
 ---
 
@@ -28,8 +28,7 @@
 | `login` | Appelé à la soumission du formulaire |
 | `isLoading` | Désactive le bouton submit, affiche "Connexion en cours..." |
 | `isAuthenticated` | Auto-redirection vers /home si true |
-| `pendingLoginRequestId` | Bascule sur l'affichage "En attente d'approbation" si non-null |
-| `loginRejected` | Affiche "Connexion refusée — la session active a refusé votre demande" |
+| `loginRejected` | Affiche un message d'erreur si le login a echoue |
 
 ---
 
@@ -56,16 +55,6 @@
 </form>
 ```
 
-### Mode attente d'approbation
-
-```html
-<section id="loginForm">
-    <img src="logos/logo_univ_grand.svg" />
-    <h1>En attente d'approbation</h1>
-    <p class="pendingMessage">Une session active existe...</p>
-</section>
-```
-
 ---
 
 ## 5. Soumission
@@ -85,5 +74,5 @@ handleSubmit(event)
 
 | Classe | Relation | Description |
 |--------|----------|-------------|
-| `useAuth` | LoginForm utilise useAuth() | login, isLoading, isAuthenticated, pendingLoginRequestId, loginRejected |
+| `useAuth` | LoginForm utilise useAuth() | login, isLoading, isAuthenticated, loginRejected |
 | `Login` | Login rend LoginForm | Page wrapper |
