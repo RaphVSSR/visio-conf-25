@@ -95,12 +95,14 @@
 
 ## 5. Catalogue des messages associés
 
+Discussion messages are not yet consolidated into the grouped pattern. The following messages remain as-is pending future refactoring.
+
 ### Client → Serveur (5 messages)
 
 | Message | Payload | Description |
 |---------|---------|-------------|
 | `discuss_list_request` | `{}` | Demande la liste des discussions de l'utilisateur |
-| `users_search_request` | `{ query: string }` | Recherche d'utilisateurs (pour créer une discussion) |
+| `user_get` | `{ type: "search", query: string }` | Recherche d'utilisateurs (pour créer une discussion) |
 | `discuss_remove_member_request` | `{ discussionId: string, memberId: string }` | Retirer un membre d'une discussion |
 | `discuss_remove_message_request` | `{ discussionId: string, messageId: string }` | Supprimer un message d'une discussion |
 | `message_status_request` | `{ discussionId: string, messageId: string, status: string }` | Mettre à jour le statut d'un message (sent → read) |
@@ -117,7 +119,7 @@ Autres messages liés (dans ListeMessages mais gérés par d'autres services) :
 | Message | Payload | Description |
 |---------|---------|-------------|
 | `discuss_list_response` | `{ discussions: Discussion[] }` | Réponse avec les discussions |
-| `users_search_response` | `{ users: User[] }` | Réponse avec les utilisateurs trouvés |
+| `user_get_response` | `{ type: "search", etat: boolean, users: User[] }` | Réponse avec les utilisateurs trouvés |
 | `discuss_remove_member_response` | `{ success: boolean }` | Confirmation de retrait d'un membre |
 | `discuss_remove_message_response` | `{ success: boolean }` | Confirmation de suppression d'un message |
 | `message_status_response` | `{ success: boolean }` | Confirmation de la mise à jour du statut |

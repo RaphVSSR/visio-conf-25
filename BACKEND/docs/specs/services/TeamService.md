@@ -1,26 +1,33 @@
-# Référence du TeamService — VisioConf
+# Référence de la classe TeamService — VisioConf
 
 **Fichier source** : `BACKEND/src/models/services/TeamService.ts`
-**Classe parente** : `ControllerService` (abstract)
 **nomDInstance** : `"TeamService"`
 
 ---
 
 ## 1. Description
 
-`TeamService` gère toutes les opérations liées aux équipes et à leurs membres. Chaque action vérifie l'authentification via `resolveUserId()` et les autorisations (rôle admin équipe pour les mutations).
+`TeamService` gère toutes les opérations sur les équipes et leurs membres. Chaque action vérifie l'authentification via `resolveUserId()` et l'autorisation (rôle admin d'équipe pour les mutations). Utilise le pattern de messages consolidé avec une Map de handlers via `register()` et un dispatcher.
 
 ---
 
 ## 2. Messages
 
-### Émis (9)
+### Reçus (3 consolidés)
 
-`teams_list_response`, `all_teams_response`, `team_create_response`, `team_update_response`, `team_delete_response`, `team_leave_response`, `team_members_response`, `team_add_member_response`, `team_remove_member_response`
+| Message | Valeurs du champ type | Description |
+|---------|----------------------|-------------|
+| `team_get` | `list`, `all` | Opérations de lecture sur les équipes |
+| `team_action` | `create`, `update`, `delete`, `leave` | Opérations d'écriture sur les équipes |
+| `team_member` | `list`, `add`, `remove` | Opérations de gestion des membres |
 
-### Reçus (9)
+### Émis (3 réponses consolidées)
 
-`teams_list_request`, `all_teams_request`, `team_create_request`, `team_update_request`, `team_delete_request`, `team_leave_request`, `team_members_request`, `team_add_member_request`, `team_remove_member_request`
+| Message | Valeurs du champ type | Description |
+|---------|----------------------|-------------|
+| `team_get_response` | `list`, `all` | Réponse à la requête, contient `etat: boolean` |
+| `team_action_response` | `create`, `update`, `delete`, `leave` | Réponse à l'action, contient `etat: boolean` |
+| `team_member_response` | `list`, `add`, `remove` | Réponse aux opérations sur les membres, contient `etat: boolean` |
 
 ---
 
@@ -28,35 +35,59 @@
 
 | Méthode | Paramètres | Retour | Description |
 |---------|------------|--------|-------------|
-| `resolveUserId` | `socketId: string` | `Promise<string \| null>` | Résout le socketId vers l'userId via Session |
+| `resolveUserId` | `socketId: string` | `string \| null` | Résout le socketId en userId via SessionManager |
+| `registerHandler` | `messageName: string, handler: MessageHandler` | `void` | Enregistre un handler dans la Map interne |
+| `send` | `socketIds: string \| string[], messageName: string, payload: unknown` | `void` | Envoie un message via le controleur |
 
 ---
 
-## 4. Handlers
+## 4. Dispatchers
 
-| Handler | Payload reçu | Logique |
-|---------|--------------|---------|
-| `getTeamsList` | `{}` | Retourne uniquement les équipes dont l'utilisateur est membre, avec son rôle |
-| `getAllTeams` | `{}` | Retourne toutes les équipes du système |
-| `createTeam` | `{ name, description?, picture?, members[] }` | Crée l'équipe, ajoute le créateur comme admin, ajoute les membres spécifiés comme "member" |
-| `updateTeam` | `{ id, name?, description?, picture? }` | Admin requis. Met à jour uniquement les champs fournis |
-| `deleteTeam` | `{ teamId }` | Admin requis. Cascade: supprime canaux, posts, réponses, membres canal et membres équipe |
-| `leaveTeam` | `{ teamId }` | Interdit si dernier admin |
-| `getTeamMembers` | `{ teamId }` | Retourne tous les membres avec infos user populées (firstname, lastname, picture) |
-| `addTeamMember` | `{ teamId, userId }` | Admin requis. Empêche les doublons |
-| `removeTeamMember` | `{ teamId, userId }` | Admin requis. Interdit de retirer un admin |
+| Dispatcher | Message entrant | Types dispatchés | Description |
+|------------|-----------------|------------------|-------------|
+| `handleTeamQuery` | `team_get` | `list`, `all` | Route vers les handlers de lecture selon le `type` |
+| `handleTeamAction` | `team_action` | `create`, `update`, `delete`, `leave` | Route vers les handlers d'écriture selon le `type` |
+| `handleTeamMember` | `team_member` | `list`, `add`, `remove` | Route vers les handlers de membres selon le `type` |
 
 ---
 
-## 5. Format des réponses
+## 5. Handlers
 
-### Team formaté (liste)
+### Requêtes d'équipe
+
+| Handler | Type | Payload reçu | Payload de réponse | Description |
+|---------|------|--------------|--------------------|-------------|
+| `getTeamsList` | `list` | `{}` | `{ type: "list", etat, teams[] }` | Retourne uniquement les équipes dont l'utilisateur est membre, avec leur rôle |
+| `getAllTeams` | `all` | `{}` | `{ type: "all", etat, teams[] }` | Retourne toutes les équipes du système |
+
+### Actions sur les équipes
+
+| Handler | Type | Payload reçu | Payload de réponse | Description |
+|---------|------|--------------|--------------------|-------------|
+| `createTeam` | `create` | `{ name, description?, picture?, members[] }` | `{ type: "create", etat, team }` | Crée une équipe, ajoute le créateur comme admin, ajoute les membres spécifiés comme "member" |
+| `updateTeam` | `update` | `{ id, name?, description?, picture? }` | `{ type: "update", etat, team }` | Admin requis. Met à jour uniquement les champs fournis |
+| `deleteTeam` | `delete` | `{ teamId }` | `{ type: "delete", etat, teamId }` | Admin requis. Cascade : supprime les channels, posts, réponses, membres de channel et membres d'équipe |
+| `leaveTeam` | `leave` | `{ teamId }` | `{ type: "leave", etat, teamId }` | Interdit si dernier admin |
+
+### Membres d'équipe
+
+| Handler | Type | Payload reçu | Payload de réponse | Description |
+|---------|------|--------------|--------------------|-------------|
+| `getTeamMembers` | `list` | `{ teamId }` | `{ type: "list", etat, members[] }` | Retourne tous les membres avec les infos utilisateur peuplées (firstname, lastname, picture) |
+| `addTeamMember` | `add` | `{ teamId, userId }` | `{ type: "add", etat, teamId, userId }` | Admin requis. Empêche les doublons |
+| `removeTeamMember` | `remove` | `{ teamId, userId }` | `{ type: "remove", etat, teamId, userId }` | Admin requis. Impossible de retirer un admin |
+
+---
+
+## 6. Formats de réponse
+
+### Team (formaté)
 
 ```typescript
 { id, name, description, picture, createdBy, createdAt, updatedAt, role }
 ```
 
-### TeamMember formaté
+### TeamMember (formaté)
 
 ```typescript
 { id, userId, firstname, lastname, picture, role, joinedAt }
@@ -64,15 +95,15 @@
 
 ---
 
-## 6. Relations avec autres classes
+## 7. Relations avec autres classes
 
 | Classe | Relation | Description |
 |--------|----------|-------------|
-| `Team` | CRUD via `Team.model` | Modèle Mongoose des équipes |
-| `TeamMember` | CRUD via `TeamMember.model` | Modèle Mongoose des membres |
-| `Channel` | Cascade delete via `Channel.model` | Suppression des canaux lors du delete team |
-| `ChannelMember` | Cascade delete | Suppression des membres canal |
-| `ChannelPost` | Cascade delete | Suppression des posts |
-| `ChannelPostResponse` | Cascade delete | Suppression des réponses |
-| `User` | Populate via `User.model` | Infos membre (firstname, lastname, picture) |
-| `Session` | Auth via `Session.model` | Résolution socketId → userId |
+| `Team` | CRUD via `Team.model` | Modèle Mongoose d'équipe |
+| `TeamMember` | CRUD via `TeamMember.model` | Modèle Mongoose de membre d'équipe |
+| `Channel` | Suppression en cascade via `Channel.model` | Supprime les channels lors de la suppression d'équipe |
+| `ChannelMember` | Suppression en cascade | Supprime les membres de channel lors de la suppression d'équipe |
+| `ChannelPost` | Suppression en cascade | Supprime les posts lors de la suppression d'équipe |
+| `ChannelPostResponse` | Suppression en cascade | Supprime les réponses lors de la suppression d'équipe |
+| `SessionManager` | Auth via méthodes statiques | Résout le socketId en userId |
+| `ListeMessages` | Config messages via `getMessagesByDomain("team")` | Fournit la liste des messages reçus pour l'inscription |

@@ -125,6 +125,14 @@ $sidebar-transition: 0.28s ease;
 	padding: 10px 4px 4px;
 	border-top: 1px solid rgba(255, 255, 255, 0.1);
 	margin-top: auto;
+	transition: flex-direction $sidebar-transition, align-items $sidebar-transition;
+
+	.sidebarCollapsed & {
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+	}
 
 	#sidebarUserInfo {
 		display: flex;
@@ -132,6 +140,10 @@ $sidebar-transition: 0.28s ease;
 		gap: 10px;
 		min-width: 0;
 		overflow: hidden;
+
+		.sidebarCollapsed & {
+			justify-content: center;
+		}
 
 		#userAvatar {
 			width: 34px;

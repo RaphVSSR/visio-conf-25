@@ -1,46 +1,74 @@
-import { ControllerBinder, type ControllerMessage } from "../../Controller/Controller.abstracts.ts"
-import Session from "./authentication/Session.ts"
+import { getMessagesByDomain } from "../ListeMessages.ts"
+import SessionManager from "./authentication/SessionManager.ts"
+import AccessRoleGuard from "./AccessRoleGuard.ts"
 import User from "../User.ts"
 
-export default class UserService extends ControllerBinder {
+type MessageHandler = (socketId: string, payload: any) => void
 
-	traitementMessage(mesg: ControllerMessage) {
+export default class UserService {
 
-		const socketId = mesg.id
-		const action = Object.keys(mesg).find(key => key !== "id")
+	controleur: any
+	nomDInstance: string
+	private handlers = new Map<string, MessageHandler>()
 
-		switch (action) {
+	constructor(controleur: any, name: string) {
+		this.controleur = controleur
+		this.nomDInstance = name
+	}
 
-			case "users_list_request":
-				this.getUsersList(socketId); break
+	private registerHandler(messageName: string, handler: MessageHandler) {
+		this.handlers.set(messageName, handler)
+	}
 
-			case "user_info_request":
-				this.getUserInfo(socketId, mesg[action] as { userId: string }); break
+	private send(socketIds: string | string[], messageName: string, payload: unknown) {
+		const ids = Array.isArray(socketIds) ? socketIds : [socketIds]
+		this.controleur.envoie(this, { [messageName]: payload, id: ids })
+	}
 
-			case "users_search_request":
-				this.searchUsers(socketId, mesg[action] as { query: string }); break
+	traitementMessage(msg: any) {
+		const action = Object.keys(msg).find(k => k !== "id")
+		if (!action) return
+		const handler = this.handlers.get(action)
+		if (handler) handler(msg.id, msg[action])
+	}
 
-			case "update_user_request":
-				this.updateUser(socketId, mesg[action] as Record<string, any>); break
+	register() {
+		this.registerHandler("user_get", this.handleUserQuery)
+		this.registerHandler("user_update", this.handleUserUpdate)
 
-			case "update_user_status_request":
-				this.updateUserStatus(socketId, mesg[action] as { userId: string, status: string }); break
+		this.controleur.inscription(this, getMessagesByDomain("user").received, [...this.handlers.keys()])
+	}
 
-			case "update_user_roles_request":
-				this.updateUserRoles(socketId, mesg[action] as { userId: string, roles: string[] }); break
+	private resolveUserId(socketId: string): string | null {
+		return SessionManager.getUserId(socketId)
+	}
+
+	private handleUserQuery = (socketId: string, payload: { type: string, [key: string]: any }) => {
+
+		const dispatchers: Record<string, () => void> = {
+			list: () => this.getUsersList(socketId),
+			info: () => this.getUserInfo(socketId, payload),
+			search: () => this.searchUsers(socketId, payload),
 		}
+
+		dispatchers[payload.type]?.()
 	}
 
-	private async resolveUserId(socketId: string): Promise<string | null> {
+	private handleUserUpdate = (socketId: string, payload: { type: string, [key: string]: any }) => {
 
-		const session = await Session.getSessionBySocket(socketId)
-		return session ? session.userId.toString() : null
+		const dispatchers: Record<string, () => void> = {
+			profile: () => this.updateUser(socketId, payload),
+			status: () => this.updateUserStatus(socketId, payload),
+			roles: () => this.updateUserRoles(socketId, payload),
+		}
+
+		dispatchers[payload.type]?.()
 	}
 
-	private async getUsersList(socketId: string) {
+	private getUsersList = async (socketId: string) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { users_list_response: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "user_get_response", { type: "list", etat: false, error: "not_authenticated" })
 
 		const users = await User.model.find({ status: "active" })
 			.select("firstname lastname email picture is_online job")
@@ -56,13 +84,13 @@ export default class UserService extends ControllerBinder {
 			job: user.job,
 		}))
 
-		this.controleur.envoie(this, { users_list_response: { etat: true, users: formattedUsers }, id: [socketId] })
+		this.send(socketId, "user_get_response", { type: "list", etat: true, users: formattedUsers })
 	}
 
-	private async getUserInfo(socketId: string, payload: { userId: string }) {
+	private getUserInfo = async (socketId: string, payload: { userId: string }) => {
 
-		const requesterId = await this.resolveUserId(socketId)
-		if (!requesterId) return this.controleur.envoie(this, { user_info_response: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const requesterId = this.resolveUserId(socketId)
+		if (!requesterId) return this.send(socketId, "user_get_response", { type: "info", etat: false, error: "not_authenticated" })
 
 		const { userId } = payload
 
@@ -70,7 +98,7 @@ export default class UserService extends ControllerBinder {
 			.select("firstname lastname email picture is_online job desc phone date_created")
 			.lean()
 
-		if (!user) return this.controleur.envoie(this, { user_info_response: { etat: false, error: "user_not_found" }, id: [socketId] })
+		if (!user) return this.send(socketId, "user_get_response", { type: "info", etat: false, error: "user_not_found" })
 
 		const formattedUser = {
 			id: user._id!.toString(),
@@ -85,13 +113,13 @@ export default class UserService extends ControllerBinder {
 			dateCreated: user.date_created,
 		}
 
-		this.controleur.envoie(this, { user_info_response: { etat: true, user: formattedUser }, id: [socketId] })
+		this.send(socketId, "user_get_response", { type: "info", etat: true, user: formattedUser })
 	}
 
-	private async searchUsers(socketId: string, payload: { query: string }) {
+	private searchUsers = async (socketId: string, payload: { query: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { users_search_response: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "user_get_response", { type: "search", etat: false, error: "not_authenticated" })
 
 		const { query } = payload
 		const regex = new RegExp(query, "i")
@@ -117,13 +145,13 @@ export default class UserService extends ControllerBinder {
 			isOnline: user.is_online,
 		}))
 
-		this.controleur.envoie(this, { users_search_response: { etat: true, users: formattedUsers }, id: [socketId] })
+		this.send(socketId, "user_get_response", { type: "search", etat: true, users: formattedUsers })
 	}
 
-	private async updateUser(socketId: string, payload: Record<string, any>) {
+	private updateUser = async (socketId: string, payload: Record<string, any>) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { update_user_response: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "user_update_response", { type: "profile", etat: false, error: "not_authenticated" })
 
 		const allowedFields = ["firstname", "lastname", "phone", "job", "desc", "picture"]
 		const updateData: Record<string, any> = {}
@@ -134,30 +162,30 @@ export default class UserService extends ControllerBinder {
 
 		await User.model.updateOne({ _id: userId }, { $set: updateData })
 
-		this.controleur.envoie(this, { update_user_response: { etat: true }, id: [socketId] })
+		this.send(socketId, "user_update_response", { type: "profile", etat: true })
 	}
 
-	private async updateUserStatus(socketId: string, payload: { userId: string, status: string }) {
+	private updateUserStatus = async (socketId: string, payload: { userId: string, status: string }) => {
 
-		const requesterId = await this.resolveUserId(socketId)
-		if (!requesterId) return this.controleur.envoie(this, { update_user_status_response: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const guard = await AccessRoleGuard.requireRole(socketId, "admin")
+		if (!guard.authorized) return this.send(socketId, "user_update_response", { type: "status", etat: false, error: guard.reason })
 
 		const { userId, status } = payload
 
 		await User.model.updateOne({ _id: userId }, { $set: { status } })
 
-		this.controleur.envoie(this, { update_user_status_response: { etat: true, userId, status }, id: [socketId] })
+		this.send(socketId, "user_update_response", { type: "status", etat: true, userId, status })
 	}
 
-	private async updateUserRoles(socketId: string, payload: { userId: string, roles: string[] }) {
+	private updateUserRoles = async (socketId: string, payload: { userId: string, roles: string[] }) => {
 
-		const requesterId = await this.resolveUserId(socketId)
-		if (!requesterId) return this.controleur.envoie(this, { update_user_roles_response: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const guard = await AccessRoleGuard.requireRole(socketId, "admin")
+		if (!guard.authorized) return this.send(socketId, "user_update_response", { type: "roles", etat: false, error: guard.reason })
 
 		const { userId, roles } = payload
 
 		await User.model.updateOne({ _id: userId }, { $set: { roles } })
 
-		this.controleur.envoie(this, { update_user_roles_response: { etat: true, userId, roles }, id: [socketId] })
+		this.send(socketId, "user_update_response", { type: "roles", etat: true, userId, roles })
 	}
 }

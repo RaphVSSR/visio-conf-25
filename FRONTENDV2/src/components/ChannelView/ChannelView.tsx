@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FC } from "react"
+import { useState, useEffect, useRef, useCallback, type FC } from "react"
 import "./ChannelView.scss"
 import {
 	Users,
@@ -31,7 +31,7 @@ const ChannelView: FC<ChannelViewProps> = ({
 	onEditChannel,
 	onChannelDeleted,
 }) => {
-	const { controleur } = useAuth()
+	const { socket } = useAuth()
 	const [posts, setPosts] = useState<any[]>([])
 	const [members, setMembers] = useState<any[]>([])
 	const [newPostContent, setNewPostContent] = useState("")
@@ -42,67 +42,31 @@ const ChannelView: FC<ChannelViewProps> = ({
 
 	const channelId = channel.id
 
-	const nomDInstance = "ChannelView"
-	const verbose = false
-
-	const listeMessageEmis = [
-		"get_posts",
-		"get_channel_members",
-		"publish_post",
-		"answer_post",
-		"delete_channel",
-	]
-	const listeMessageRecus = [
-		"posts",
-		"channel_members",
-		"post_publishing_status",
-		"post_answering_status",
-		"channel_deleting_status",
-	]
-
-	const handler = {
-		nomDInstance,
-		traitementMessage: (msg: any) => {
-			if (verbose || controleur?.verboseall)
-				console.log(`INFO: (${nomDInstance}) - traitementMessage - `, msg)
-
-			if (msg.posts) {
-				if (msg.posts.etat) {
-					setPosts(sortByCreatedAtAsc(msg.posts.posts || []))
+	const handleChannelPostResponse = useCallback((data: any) => {
+		switch (data.type) {
+			case "list":
+				if (data.etat) {
+					setPosts(sortByCreatedAtAsc(data.posts || []))
 				} else {
-					console.error(
-						"Erreur lors de la recuperation des posts:",
-						msg.posts.error
-					)
+					console.error("Erreur lors de la recuperation des posts:", data.error)
 				}
 				setIsLoading(false)
-			}
+				break
 
-			if (msg.channel_members) {
-				if (msg.channel_members.etat) {
-					setMembers(msg.channel_members.members || [])
-				} else {
-					console.error(
-						"Erreur lors de la recuperation des membres:",
-						msg.channel_members.error
-					)
-				}
-			}
-
-			if (msg.post_publishing_status) {
-				if (msg.post_publishing_status.etat) {
-					const { post } = msg.post_publishing_status
+			case "publish":
+				if (data.etat) {
+					const { post } = data
 					setPosts((prevPosts) => sortByCreatedAtAsc([post, ...prevPosts]))
 					setNewPostContent("")
 					if (messagesEndRef.current) {
 						messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
 					}
 				}
-			}
+				break
 
-			if (msg.post_answering_status) {
-				if (msg.post_answering_status.etat) {
-					const { postId, response } = msg.post_answering_status
+			case "answer":
+				if (data.etat) {
+					const { postId, response } = data
 					setPosts((prevPosts) =>
 						prevPosts.map((post) => {
 							if (post.id === postId) {
@@ -118,40 +82,50 @@ const ChannelView: FC<ChannelViewProps> = ({
 						})
 					)
 				}
-			}
+				break
+		}
+	}, [])
 
-			if (msg.channel_deleting_status) {
-				if (msg.channel_deleting_status.etat) {
-					if (onChannelDeleted) {
-						onChannelDeleted()
-					}
-				} else {
-					console.error(
-						"Erreur lors de la suppression du canal:",
-						msg.channel_deleting_status.error
-					)
-				}
-			}
-		},
-	}
+	const handleChannelMemberResponse = useCallback((data: any) => {
+		if (data.type !== "list") return
+		if (data.etat) {
+			setMembers(data.members || [])
+		} else {
+			console.error("Erreur lors de la recuperation des membres:", data.error)
+		}
+	}, [])
+
+	const handleChannelActionResponse = useCallback((data: any) => {
+		if (data.type !== "delete") return
+		if (data.etat) {
+			onChannelDeleted?.()
+		} else {
+			console.error("Erreur lors de la suppression du canal:", data.error)
+		}
+	}, [onChannelDeleted])
 
 	useEffect(() => {
-		if (controleur && channelId) {
-			controleur.inscription(handler, listeMessageEmis, listeMessageRecus)
+		if (!socket || !channelId) return
 
-			const membersRequest = { get_channel_members: { channelId } }
-			controleur.envoie(handler, membersRequest)
+		socket.on("channel_post_response", handleChannelPostResponse)
+		socket.on("channel_member_response", handleChannelMemberResponse)
+		socket.on("channel_action_response", handleChannelActionResponse)
 
-			const postsRequest = { get_posts: { channelId } }
-			controleur.envoie(handler, postsRequest)
-		}
+		socket.send("channel_member", { type: "list", channelId })
+		socket.send("channel_post", { type: "list", channelId })
 
 		return () => {
-			if (controleur) {
-				controleur.desincription(handler, listeMessageEmis, listeMessageRecus)
-			}
+			socket.off("channel_post_response", handleChannelPostResponse)
+			socket.off("channel_member_response", handleChannelMemberResponse)
+			socket.off("channel_action_response", handleChannelActionResponse)
 		}
-	}, [channelId, controleur, onChannelDeleted])
+	}, [
+		channelId,
+		socket,
+		handleChannelPostResponse,
+		handleChannelMemberResponse,
+		handleChannelActionResponse,
+	])
 
 	useEffect(() => {
 		if (inputRef.current) {
@@ -168,25 +142,21 @@ const ChannelView: FC<ChannelViewProps> = ({
 	const handleSubmitPost = () => {
 		if (!newPostContent.trim() || !userId) return
 
-		const postRequest = {
-			publish_post: {
-				channelId,
-				content: newPostContent,
-			},
-		}
-		controleur?.envoie(handler, postRequest)
+		socket?.send("channel_post", {
+			type: "publish",
+			channelId,
+			content: newPostContent,
+		})
 	}
 
 	const handleAddResponse = (postId: string, content: string) => {
 		if (!content.trim() || !userId) return
 
-		const responseRequest = {
-			answer_post: {
-				postId,
-				content,
-			},
-		}
-		controleur?.envoie(handler, responseRequest)
+		socket?.send("channel_post", {
+			type: "answer",
+			postId,
+			content,
+		})
 	}
 
 	const isChannelCreator = channel.createdBy === userId

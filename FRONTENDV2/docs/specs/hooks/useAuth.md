@@ -1,7 +1,7 @@
 # Référence du hook useAuth — VisioConf
 
 **Fichier source** : `FRONTENDV2/src/hooks/useAuth.ts`
-**Type** : Custom React Hook
+**Type** : Hook React personnalisé
 
 ---
 

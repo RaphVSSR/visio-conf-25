@@ -1,6 +1,6 @@
 # Référence de la classe Collection — VisioConf
 
-**Fichier source** : `BACKEND/src/models/Core/Collection.ts`
+**Fichier source** : `BACKEND/src/models/core/Collection.ts`
 **Type** : Classe abstraite (base class)
 
 ---

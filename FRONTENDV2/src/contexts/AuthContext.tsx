@@ -1,6 +1,5 @@
 import React, { createContext, useEffect, useState, useRef, type FC, type PropsWithChildren } from "react"
-import Controleur from "Controller/controleur.js"
-import { SocketIO } from "services/SocketIO"
+import MessageClientAdapter from "services/MessageClientAdapter"
 import { AuthSync } from "services/auth/AuthSync"
 import type { AuthState, AuthContextType } from "services/auth/AuthSync.types"
 
@@ -13,7 +12,6 @@ const INITIAL_STATE: AuthState = {
 	isAuthenticated: false,
 	isLoading: true,
 	expiresAt: null,
-	sessionId: null,
 	pendingLoginRequestId: null,
 	pendingSessionRequests: [],
 	showExpiryWarning: false,
@@ -24,26 +22,24 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
 	const [state, setState] = useState<AuthState>(INITIAL_STATE)
 	const authRef = useRef<AuthSync | null>(null)
-	const controleurRef = useRef<any>(null)
+	const socketRef = useRef<MessageClientAdapter | null>(null)
 
 	useEffect(() => {
-		const controleur = new Controleur()
-		controleurRef.current = controleur
-		controleur.verboseall = process.env.REACT_APP_VERBOSE === "true" && Number(process.env.REACT_APP_VERBOSE_LVL) >= 3
-
-		SocketIO.init(controleur)
-		authRef.current = new AuthSync(controleur, setState)
+		const socket = new MessageClientAdapter(process.env.REACT_APP_BACKEND_API_URL || "http://localhost:3220")
+		socketRef.current = socket
+		authRef.current = new AuthSync(socket, setState)
 
 		return () => {
 			authRef.current?.destroy()
 			authRef.current = null
-			SocketIO.disconnect()
+			socket.disconnect()
+			socketRef.current = null
 		}
 	}, [])
 
 	const contextValue: AuthContextType = {
 		...state,
-		controleur: controleurRef.current,
+		socket: socketRef.current,
 		login: (email, password) => authRef.current?.login(email, password),
 		register: (data) => authRef.current?.register(data),
 		logout: () => authRef.current?.logout(),

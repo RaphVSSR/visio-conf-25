@@ -68,29 +68,29 @@
 
 ## 5. Catalogue des messages associés
 
-### Client → Serveur (6 messages)
+### Client → Serveur (2 messages with type sub-dispatch)
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `users_list_request` | `{}` | Demande la liste de tous les utilisateurs actifs |
-| `user_info_request` | `{ userId: string }` | Demande les informations complètes d'un utilisateur |
-| `users_search_request` | `{ query: string }` | Recherche d'utilisateurs par nom/email (regex, max 20 résultats) |
-| `update_user_request` | `{ firstname?, lastname?, phone?, job?, desc?, picture? }` | Mise à jour du profil de l'utilisateur connecté |
-| `update_user_status_request` | `{ userId: string, status: string }` | Mise à jour du statut d'un utilisateur |
-| `update_user_roles_request` | `{ userId: string, roles: string[] }` | Mise à jour des rôles d'un utilisateur |
+| Message | Type | Payload | Description |
+|---------|------|---------|-------------|
+| `user_get` | `"list"` | `{}` | Demande la liste de tous les utilisateurs actifs |
+| `user_get` | `"info"` | `{ userId: string }` | Demande les informations complètes d'un utilisateur |
+| `user_get` | `"search"` | `{ query: string }` | Recherche d'utilisateurs par nom/email (regex, max 20 résultats) |
+| `user_update` | `"profile"` | `{ firstname?, lastname?, phone?, job?, desc?, picture? }` | Mise à jour du profil de l'utilisateur connecté |
+| `user_update` | `"status"` | `{ userId: string, status: string }` | Mise à jour du statut d'un utilisateur |
+| `user_update` | `"roles"` | `{ userId: string, roles: string[] }` | Mise à jour des rôles d'un utilisateur |
 
-### Serveur → Client (6 messages)
+### Serveur → Client (2 messages with type sub-dispatch)
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `users_list_response` | `{ etat: boolean, users: { id, firstname, lastname, email, picture, isOnline, job }[] }` | Liste des utilisateurs actifs |
-| `user_info_response` | `{ etat: boolean, user: { id, firstname, lastname, email, picture, isOnline, job, desc, phone, dateCreated } }` | Informations complètes d'un utilisateur |
-| `users_search_response` | `{ etat: boolean, users: User[] }` | Résultats de recherche |
-| `update_user_response` | `{ etat: boolean, error?: string }` | Confirmation de la mise à jour du profil |
-| `update_user_status_response` | `{ etat: boolean, userId?: string, status?: string }` | Confirmation de la mise à jour du statut |
-| `update_user_roles_response` | `{ etat: boolean, userId?: string, roles?: string[] }` | Confirmation de la mise à jour des rôles |
+| Message | Type | Payload | Description |
+|---------|------|---------|-------------|
+| `user_get_response` | `"list"` | `{ etat: boolean, users: { id, firstname, lastname, email, picture, isOnline, job }[] }` | Liste des utilisateurs actifs |
+| `user_get_response` | `"info"` | `{ etat: boolean, user: { id, firstname, lastname, email, picture, isOnline, job, desc, phone, dateCreated } }` | Informations complètes d'un utilisateur |
+| `user_get_response` | `"search"` | `{ etat: boolean, users: User[] }` | Résultats de recherche |
+| `user_update_response` | `"profile"` | `{ etat: boolean, error?: string }` | Confirmation de la mise à jour du profil |
+| `user_update_response` | `"status"` | `{ etat: boolean, userId?: string, status?: string }` | Confirmation de la mise à jour du statut |
+| `user_update_response` | `"roles"` | `{ etat: boolean, userId?: string, roles?: string[] }` | Confirmation de la mise à jour des rôles |
 
-**Total : 6 client→serveur + 6 serveur→client = 12 messages**
+**Total : 2 client→serveur + 2 serveur→client = 4 messages (6 sub-types)**
 
 ---
 
@@ -211,10 +211,10 @@ await User.updateUser("alice.dupont@example.com", { status: "active", is_online:
 
 ```typescript
 // Client
-{ id: socketId, users_list_request: {} }
+{ id: socketId, user_get: { type: "list" } }
 
 // Serveur
-{ id: socketId, users_list_response: { users: [
+{ id: socketId, user_get_response: { type: "list", etat: true, users: [
     { firstname: "Alice", lastname: "Dupont", email: "alice.dupont@example.com", status: "active", ... },
     { firstname: "test1", lastname: "testlast1", email: "test1@visioconf.com", ... }
 ]}}

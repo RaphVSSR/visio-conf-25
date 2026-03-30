@@ -1,25 +1,20 @@
 # Référence du hook useChannelManager — VisioConf
 
 **Fichier source** : `FRONTENDV2/src/hooks/useChannelManager.ts`
-**Type** : Custom React Hook
+**Type** : Hook React personnalisé
 
 ---
 
 ## 1. Description
 
-`useChannelManager` gère l'état des canaux au sein d'une équipe : sélection, création, édition, suppression. Symétrique à `useTeamManager` mais pour les canaux.
+`useChannelManager` gère l'état des canaux au sein d'une équipe : sélection, création, édition, suppression. Symétrique à `useTeamManager` mais pour les canaux. Ne prend aucun paramètre.
 
 ---
 
-## 2. Paramètres
+## 2. Signature
 
 ```typescript
-interface UseChannelManagerProps {
-    initialChannels: Channel[]
-    onChannelsChange?: (channels: Channel[]) => void
-    onChannelSelected?: (channel: Channel | null) => void
-    onChannelDeleted?: () => void
-}
+export function useChannelManager(): UseChannelManagerReturn
 ```
 
 ---
@@ -40,14 +35,14 @@ interface UseChannelManagerProps {
 |--------|------------|-------------|
 | `handleChannelSelect` | `channel: Channel` | Sélectionne un canal, ferme le formulaire |
 | `handleCreateChannel` | — | Ouvre le formulaire en mode création |
-| `handleEditChannel` | `channel: Channel` | Ouvre le formulaire en mode édition |
-| `handleChannelCreated` | `channel: Channel` | Ajoute le canal, le sélectionne, ferme le formulaire |
-| `handleChannelUpdated` | `channel: Channel` | Met à jour le canal dans la liste |
-| `handleChannelDeleted` | `channelId: string` | Retire le canal de la liste |
+| `handleEditChannel` | `channel: Channel` | Sélectionne le canal, ouvre le formulaire en mode édition |
+| `handleChannelCreated` | `channel: Channel` | Ajoute le canal à la liste, le sélectionne, ferme le formulaire |
+| `handleChannelUpdated` | `channel: Channel` | Met à jour le canal dans la liste (par id), met à jour la sélection si même canal |
+| `handleChannelDeleted` | `channelId: string` | Retire le canal de la liste, reset la sélection si c'était le canal courant |
 | `handleCancelChannelForm` | — | Ferme le formulaire |
-| `updateChannelsFromResponse` | `channels: Channel[]` | Met à jour en bulk depuis la réponse API |
-| `selectFirstAvailableChannel` | — | Sélectionne le premier canal disponible |
-| `clearChannels` | — | Vide la liste et la sélection |
+| `updateChannelsFromResponse` | `channels: Channel[]` | Remplace la liste en bulk, conserve la sélection si le canal existe encore |
+| `selectFirstAvailableChannel` | — | Sélectionne `channels[0]` ou `null` si vide |
+| `clearChannels` | — | Vide la liste, la sélection, et le formulaire |
 
 ---
 

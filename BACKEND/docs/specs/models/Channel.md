@@ -114,7 +114,7 @@
 | `constructor` | `dataToConstruct: ChannelType` | `Channel` | instance | Crée une instance Channel |
 | `save` | — | `Promise<void>` | instance | Sauvegarde en base |
 | `flushAll` | — | `Promise<DeleteResult>` | static | **[DEV]** Supprime tous les canaux |
-| `injectTest` | — | `Promise<void>` | static | **[DEV]** Injecte des canaux de test pour chaque équipe existante (Général + canaux additionnels selon le nom de l'équipe). En production, les canaux sont créés via `channel_create_request` |
+| `injectTest` | — | `Promise<void>` | static | **[DEV]** Injecte des canaux de test pour chaque équipe existante (Général + canaux additionnels selon le nom de l'équipe). En production, les canaux sont créés via `channel_action { type: "create" }` |
 
 ### ChannelMember
 
@@ -145,47 +145,81 @@
 
 ## 5. Catalogue des messages associés
 
-### Client → Serveur (15 messages)
+### Client → Serveur (4 grouped messages)
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `get_channels` | `{ teamId: string }` | Demande les canaux d'une équipe (filtrés par visibilité) |
-| `get_channel` | `{ channelId: string }` | Demande un canal spécifique |
-| `create_channel` | `{ name: string, isPublic: boolean, teamId: string, members?: string[] }` | Création d'un canal |
-| `update_channel` | `{ id: string, name: string, isPublic: boolean, teamId: string, members?: string[] }` | Mise à jour d'un canal |
-| `delete_channel` | `{ channelId: string }` | Suppression d'un canal (cascade: posts, réponses, membres) |
-| `get_channel_members` | `{ channelId: string }` | Demande la liste des membres d'un canal |
-| `add_channel_member` | `{ channelId: string, userId: string }` | Ajouter un membre à un canal |
-| `remove_channel_member` | `{ channelId: string, userId: string }` | Retirer un membre d'un canal |
-| `leave_channel` | `{ channelId: string }` | Quitter un canal |
-| `get_posts` | `{ channelId: string }` | Demande les posts d'un canal avec réponses |
-| `get_user_post` | `{ channelId: string, userId: string }` | Demande les posts d'un auteur spécifique |
-| `publish_post` | `{ channelId: string, content: string }` | Publication d'un post |
-| `update_post` | `{ postId: string, content: string }` | Mise à jour d'un post |
-| `delete_post` | `{ postId: string }` | Suppression d'un post (cascade: réponses) |
-| `answer_post` | `{ postId: string, content: string }` | Réponse à un post |
+#### channel_get
 
-### Serveur → Client (15 messages)
+| type | Payload | Description |
+|------|---------|-------------|
+| `"list"` | `{ teamId: string }` | Demande les canaux d'une équipe (filtrés par visibilité) |
+| `"get"` | `{ channelId: string }` | Demande un canal spécifique |
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `channels` | `{ etat: boolean, channels: Channel[] }` | Liste des canaux filtrés |
-| `channel` | `{ etat: boolean, channel: Channel }` | Détails d'un canal |
-| `channel_creating_status` | `{ etat: boolean, channel?: Channel, error?: string }` | Confirmation de création (broadcast aux membres de l'équipe) |
-| `channel_updating_status` | `{ etat: boolean, channel?: Channel, error?: string }` | Confirmation de mise à jour |
-| `channel_deleting_status` | `{ etat: boolean, channelId?: string, error?: string }` | Confirmation de suppression |
-| `channel_members` | `{ etat: boolean, members: ChannelMember[] }` | Liste des membres avec infos user (firstname, lastname, picture) |
-| `channel_member_adding_status` | `{ etat: boolean, channelId?: string, userId?: string, error?: string }` | Confirmation d'ajout de membre |
-| `channel_member_removing_status` | `{ etat: boolean, channelId?: string, userId?: string, error?: string }` | Confirmation de retrait de membre |
-| `channel_leaving_status` | `{ etat: boolean, channelId?: string, error?: string }` | Confirmation de départ |
-| `posts` | `{ etat: boolean, posts: ChannelPost[] }` | Liste des posts avec réponses populées |
-| `user_post` | `{ etat: boolean, posts: ChannelPost[] }` | Posts d'un auteur spécifique |
-| `post_publishing_status` | `{ etat: boolean, post?: ChannelPost, error?: string }` | Confirmation de publication (broadcast aux membres connectés) |
-| `post_updating_status` | `{ etat: boolean, postId?: string, content?: string, error?: string }` | Confirmation de mise à jour |
-| `post_deleting_status` | `{ etat: boolean, postId?: string, error?: string }` | Confirmation de suppression |
-| `post_answering_status` | `{ etat: boolean, postId?: string, response?: ChannelPostResponse, error?: string }` | Confirmation de réponse (broadcast aux membres connectés) |
+#### channel_action
 
-**Total : 15 client→serveur + 15 serveur→client = 30 messages**
+| type | Payload | Description |
+|------|---------|-------------|
+| `"create"` | `{ name: string, isPublic: boolean, teamId: string, members?: string[] }` | Création d'un canal |
+| `"update"` | `{ id: string, name: string, isPublic: boolean, teamId: string, members?: string[] }` | Mise à jour d'un canal |
+| `"delete"` | `{ channelId: string }` | Suppression d'un canal (cascade: posts, réponses, membres) |
+
+#### channel_member
+
+| type | Payload | Description |
+|------|---------|-------------|
+| `"list"` | `{ channelId: string }` | Demande la liste des membres d'un canal |
+| `"add"` | `{ channelId: string, userId: string }` | Ajouter un membre à un canal |
+| `"remove"` | `{ channelId: string, userId: string }` | Retirer un membre d'un canal |
+| `"leave"` | `{ channelId: string }` | Quitter un canal |
+
+#### channel_post
+
+| type | Payload | Description |
+|------|---------|-------------|
+| `"list"` | `{ channelId: string }` | Demande les posts d'un canal avec réponses |
+| `"get_by_user"` | `{ channelId: string, userId: string }` | Demande les posts d'un auteur spécifique |
+| `"publish"` | `{ channelId: string, content: string }` | Publication d'un post |
+| `"update"` | `{ postId: string, content: string }` | Mise à jour d'un post |
+| `"delete"` | `{ postId: string }` | Suppression d'un post (cascade: réponses) |
+| `"answer"` | `{ postId: string, content: string }` | Réponse à un post |
+
+### Serveur → Client (4 grouped messages)
+
+#### channel_get_response
+
+| type | Payload | Description |
+|------|---------|-------------|
+| `"list"` | `{ etat: boolean, channels: Channel[] }` | Liste des canaux filtrés |
+| `"get"` | `{ etat: boolean, channel: Channel }` | Détails d'un canal |
+
+#### channel_action_response
+
+| type | Payload | Description |
+|------|---------|-------------|
+| `"create"` | `{ etat: boolean, channel?: Channel, error?: string }` | Confirmation de création (broadcast aux membres de l'équipe) |
+| `"update"` | `{ etat: boolean, channel?: Channel, error?: string }` | Confirmation de mise à jour |
+| `"delete"` | `{ etat: boolean, channelId?: string, error?: string }` | Confirmation de suppression |
+
+#### channel_member_response
+
+| type | Payload | Description |
+|------|---------|-------------|
+| `"list"` | `{ etat: boolean, members: ChannelMember[] }` | Liste des membres avec infos user (firstname, lastname, picture) |
+| `"add"` | `{ etat: boolean, channelId?: string, userId?: string, error?: string }` | Confirmation d'ajout de membre |
+| `"remove"` | `{ etat: boolean, channelId?: string, userId?: string, error?: string }` | Confirmation de retrait de membre |
+| `"leave"` | `{ etat: boolean, channelId?: string, error?: string }` | Confirmation de départ |
+
+#### channel_post_response
+
+| type | Payload | Description |
+|------|---------|-------------|
+| `"list"` | `{ etat: boolean, posts: ChannelPost[] }` | Liste des posts avec réponses populées |
+| `"get_by_user"` | `{ etat: boolean, posts: ChannelPost[] }` | Posts d'un auteur spécifique |
+| `"publish"` | `{ etat: boolean, post?: ChannelPost, error?: string }` | Confirmation de publication (broadcast aux membres connectés) |
+| `"update"` | `{ etat: boolean, postId?: string, content?: string, error?: string }` | Confirmation de mise à jour |
+| `"delete"` | `{ etat: boolean, postId?: string, error?: string }` | Confirmation de suppression |
+| `"answer"` | `{ etat: boolean, postId?: string, response?: ChannelPostResponse, error?: string }` | Confirmation de réponse (broadcast aux membres connectés) |
+
+**Total : 4 client→serveur messages (15 types) + 4 serveur→client messages (15 types) = 8 messages, 30 operations**
 
 ### Codes d'erreur
 
@@ -345,8 +379,8 @@ await response.save();
 
 ```typescript
 // Client
-{ id: socketId, channel_post_create_request: { channelId: "ch1...", content: "Hello tout le monde !" } }
+{ id: socketId, channel_post: { type: "publish", channelId: "ch1...", content: "Hello tout le monde !" } }
 
 // Serveur
-{ id: socketId, channel_post_create_response: { post: { channelId: "ch1...", content: "Hello tout le monde !", authorId: "u1...", responseCount: 0 } } }
+{ id: socketId, channel_post_response: { type: "publish", etat: true, post: { channelId: "ch1...", content: "Hello tout le monde !", authorId: "u1...", responseCount: 0 } } }
 ```

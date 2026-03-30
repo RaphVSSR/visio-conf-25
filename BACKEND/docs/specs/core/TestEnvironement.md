@@ -1,6 +1,6 @@
 # Référence de la classe TestEnvironement — VisioConf
 
-**Fichier source** : `BACKEND/src/models/Core/TestEnvironement.ts`
+**Fichier source** : `BACKEND/src/models/core/TestEnvironement.ts`
 **Classe parente** : Aucune (classe statique autonome)
 
 ---

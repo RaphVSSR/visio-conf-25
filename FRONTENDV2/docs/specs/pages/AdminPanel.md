@@ -10,7 +10,7 @@
 
 `AdminPanel` est le panel d'administration. Il affiche des cartes d'information (utilisateurs connectés, appels en cours) et une navigation par onglets (Utilisateurs, Rôles, Permissions, Equipes). La sélection d'un onglet monte le composant `AdminTabPanel`.
 
-**État actuel :** Les valeurs dynamiques sont hardcodées (4 utilisateurs, 6 appels). L'ancien code utilisant le controleur est commenté — à migrer vers le pattern `ControllerService`.
+**État actuel :** Les valeurs dynamiques sont hardcodées (4 utilisateurs, 6 appels). L'ancien code est commenté — à migrer vers le pattern `MessageClientAdapter` + `socket.send`.
 
 ---
 
@@ -34,12 +34,6 @@
 </main>
 ```
 
-### Vue onglet (onglet sélectionné)
-
-```html
-<AdminTabPanel tabSelected={tabSelected} setTabSelected={setTabSelected} />
-```
-
 ---
 
 ## 3. State
@@ -50,26 +44,7 @@
 
 ---
 
-## 4. Onglets
-
-| Nom | Modifier CSS | Icône |
-|-----|-------------|-------|
-| Utilisateurs | `users` | `UsersRound` |
-| Rôles | `roles` | `Drama` |
-| Permissions | `permissions` | `ListChecks` |
-| Equipes | `teams` | `MessagesSquare` |
-
----
-
-## 5. Composants utilisés
-
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `AdminTabPanel` | `components/` | Panel détaillé d'un onglet avec sous-options |
-
----
-
-## 6. Route
+## 4. Route
 
 | Path | Garde | Description |
 |------|-------|-------------|
@@ -77,12 +52,15 @@
 
 ---
 
-## 7. Code commenté (à migrer)
+## 5. Code commenté (à migrer)
 
-L'ancien code contenait :
-- Inscription manuelle au controleur (`controleur.inscription(handler, ...)`)
-- Messages : `users_list_request`, `user_perms_request`, `users_list_response`, `user_perms_response`
-- Vérification dynamique des permissions utilisateur
-- Comptage des utilisateurs en ligne
+L'ancien code utilisait l'inscription manuelle au controleur. Migration vers le nouveau pattern :
 
-Ce code doit être migré vers un `AdminService extends ControllerService` dédié.
+| Ancien message | Nouveau message | Description |
+|---|---|---|
+| `users_list_request` | `user_get { type: "list" }` | Récupérer la liste des utilisateurs |
+| `users_list_response` | `user_get_response { type: "list" }` | Réponse avec la liste |
+| `user_perms_request` | *(à implémenter)* | Vérification des permissions |
+| `update_user_roles_response` | `user_update_response { type: "roles" }` | Réponse mise à jour des rôles |
+
+Ce code doit être migré vers `socket.send()` / `socket.on()` via `useAuth().socket`.

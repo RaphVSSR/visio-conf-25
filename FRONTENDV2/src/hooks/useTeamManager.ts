@@ -3,13 +3,6 @@ import type { Team } from "pages/Teams/Teams.types"
 
 type TeamFormMode = "create" | "edit" | null
 
-interface UseTeamManagerProps {
-	initialTeams: Team[]
-	onTeamsChange?: (teams: Team[]) => void
-	onTeamSelected?: (team: Team | null) => void
-	onTeamDeleted?: () => void
-}
-
 interface UseTeamManagerReturn {
 	teams: Team[]
 	selectedTeam: Team | null
@@ -28,14 +21,9 @@ interface UseTeamManagerReturn {
 	selectFirstAvailableTeam: () => void
 }
 
-export function useTeamManager({
-	initialTeams,
-	onTeamsChange,
-	onTeamSelected,
-	onTeamDeleted,
-}: UseTeamManagerProps): UseTeamManagerReturn {
+export function useTeamManager(): UseTeamManagerReturn {
 
-	const [teams, setTeams] = useState<Team[]>(initialTeams)
+	const [teams, setTeams] = useState<Team[]>([])
 	const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
 	const [teamFormMode, setTeamFormMode] = useState<TeamFormMode>(null)
 	const [managingMembersTeamId, setManagingMembersTeamId] = useState<string | null>(null)
@@ -44,8 +32,7 @@ export function useTeamManager({
 		setSelectedTeam(team)
 		setTeamFormMode(null)
 		setManagingMembersTeamId(null)
-		onTeamSelected?.(team)
-	}, [onTeamSelected])
+	}, [])
 
 	const handleCreateTeam = useCallback(() => {
 		setTeamFormMode("create")
@@ -64,47 +51,32 @@ export function useTeamManager({
 	}, [])
 
 	const handleTeamCreated = useCallback((team: Team) => {
-		setTeams(previous => {
-			const updated = [...previous, team]
-			onTeamsChange?.(updated)
-			return updated
-		})
+		setTeams(previous => [...previous, team])
 		setSelectedTeam(team)
 		setTeamFormMode(null)
-		onTeamSelected?.(team)
-	}, [onTeamsChange, onTeamSelected])
+	}, [])
 
 	const handleTeamUpdated = useCallback((team: Team) => {
-		setTeams(previous => {
-			const updated = previous.map(existing =>
+		setTeams(previous =>
+			previous.map(existing =>
 				existing.id === team.id ? team : existing
 			)
-			onTeamsChange?.(updated)
-			return updated
-		})
+		)
 		setSelectedTeam(current =>
 			current?.id === team.id ? team : current
 		)
 		setTeamFormMode(null)
-	}, [onTeamsChange])
+	}, [])
 
 	const handleTeamDeleted = useCallback((teamId: string) => {
-		setTeams(previous => {
-			const updated = previous.filter(team => team.id !== teamId)
-			onTeamsChange?.(updated)
-			return updated
-		})
+		setTeams(previous => previous.filter(team => team.id !== teamId))
 		setSelectedTeam(current => {
-			if (current?.id === teamId) {
-				onTeamSelected?.(null)
-				return null
-			}
+			if (current?.id === teamId) return null
 			return current
 		})
 		setTeamFormMode(null)
 		setManagingMembersTeamId(null)
-		onTeamDeleted?.()
-	}, [onTeamsChange, onTeamSelected, onTeamDeleted])
+	}, [])
 
 	const handleCancelTeamForm = useCallback(() => {
 		setTeamFormMode(null)
@@ -116,27 +88,18 @@ export function useTeamManager({
 
 	const updateTeamsFromResponse = useCallback((receivedTeams: Team[]) => {
 		setTeams(receivedTeams)
-		onTeamsChange?.(receivedTeams)
-
 		setSelectedTeam(current => {
 			if (!current) return null
-			const stillExists = receivedTeams.find(team => team.id === current.id)
-			if (!stillExists) {
-				onTeamSelected?.(null)
-				return null
-			}
-			return stillExists
+			return receivedTeams.find(team => team.id === current.id) ?? null
 		})
-	}, [onTeamsChange, onTeamSelected])
+	}, [])
 
 	const selectFirstAvailableTeam = useCallback(() => {
 		setTeams(current => {
-			const firstTeam: Team | null = current.length > 0 ? current[0]! : null
-			setSelectedTeam(firstTeam)
-			onTeamSelected?.(firstTeam)
+			setSelectedTeam(current.length > 0 ? current[0]! : null)
 			return current
 		})
-	}, [onTeamSelected])
+	}, [])
 
 	return {
 		teams,

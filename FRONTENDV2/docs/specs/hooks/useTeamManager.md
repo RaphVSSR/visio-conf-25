@@ -1,25 +1,20 @@
 # Référence du hook useTeamManager — VisioConf
 
 **Fichier source** : `FRONTENDV2/src/hooks/useTeamManager.ts`
-**Type** : Custom React Hook
+**Type** : Hook React personnalisé
 
 ---
 
 ## 1. Description
 
-`useTeamManager` gère l'état complexe des équipes : sélection, création, édition, suppression et gestion des membres. Encapsule la logique métier pour découpler `TeamsPage` de la gestion d'état.
+`useTeamManager` gère l'état des équipes : sélection, création, édition, suppression et gestion des membres. Encapsule la logique métier pour découpler `TeamsPage` de la gestion d'état. Ne prend aucun paramètre.
 
 ---
 
-## 2. Paramètres
+## 2. Signature
 
 ```typescript
-interface UseTeamManagerProps {
-    initialTeams: Team[]
-    onTeamsChange?: (teams: Team[]) => void
-    onTeamSelected?: (team: Team | null) => void
-    onTeamDeleted?: () => void
-}
+export function useTeamManager(): UseTeamManagerReturn
 ```
 
 ---
@@ -39,17 +34,17 @@ interface UseTeamManagerProps {
 
 | Action | Paramètres | Description |
 |--------|------------|-------------|
-| `handleTeamSelect` | `team: Team` | Sélectionne une équipe, ferme le formulaire |
-| `handleCreateTeam` | — | Ouvre le formulaire en mode création |
-| `handleEditTeam` | `team: Team` | Ouvre le formulaire en mode édition |
-| `handleManageMembers` | `teamId: string` | Ouvre la vue de gestion des membres |
-| `handleTeamCreated` | `team: Team` | Ajoute l'équipe, la sélectionne |
-| `handleTeamUpdated` | `team: Team` | Met à jour l'équipe dans la liste |
-| `handleTeamDeleted` | `teamId: string` | Retire l'équipe de la liste |
+| `handleTeamSelect` | `team: Team` | Sélectionne une équipe, ferme le formulaire et la gestion membres |
+| `handleCreateTeam` | — | Ouvre le formulaire en mode création, ferme la gestion membres |
+| `handleEditTeam` | `team: Team` | Sélectionne l'équipe, ouvre le formulaire en mode édition |
+| `handleManageMembers` | `teamId: string` | Ouvre la vue de gestion des membres, ferme le formulaire |
+| `handleTeamCreated` | `team: Team` | Ajoute l'équipe à la liste, la sélectionne, ferme le formulaire |
+| `handleTeamUpdated` | `team: Team` | Met à jour l'équipe dans la liste (par id), met à jour la sélection si même équipe |
+| `handleTeamDeleted` | `teamId: string` | Retire l'équipe de la liste, reset la sélection si c'était l'équipe courante |
 | `handleCancelTeamForm` | — | Ferme le formulaire |
 | `handleCancelManageMembers` | — | Ferme la gestion des membres |
-| `updateTeamsFromResponse` | `teams: Team[]` | Met à jour en bulk depuis la réponse API |
-| `selectFirstAvailableTeam` | — | Sélectionne la première équipe disponible |
+| `updateTeamsFromResponse` | `teams: Team[]` | Remplace la liste en bulk, conserve la sélection si l'équipe existe encore |
+| `selectFirstAvailableTeam` | — | Sélectionne `teams[0]` ou `null` si vide |
 
 ---
 

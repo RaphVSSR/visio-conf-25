@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC, type FormEvent, type ChangeEvent } from "react"
+import { useState, useEffect, useCallback, type FC, type FormEvent, type ChangeEvent } from "react"
 import "./TeamForm.scss"
 import { useAuth } from "hooks/useAuth"
 import { Users, X, AlertCircle, Upload, Trash2 } from "lucide-react"
@@ -16,7 +16,7 @@ const TeamForm: FC<TeamFormProps> = ({
 	onCancel,
 	teamToEdit,
 }) => {
-	const { controleur, user } = useAuth()
+	const { socket, user } = useAuth()
 	const [name, setName] = useState("")
 	const [description, setDescription] = useState("")
 	const [isLoading, setIsLoading] = useState(false)
@@ -31,95 +31,65 @@ const TeamForm: FC<TeamFormProps> = ({
 	const [teamPicture, setTeamPicture] = useState<string>("")
 	const [picturePreview, setPicturePreview] = useState<string>("")
 
-	const nomDInstance = "TeamForm"
-	const verbose = false
-
-	const listeMessageEmis = [
-		"team_create_request",
-		"team_update_request",
-		"team_delete_request",
-		"users_list_request",
-		"team_members_request",
-		"team_add_member_request",
-		"team_remove_member_request",
-	]
-	const listeMessageRecus = [
-		"team_create_response",
-		"team_update_response",
-		"team_delete_response",
-		"users_list_response",
-		"team_members_response",
-		"team_add_member_response",
-		"team_remove_member_response",
-	]
-
-	const handler = {
-		nomDInstance,
-		traitementMessage: (msg: any) => {
-			if (verbose || controleur?.verboseall)
-				console.log(`INFO: (${nomDInstance}) - traitementMessage - `, msg)
-
-			if (msg.team_create_response) {
+	const handleTeamActionResponse = useCallback((data: any) => {
+		switch (data.type) {
+			case "create":
 				setIsLoading(false)
-				if (msg.team_create_response.etat) {
-					onTeamCreated(msg.team_create_response.team)
+				if (data.etat) {
+					onTeamCreated(data.team)
 				} else {
-					setError(
-						msg.team_create_response.error ||
-							"Erreur lors de la creation de l'equipe"
-					)
+					setError(data.error || "Erreur lors de la creation de l'equipe")
 				}
-			}
+				break
 
-			if (msg.team_update_response) {
+			case "update":
 				setIsLoading(false)
-				if (msg.team_update_response.etat) {
-					onTeamCreated(msg.team_update_response.team)
+				if (data.etat) {
+					onTeamCreated(data.team)
 				} else {
-					setError(
-						msg.team_update_response.error ||
-							"Erreur lors de la mise a jour de l'equipe"
-					)
+					setError(data.error || "Erreur lors de la mise a jour de l'equipe")
 				}
-			}
+				break
 
-			if (msg.team_delete_response) {
+			case "delete":
 				setIsDeleting(false)
-				if (msg.team_delete_response.etat) {
+				if (data.etat) {
 					onTeamCreated({
 						...teamToEdit,
 						deleted: true,
 						id: teamToEdit?.id,
 					} as Team)
 				} else {
-					setError(
-						msg.team_delete_response.error ||
-							"Erreur lors de la suppression de l'equipe"
-					)
+					setError(data.error || "Erreur lors de la suppression de l'equipe")
 				}
-			}
+				break
+		}
+	}, [onTeamCreated, teamToEdit])
 
-			if (msg.users_list_response) {
-				setIsLoadingUsers(false)
-				if (msg.users_list_response.etat) {
-					const users = msg.users_list_response.users || []
-					const membersConverted: Member[] = users
-						.filter((u: any) => u.id !== user?._id)
-						.map((u: any) => ({
-							id: u.id,
-							firstname: u.firstname,
-							lastname: u.lastname,
-							picture: u.picture,
-							isSelected: false,
-						}))
-					setMembers(membersConverted)
-				}
-			}
+	const handleUserQueryResponse = useCallback((data: any) => {
+		if (data.type !== "list") return
+		setIsLoadingUsers(false)
+		if (data.etat) {
+			const users = data.users || []
+			const membersConverted: Member[] = users
+				.filter((u: any) => u.id !== user?._id)
+				.map((u: any) => ({
+					id: u.id,
+					firstname: u.firstname,
+					lastname: u.lastname,
+					picture: u.picture,
+					isSelected: false,
+				}))
+			setMembers(membersConverted)
+		}
+	}, [user?._id])
 
-			if (msg.team_members_response) {
+	const handleTeamMemberResponse = useCallback((data: any) => {
+		switch (data.type) {
+			case "list":
 				setIsLoadingMembers(false)
-				if (msg.team_members_response.etat) {
-					const teamMembersData = msg.team_members_response.members || []
+				if (data.etat) {
+					const teamMembersData = data.members || []
 					setTeamMembers(teamMembersData)
 					setMembers((prevMembers) =>
 						prevMembers.map((member) => ({
@@ -129,24 +99,19 @@ const TeamForm: FC<TeamFormProps> = ({
 							),
 						}))
 					)
-				} else {
-					console.error(
-						"TeamForm - Error loading members:",
-						msg.team_members_response.error
-					)
 				}
-			}
+				break
 
-			if (msg.team_add_member_response) {
+			case "add":
 				setIsLoading(false)
-				if (msg.team_add_member_response.etat) {
+				if (data.etat) {
 					if (teamToEdit) {
 						loadTeamMembers(teamToEdit.id)
 						setSuccessMessage("Membre ajoute avec succes")
 						setTimeout(() => setSuccessMessage(""), 3000)
 					}
 				} else {
-					const addedUserId = msg.team_add_member_response.userId
+					const addedUserId = data.userId
 					if (addedUserId) {
 						setMembers((prevMembers) =>
 							prevMembers.map((member) =>
@@ -156,23 +121,20 @@ const TeamForm: FC<TeamFormProps> = ({
 							)
 						)
 					}
-					setError(
-						msg.team_add_member_response.error ||
-							"Erreur lors de l'ajout du membre"
-					)
+					setError(data.error || "Erreur lors de l'ajout du membre")
 				}
-			}
+				break
 
-			if (msg.team_remove_member_response) {
+			case "remove":
 				setIsLoading(false)
-				if (msg.team_remove_member_response.etat) {
+				if (data.etat) {
 					if (teamToEdit) {
 						loadTeamMembers(teamToEdit.id)
 						setSuccessMessage("Membre retire avec succes")
 						setTimeout(() => setSuccessMessage(""), 3000)
 					}
 				} else {
-					const removedUserId = msg.team_remove_member_response.userId
+					const removedUserId = data.userId
 					if (removedUserId) {
 						setMembers((prevMembers) =>
 							prevMembers.map((member) =>
@@ -182,34 +144,31 @@ const TeamForm: FC<TeamFormProps> = ({
 							)
 						)
 					}
-					setError(
-						msg.team_remove_member_response.error ||
-							"Erreur lors de la suppression du membre"
-					)
+					setError(data.error || "Erreur lors de la suppression du membre")
 				}
-			}
-		},
-	}
+				break
+		}
+	}, [teamToEdit])
 
 	const loadUsers = () => {
-		if (controleur) {
-			setIsLoadingUsers(true)
-			controleur.inscription(handler, listeMessageEmis, listeMessageRecus)
-			const request = { users_list_request: {} }
-			controleur.envoie(handler, request)
-		}
+		if (!socket) return
+		setIsLoadingUsers(true)
+		socket.send("user_get", { type: "list" })
 	}
 
 	const loadTeamMembers = (teamId: string) => {
-		if (controleur) {
-			setIsLoadingMembers(true)
-			controleur.inscription(handler, listeMessageEmis, listeMessageRecus)
-			const request = { team_members_request: { teamId } }
-			controleur.envoie(handler, request)
-		}
+		if (!socket) return
+		setIsLoadingMembers(true)
+		socket.send("team_member", { type: "list", teamId })
 	}
 
 	useEffect(() => {
+		if (!socket) return
+
+		socket.on("team_action_response", handleTeamActionResponse)
+		socket.on("user_get_response", handleUserQueryResponse)
+		socket.on("team_member_response", handleTeamMemberResponse)
+
 		loadUsers()
 
 		if (teamToEdit) {
@@ -226,9 +185,17 @@ const TeamForm: FC<TeamFormProps> = ({
 		}
 
 		return () => {
-			controleur?.desincription(handler, listeMessageEmis, listeMessageRecus)
+			socket.off("team_action_response", handleTeamActionResponse)
+			socket.off("user_get_response", handleUserQueryResponse)
+			socket.off("team_member_response", handleTeamMemberResponse)
 		}
-	}, [teamToEdit?.id])
+	}, [
+		socket,
+		teamToEdit?.id,
+		handleTeamActionResponse,
+		handleUserQueryResponse,
+		handleTeamMemberResponse,
+	])
 
 	const handleSubmit = (e: FormEvent) => {
 		e.preventDefault()
@@ -252,60 +219,49 @@ const TeamForm: FC<TeamFormProps> = ({
 		setIsLoading(true)
 		setError("")
 
-		controleur?.inscription(handler, listeMessageEmis, listeMessageRecus)
-
 		if (isEditing && teamToEdit) {
-			const updateRequest = {
-				team_update_request: {
-					id: teamToEdit.id,
-					name,
-					description,
-					picture: teamPicture,
-				},
-			}
-			controleur?.envoie(handler, updateRequest)
+			socket?.send("team_action", {
+				type: "update",
+				id: teamToEdit.id,
+				name,
+				description,
+				picture: teamPicture,
+			})
 		} else {
-			const createRequest = {
-				team_create_request: {
-					name,
-					description,
-					picture: teamPicture,
-					members: selectedMemberIds,
-				},
-			}
-			controleur?.envoie(handler, createRequest)
+			socket?.send("team_action", {
+				type: "create",
+				name,
+				description,
+				picture: teamPicture,
+				members: selectedMemberIds,
+			})
 		}
 	}
 
 	const handleDeleteTeam = () => {
-		if (!controleur || !teamToEdit) return
+		if (!socket || !teamToEdit) return
 
 		setIsDeleting(true)
 		setError("")
 
-		const request = { team_delete_request: { teamId: teamToEdit.id } }
-		controleur.envoie(handler, request)
+		socket.send("team_action", { type: "delete", teamId: teamToEdit.id })
 	}
 
 	const handleCancel = () => {
-		controleur?.desincription(handler, listeMessageEmis, listeMessageRecus)
 		onCancel()
 	}
 
 	const handleAddMember = (userId: string) => {
-		if (!controleur || !teamToEdit) return
+		if (!socket || !teamToEdit) return
 
 		setIsLoading(true)
 		setError("")
 
-		const request = {
-			team_add_member_request: { teamId: teamToEdit.id, userId },
-		}
-		controleur.envoie(handler, request)
+		socket.send("team_member", { type: "add", teamId: teamToEdit.id, userId })
 	}
 
 	const handleRemoveMember = (userId: string) => {
-		if (!controleur || !teamToEdit) return
+		if (!socket || !teamToEdit) return
 
 		const isLastAdmin =
 			userId === user?._id &&
@@ -322,10 +278,7 @@ const TeamForm: FC<TeamFormProps> = ({
 		setIsLoading(true)
 		setError("")
 
-		const request = {
-			team_remove_member_request: { teamId: teamToEdit.id, userId },
-		}
-		controleur.envoie(handler, request)
+		socket.send("team_member", { type: "remove", teamId: teamToEdit.id, userId })
 	}
 
 	const handleMemberToggle = (member: Member) => {

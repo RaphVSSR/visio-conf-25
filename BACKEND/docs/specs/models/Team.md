@@ -73,7 +73,7 @@
 | `constructor` | `dataToConstruct: TeamType` | `Team` | instance | Crée une instance avec un nouveau document Mongoose |
 | `save` | — | `Promise<void>` | instance | Sauvegarde le `modelInstance` en base de données |
 | `flushAll` | — | `Promise<DeleteResult>` | static | **[DEV]** Supprime toutes les équipes |
-| `injectTest` | — | `Promise<void>` | static | **[DEV]** Injecte 3 équipes de test avec leurs membres (Département MMI, Projet Web Avancé, Administration). En production, les équipes sont créées via `team_create_request` |
+| `injectTest` | — | `Promise<void>` | static | **[DEV]** Injecte 3 équipes de test avec leurs membres (Département MMI, Projet Web Avancé, Administration). En production, les équipes sont créées via `team_action { type: "create" }` |
 
 ### TeamMember
 
@@ -87,35 +87,35 @@
 
 ## 5. Catalogue des messages associés
 
-### Client → Serveur (9 messages)
+### Client → Serveur (3 messages with type sub-dispatch)
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `teams_list_request` | `{}` | Demande les équipes dont l'utilisateur est membre |
-| `all_teams_request` | `{}` | Demande toutes les équipes du système |
-| `team_create_request` | `{ name: string, description?: string, picture?: string, members: string[] }` | Création d'une équipe avec membres initiaux |
-| `team_update_request` | `{ id: string, name?: string, description?: string, picture?: string }` | Mise à jour d'une équipe (admin requis) |
-| `team_delete_request` | `{ teamId: string }` | Suppression d'une équipe (cascade: canaux, posts, réponses, membres) |
-| `team_leave_request` | `{ teamId: string }` | Quitter une équipe |
-| `team_members_request` | `{ teamId: string }` | Demande la liste des membres avec infos user |
-| `team_add_member_request` | `{ teamId: string, userId: string }` | Ajouter un membre (admin requis) |
-| `team_remove_member_request` | `{ teamId: string, userId: string }` | Retirer un membre (admin requis, ne peut pas retirer un admin) |
+| Message | Type | Payload | Description |
+|---------|------|---------|-------------|
+| `team_get` | `"list"` | `{}` | Demande les équipes dont l'utilisateur est membre |
+| `team_get` | `"all"` | `{}` | Demande toutes les équipes du système |
+| `team_action` | `"create"` | `{ name: string, description?: string, picture?: string, members: string[] }` | Création d'une équipe avec membres initiaux |
+| `team_action` | `"update"` | `{ id: string, name?: string, description?: string, picture?: string }` | Mise à jour d'une équipe (admin requis) |
+| `team_action` | `"delete"` | `{ teamId: string }` | Suppression d'une équipe (cascade: canaux, posts, réponses, membres) |
+| `team_action` | `"leave"` | `{ teamId: string }` | Quitter une équipe |
+| `team_member` | `"list"` | `{ teamId: string }` | Demande la liste des membres avec infos user |
+| `team_member` | `"add"` | `{ teamId: string, userId: string }` | Ajouter un membre (admin requis) |
+| `team_member` | `"remove"` | `{ teamId: string, userId: string }` | Retirer un membre (admin requis, ne peut pas retirer un admin) |
 
-### Serveur → Client (9 messages)
+### Serveur → Client (3 messages with type sub-dispatch)
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `teams_list_response` | `{ etat: boolean, teams: Team[] }` | Équipes de l'utilisateur avec son rôle |
-| `all_teams_response` | `{ etat: boolean, teams: Team[] }` | Toutes les équipes |
-| `team_create_response` | `{ etat: boolean, team?: Team, error?: string }` | Confirmation de création |
-| `team_update_response` | `{ etat: boolean, team?: Team, error?: string }` | Confirmation de mise à jour |
-| `team_delete_response` | `{ etat: boolean, teamId?: string, error?: string }` | Confirmation de suppression |
-| `team_leave_response` | `{ etat: boolean, teamId?: string, error?: string }` | Confirmation de départ |
-| `team_members_response` | `{ etat: boolean, members: { id, userId, firstname, lastname, picture, role, joinedAt }[] }` | Membres avec infos populées |
-| `team_add_member_response` | `{ etat: boolean, teamId?: string, userId?: string, error?: string }` | Confirmation d'ajout |
-| `team_remove_member_response` | `{ etat: boolean, teamId?: string, userId?: string, error?: string }` | Confirmation de retrait |
+| Message | Type | Payload | Description |
+|---------|------|---------|-------------|
+| `team_get_response` | `"list"` | `{ etat: boolean, teams: Team[] }` | Équipes de l'utilisateur avec son rôle |
+| `team_get_response` | `"all"` | `{ etat: boolean, teams: Team[] }` | Toutes les équipes |
+| `team_action_response` | `"create"` | `{ etat: boolean, team?: Team, error?: string }` | Confirmation de création |
+| `team_action_response` | `"update"` | `{ etat: boolean, team?: Team, error?: string }` | Confirmation de mise à jour |
+| `team_action_response` | `"delete"` | `{ etat: boolean, teamId?: string, error?: string }` | Confirmation de suppression |
+| `team_action_response` | `"leave"` | `{ etat: boolean, teamId?: string, error?: string }` | Confirmation de départ |
+| `team_member_response` | `"list"` | `{ etat: boolean, members: { id, userId, firstname, lastname, picture, role, joinedAt }[] }` | Membres avec infos populées |
+| `team_member_response` | `"add"` | `{ etat: boolean, teamId?: string, userId?: string, error?: string }` | Confirmation d'ajout |
+| `team_member_response` | `"remove"` | `{ etat: boolean, teamId?: string, userId?: string, error?: string }` | Confirmation de retrait |
 
-**Total : 9 client→serveur + 9 serveur→client = 18 messages**
+**Total : 3 client→serveur + 3 serveur→client = 6 messages (9 sub-types)**
 
 ### Codes d'erreur
 
@@ -231,8 +231,8 @@ await member.save();
 
 ```typescript
 // Client
-{ id: socketId, team_create_request: { name: "Projet Web", description: "Mon équipe" } }
+{ id: socketId, team_action: { type: "create", name: "Projet Web", description: "Mon équipe" } }
 
 // Serveur
-{ id: socketId, team_create_response: { team: { name: "Projet Web", members: [...], ... } } }
+{ id: socketId, team_action_response: { type: "create", etat: true, team: { name: "Projet Web", members: [...], ... } } }
 ```

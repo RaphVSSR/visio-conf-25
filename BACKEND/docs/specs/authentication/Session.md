@@ -1,30 +1,22 @@
-# Référence du Modèle Session — VisioConf
+# Référence de la classe SessionManager — VisioConf
 
-**Fichier source** : `BACKEND/src/models/services/authentication/Session.ts`
-**Classe parente** : Aucune (classe statique autonome, n'étend pas Collection)
-**Collection MongoDB** : `Session`
-
----
-
-## 1. Schema complet
-
-| Champ | Type | Required | Default | Ref | Description | Exemple |
-|-------|------|----------|---------|-----|-------------|---------|
-| `_id` | `ObjectId` | auto | auto | — | Identifiant MongoDB (sert de sessionId) | `ObjectId('s1...')` |
-| `userId` | `ObjectId` | oui | — | `User` | Utilisateur propriétaire de la session | `ObjectId('u1...')` |
-| `socketId` | `String` | non | — | — | ID du socket actuellement lié à cette session | `"xK9_2mZqR..."` |
-| `deviceInfo` | `String` | oui | — | — | Information sur l'appareil (ex: "web") | `"web"` |
-| `createdAt` | `Date` | oui | `Date.now` | — | Date de création de la session | `2026-03-01T10:00:00Z` |
-| `expiresAt` | `Date` | oui | — | — | Date d'expiration de la session. Index TTL: auto-suppression à l'expiration | `2026-03-02T10:00:00Z` |
+**Fichier source** : `BACKEND/src/models/services/authentication/SessionManager.ts`
+**Classe** : Statique (pas d'instanciation)
+**Dépendances** : `socket.io` (Server), `express-session` (via socket.request.session)
 
 ---
 
-## 2. Propriétés de la classe
+## 1. Description
+
+`SessionManager` gère le mapping socket ↔ utilisateur via **Socket.io rooms** et **express-session**. Pas de collection MongoDB dédiée — les sessions sont stockées dans le store `connect-mongodb-session` (collection `sessions`), et le mapping socket-user est géré via `socket.request.session.userId` + Socket.io rooms.
+
+---
+
+## 2. Propriétés
 
 | Propriété | Type | Visibilité | Description |
 |-----------|------|------------|-------------|
-| `schema` | `Schema<SessionType>` | `private static` | Schéma Mongoose de la collection |
-| `model` | `Model<SessionType>` | `static` | Modèle Mongoose (singleton via `mongoose.models`) |
+| `io` | `Server` (socket.io) | `private static` | Référence au serveur Socket.io |
 
 ---
 
@@ -33,91 +25,73 @@
 | Nom | Type | Valeur | Description | Exemple |
 |-----|------|--------|-------------|---------|
 | `SESSION_DURATION` | `env` | `process.env.SESSION_DURATION \|\| "24h"` | Durée d'une session. Format: `{number}{s\|m\|h\|d}` | `"24h"`, `"30m"`, `"7d"` |
-| `models` | `object` | `mongoose.models` | Cache des modèles Mongoose enregistrés | — |
 
 ---
 
 ## 4. Méthodes
 
-| Méthode | Paramètres | Retour | Static/Instance | Description |
-|---------|------------|--------|-----------------|-------------|
-| `getSession` | `sessionId: string` | `Promise<SessionType \| null>` | static | Trouve une session par son _id |
-| `getSessionBySocket` | `socketId: string` | `Promise<SessionType \| null>` | static | Trouve une session par son socketId |
-| `getSessions` | `userId: string` | `Promise<SessionType[]>` | static | Trouve toutes les sessions actives (non expirées) d'un utilisateur |
-| `createSession` | `userId: string, socketId: string, deviceInfo: string, expiresAt: Date` | `Promise<SessionType>` | static | Crée une nouvelle session |
-| `deleteSession` | `sessionId: string` | `Promise<void>` | static | Supprime une session par son _id |
-| `clearSocket` | `socketId: string` | `Promise<void>` | static | Dissocie un socket de sa session (unset socketId) |
-| `bindSocket` | `sessionId: string, socketId: string` | `Promise<void>` | static | Associe un socket à une session |
-| `refreshSession` | `sessionId: string, newExpiresAt: Date` | `Promise<SessionType \| null>` | static | Prolonge une session en mettant à jour expiresAt |
-| `getUserSocketIds` | `userId: string` | `Promise<string[]>` | static | Retourne tous les socketId actifs d'un utilisateur |
-| `flushAll` | — | `Promise<void>` | static | **[DEV]** Supprime toutes les sessions |
-| `getSessionDurationMs` | — | `number` | static | Retourne la durée de session en millisecondes (parse `SESSION_DURATION`) |
-| `parseExpiryToMs` | `expiry: string` | `number` | `private static` | Convertit un format `{number}{s\|m\|h\|d}` en millisecondes. Défaut: 24h |
+| Méthode | Paramètres | Retour | Description |
+|---------|------------|--------|-------------|
+| `bindToServer` | `io: Server` | `void` | Stocke la référence au serveur Socket.io |
+| `bind` | `socketId: string, userId: string` | `void` | Écrit `userId` dans `socket.request.session`, `session.save()`, `socket.join(userId)` |
+| `unbind` | `socketId: string` | `void` | Lit `session.userId`, `socket.leave(userId)`, supprime `session.userId`, `session.save()` |
+| `getUserId` | `socketId: string` | `string \| null` | Lit `socket.request.session.userId` |
+| `getUserSocketIds` | `userId: string` | `string[]` | Lit le room Socket.io nommé `userId`, retourne les socketIds |
+| `hasActiveSessions` | `userId: string` | `boolean` | Vérifie si le room existe et `size > 0` |
+| `refreshSession` | `socketId: string` | `void` | Met à jour `session.cookie.maxAge` avec la durée configurée, `session.save()` |
+| `getSessionDurationMs` | — | `number` | Parse `SESSION_DURATION` et retourne en millisecondes |
+| `parseExpiryToMs` | `expiry: string` | `number` | `private static` — Convertit `{number}{s\|m\|h\|d}` en ms. Défaut: 24h |
 
 ---
 
-## 5. Catalogue des messages associés
+## 5. Architecture de session
 
-La Session n'a pas de messages propres. Elle est utilisée indirectement par `AuthService` pour les messages d'authentification (voir `BACKEND/docs/specs/authentication/AuthService.md`).
+```
+express-session (cookie)
+    ↕ connect-mongodb-session (store MongoDB, collection "sessions")
+socket.request.session
+    ├─ .userId    → écrit par bind(), lu par getUserId(), supprimé par unbind()
+    ├─ .cookie    → .maxAge mis à jour par refreshSession()
+    └─ .save()    → persiste dans le store MongoDB
 
----
-
-## 6. Types TypeScript
-
-```typescript
-type SessionType = {
-    _id?: Types.ObjectId,
-    userId: Types.ObjectId,
-    socketId?: string,
-    deviceInfo: string,
-    createdAt: Date,
-    expiresAt: Date,
-}
+Socket.io rooms
+    ├─ socket.join(userId)    → bind()
+    ├─ socket.leave(userId)   → unbind()
+    └─ io.sockets.adapter.rooms.get(userId)  → getUserSocketIds(), hasActiveSessions()
 ```
 
 ---
 
-## 7. Relations avec autres modèles
+## 6. Relations avec autres classes
 
-| Modèle | Relation | Description |
+| Classe | Relation | Description |
 |--------|----------|-------------|
-| `User` | Session.userId → User | Chaque session appartient à un utilisateur |
-| `AuthService` | AuthService utilise Session | Le service d'auth crée, lit, rafraîchit et supprime des sessions |
-| `Database` | Database.flushDb() → Session.flushAll() | Le flush DB inclut les sessions |
+| `AuthService` | Utilise SessionManager | bind, unbind, getUserId, getUserSocketIds, hasActiveSessions, refreshSession |
+| `ChannelService` | Utilise SessionManager | getUserId (resolveUserId), getUserSocketIds (broadcast) |
+| `TeamService` | Utilise SessionManager | getUserId (resolveUserId) |
+| `UserService` | Utilise SessionManager | getUserId (resolveUserId) |
+| `AccessRoleGuard` | Utilise SessionManager | getUserId (resolveUser) |
+| `RestService` | Configure express-session | sessionMiddleware partagé avec Socket.io handshake |
 
 ---
 
-## 8. Index et contraintes
-
-| Index | Champs | Type | Description |
-|-------|--------|------|-------------|
-| `_id` | `_id` | unique (auto) | Index par défaut MongoDB |
-| `expiresAt` | `expiresAt` | TTL (`expireAfterSeconds: 0`) | Auto-suppression quand `expiresAt` est dépassé |
-| `socketId` | `socketId` | simple | Optimise `getSessionBySocket()` |
-| `userId` | `userId` | simple | Optimise `getSessions()` et `getUserSocketIds()` |
-
-Principe : une session existe = elle est active. Supprimée = terminée. Pas de champ `isActive` ni `token`.
-
----
-
-## 9. Exemples
-
-### Créer et manipuler une session
+## 7. Exemples
 
 ```typescript
-const expiresAt = new Date(Date.now() + Session.getSessionDurationMs());
-const session = await Session.createSession(userId, socketId, "web", expiresAt);
-// → { _id: ObjectId("s1..."), userId: ObjectId("u1..."), socketId: "xK9...", deviceInfo: "web", expiresAt: ... }
+SessionManager.bindToServer(io)
 
-await Session.bindSocket(session._id.toString(), "newSocketId");
-await Session.refreshSession(session._id.toString(), new Date(Date.now() + Session.getSessionDurationMs()));
-await Session.deleteSession(session._id.toString());
-```
+SessionManager.bind("socketId123", "userId456")
+// → socket.request.session.userId = "userId456"
+// → socket.join("userId456")
 
-### Durée de session (parseExpiryToMs)
+SessionManager.getUserId("socketId123")           // → "userId456"
+SessionManager.getUserSocketIds("userId456")       // → ["socketId123", "socketIdABC"]
+SessionManager.hasActiveSessions("userId456")      // → true
 
-```typescript
-Session.getSessionDurationMs(); // SESSION_DURATION="24h" → 86400000
-Session.getSessionDurationMs(); // SESSION_DURATION="30m" → 1800000
-Session.getSessionDurationMs(); // SESSION_DURATION="7d"  → 604800000
+SessionManager.refreshSession("socketId123")       // → session.cookie.maxAge = 86400000
+SessionManager.getSessionDurationMs()              // → 86400000 (24h)
+
+SessionManager.unbind("socketId123")
+// → socket.leave("userId456")
+// → delete session.userId
 ```

@@ -61,7 +61,6 @@ export default class ChannelMember extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE === "true") console.log("💾 User collection created and saved");
 
         } catch (error: any) {
             

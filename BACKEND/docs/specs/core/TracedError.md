@@ -1,6 +1,6 @@
 # Référence de la classe TracedError — VisioConf
 
-**Fichier source** : `BACKEND/src/models/Core/TracedError.ts`
+**Fichier source** : `BACKEND/src/models/core/TracedError.ts`
 **Classe parente** : `Error` (native)
 
 ---

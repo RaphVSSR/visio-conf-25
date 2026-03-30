@@ -1,106 +1,124 @@
 import { type Types } from "mongoose"
-import { ControllerBinder, type ControllerMessage } from "../../Controller/Controller.abstracts.ts"
-import Session from "./authentication/Session.ts"
+import { getMessagesByDomain } from "../ListeMessages.ts"
+import SessionManager from "./authentication/SessionManager.ts"
 import Channel from "../Channel.ts"
 import ChannelMember, { type ChannelMemberType } from "../ChannelMember.ts"
 import ChannelPost, { type ChannelPostType } from "../ChannelPost.ts"
 import ChannelPostResponse from "../ChannelPostResponse.ts"
 import TeamMember from "../TeamMember.ts"
 
+type MessageHandler = (socketId: string, payload: any) => void
 type WithId<T> = T & { _id: Types.ObjectId }
 
-export default class ChannelService extends ControllerBinder {
+export default class ChannelService {
 
-	traitementMessage(mesg: ControllerMessage) {
+	controleur: any
+	nomDInstance: string
+	private handlers = new Map<string, MessageHandler>()
 
-		const socketId = mesg.id
-		const action = Object.keys(mesg).find(key => key !== "id")
-
-		switch (action) {
-
-			case "get_channels":
-				this.getChannels(socketId, mesg[action] as { teamId: string }); break
-
-			case "get_channel":
-				this.getChannel(socketId, mesg[action] as { channelId: string }); break
-
-			case "create_channel":
-				this.createChannel(socketId, mesg[action] as { name: string, isPublic: boolean, teamId: string, members?: string[] }); break
-
-			case "update_channel":
-				this.updateChannel(socketId, mesg[action] as { id: string, name: string, isPublic: boolean, teamId: string, members?: string[] }); break
-
-			case "delete_channel":
-				this.deleteChannel(socketId, mesg[action] as { channelId: string }); break
-
-			case "get_channel_members":
-				this.getChannelMembers(socketId, mesg[action] as { channelId: string }); break
-
-			case "add_channel_member":
-				this.addChannelMember(socketId, mesg[action] as { channelId: string, userId: string }); break
-
-			case "remove_channel_member":
-				this.removeChannelMember(socketId, mesg[action] as { channelId: string, userId: string }); break
-
-			case "leave_channel":
-				this.leaveChannel(socketId, mesg[action] as { channelId: string }); break
-
-			case "get_posts":
-				this.getChannelPosts(socketId, mesg[action] as { channelId: string }); break
-
-			case "get_user_post":
-				this.getUserPost(socketId, mesg[action] as { channelId: string, userId: string }); break
-
-			case "publish_post":
-				this.publishPost(socketId, mesg[action] as { channelId: string, content: string }); break
-
-			case "update_post":
-				this.updatePost(socketId, mesg[action] as { postId: string, content: string }); break
-
-			case "delete_post":
-				this.deletePost(socketId, mesg[action] as { postId: string }); break
-
-			case "answer_post":
-				this.answerPost(socketId, mesg[action] as { postId: string, content: string }); break
-		}
+	constructor(controleur: any, name: string) {
+		this.controleur = controleur
+		this.nomDInstance = name
 	}
 
-	private async resolveUserId(socketId: string): Promise<string | null> {
+	private registerHandler(messageName: string, handler: MessageHandler) {
+		this.handlers.set(messageName, handler)
+	}
 
-		const session = await Session.getSessionBySocket(socketId)
-		return session ? session.userId.toString() : null
+	private send(socketIds: string | string[], messageName: string, payload: unknown) {
+		const ids = Array.isArray(socketIds) ? socketIds : [socketIds]
+		this.controleur.envoie(this, { [messageName]: payload, id: ids })
+	}
+
+	traitementMessage(msg: any) {
+		const action = Object.keys(msg).find(k => k !== "id")
+		if (!action) return
+		const handler = this.handlers.get(action)
+		if (handler) handler(msg.id, msg[action])
+	}
+
+	register() {
+		this.registerHandler("channel_get", this.handleChannelQuery)
+		this.registerHandler("channel_action", this.handleChannelAction)
+		this.registerHandler("channel_member", this.handleChannelMember)
+		this.registerHandler("channel_post", this.handleChannelPost)
+
+		this.controleur.inscription(this, getMessagesByDomain("channel").received, [...this.handlers.keys()])
+	}
+
+	private resolveUserId(socketId: string): string | null {
+		return SessionManager.getUserId(socketId)
 	}
 
 	private async getConnectedChannelMemberSocketIds(channelId: string): Promise<string[]> {
-
 		const members = await ChannelMember.model.find({ channelId }).lean()
 		const socketIds: string[] = []
-
 		for (const member of members) {
-			const memberSockets = await Session.getUserSocketIds(member.userId.toString())
-			socketIds.push(...memberSockets)
+			socketIds.push(...SessionManager.getUserSocketIds(member.userId.toString()))
 		}
-
 		return socketIds
 	}
 
 	private async getConnectedTeamMemberSocketIds(teamId: string): Promise<string[]> {
-
 		const members = await TeamMember.model.find({ teamId }).lean()
 		const socketIds: string[] = []
-
 		for (const member of members) {
-			const memberSockets = await Session.getUserSocketIds(member.id.toString())
-			socketIds.push(...memberSockets)
+			socketIds.push(...SessionManager.getUserSocketIds(member.id.toString()))
 		}
-
 		return socketIds
 	}
 
-	private async getChannels(socketId: string, payload: { teamId: string }) {
+	private handleChannelQuery = (socketId: string, payload: { type: string, [key: string]: any }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { channels: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const dispatchers: Record<string, () => void> = {
+			list: () => this.getChannels(socketId, payload),
+			single: () => this.getChannel(socketId, payload),
+		}
+
+		dispatchers[payload.type]?.()
+	}
+
+	private handleChannelAction = (socketId: string, payload: { type: string, [key: string]: any }) => {
+
+		const dispatchers: Record<string, () => void> = {
+			create: () => this.createChannel(socketId, payload),
+			update: () => this.updateChannel(socketId, payload),
+			delete: () => this.deleteChannel(socketId, payload),
+		}
+
+		dispatchers[payload.type]?.()
+	}
+
+	private handleChannelMember = (socketId: string, payload: { type: string, [key: string]: any }) => {
+
+		const dispatchers: Record<string, () => void> = {
+			list: () => this.getChannelMembers(socketId, payload),
+			add: () => this.addChannelMember(socketId, payload),
+			remove: () => this.removeChannelMember(socketId, payload),
+			leave: () => this.leaveChannel(socketId, payload),
+		}
+
+		dispatchers[payload.type]?.()
+	}
+
+	private handleChannelPost = (socketId: string, payload: { type: string, [key: string]: any }) => {
+
+		const dispatchers: Record<string, () => void> = {
+			list: () => this.getChannelPosts(socketId, payload),
+			user: () => this.getUserPost(socketId, payload),
+			publish: () => this.publishPost(socketId, payload),
+			update: () => this.updatePost(socketId, payload),
+			delete: () => this.deletePost(socketId, payload),
+			answer: () => this.answerPost(socketId, payload),
+		}
+
+		dispatchers[payload.type]?.()
+	}
+
+	private getChannels = async (socketId: string, payload: { teamId: string }) => {
+
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_get_response", { type: "list", etat: false, error: "not_authenticated" })
 
 		const { teamId } = payload
 
@@ -124,22 +142,22 @@ export default class ChannelService extends ControllerBinder {
 			createdAt: channel.createdAt,
 		}))
 
-		this.controleur.envoie(this, { channels: { etat: true, channels: formattedChannels }, id: [socketId] })
+		this.send(socketId, "channel_get_response", { type: "list", etat: true, channels: formattedChannels })
 	}
 
-	private async getChannel(socketId: string, payload: { channelId: string }) {
+	private getChannel = async (socketId: string, payload: { channelId: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { channel: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_get_response", { type: "single", etat: false, error: "not_authenticated" })
 
 		const { channelId } = payload
 
 		const channel = await Channel.model.findById(channelId).lean()
-		if (!channel) return this.controleur.envoie(this, { channel: { etat: false, error: "channel_not_found" }, id: [socketId] })
+		if (!channel) return this.send(socketId, "channel_get_response", { type: "single", etat: false, error: "channel_not_found" })
 
 		if (!channel.isPublic) {
 			const membership = await ChannelMember.model.findOne({ channelId, userId }).lean()
-			if (!membership) return this.controleur.envoie(this, { channel: { etat: false, error: "not_a_member" }, id: [socketId] })
+			if (!membership) return this.send(socketId, "channel_get_response", { type: "single", etat: false, error: "not_a_member" })
 		}
 
 		const formattedChannel = {
@@ -150,13 +168,13 @@ export default class ChannelService extends ControllerBinder {
 			createdAt: channel.createdAt,
 		}
 
-		this.controleur.envoie(this, { channel: { etat: true, channel: formattedChannel }, id: [socketId] })
+		this.send(socketId, "channel_get_response", { type: "single", etat: true, channel: formattedChannel })
 	}
 
-	private async createChannel(socketId: string, payload: { name: string, isPublic: boolean, teamId: string, members?: string[] }) {
+	private createChannel = async (socketId: string, payload: { name: string, isPublic: boolean, teamId: string, members?: string[] }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { channel_creating_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_action_response", { type: "create", etat: false, error: "not_authenticated" })
 
 		const { name, isPublic, teamId, members } = payload
 
@@ -205,21 +223,21 @@ export default class ChannelService extends ControllerBinder {
 		}
 
 		const teamSocketIds = await this.getConnectedTeamMemberSocketIds(teamId)
-		this.controleur.envoie(this, { channel_creating_status: { etat: true, channel: formattedChannel }, id: teamSocketIds.length > 0 ? teamSocketIds : [socketId] })
+		this.send(teamSocketIds.length > 0 ? teamSocketIds : socketId, "channel_action_response", { type: "create", etat: true, channel: formattedChannel })
 	}
 
-	private async updateChannel(socketId: string, payload: { id: string, name: string, isPublic: boolean, teamId: string, members?: string[] }) {
+	private updateChannel = async (socketId: string, payload: { id: string, name: string, isPublic: boolean, teamId: string, members?: string[] }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { channel_updating_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_action_response", { type: "update", etat: false, error: "not_authenticated" })
 
 		const { id: channelId, name, isPublic, teamId, members } = payload
 
 		const channel = await Channel.model.findById(channelId)
-		if (!channel) return this.controleur.envoie(this, { channel_updating_status: { etat: false, error: "channel_not_found" }, id: [socketId] })
+		if (!channel) return this.send(socketId, "channel_action_response", { type: "update", etat: false, error: "channel_not_found" })
 
 		const adminMembership = await ChannelMember.model.findOne({ channelId, userId, role: "admin" }).lean()
-		if (!adminMembership) return this.controleur.envoie(this, { channel_updating_status: { etat: false, error: "admin_required" }, id: [socketId] })
+		if (!adminMembership) return this.send(socketId, "channel_action_response", { type: "update", etat: false, error: "admin_required" })
 
 		channel.name = name
 		channel.isPublic = isPublic
@@ -274,21 +292,21 @@ export default class ChannelService extends ControllerBinder {
 		}
 
 		const teamSocketIds = await this.getConnectedTeamMemberSocketIds(teamId)
-		this.controleur.envoie(this, { channel_updating_status: { etat: true, channel: formattedChannel }, id: teamSocketIds.length > 0 ? teamSocketIds : [socketId] })
+		this.send(teamSocketIds.length > 0 ? teamSocketIds : socketId, "channel_action_response", { type: "update", etat: true, channel: formattedChannel })
 	}
 
-	private async deleteChannel(socketId: string, payload: { channelId: string }) {
+	private deleteChannel = async (socketId: string, payload: { channelId: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { channel_deleting_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_action_response", { type: "delete", etat: false, error: "not_authenticated" })
 
 		const { channelId } = payload
 
 		const channel = await Channel.model.findById(channelId)
-		if (!channel) return this.controleur.envoie(this, { channel_deleting_status: { etat: false, error: "channel_not_found" }, id: [socketId] })
+		if (!channel) return this.send(socketId, "channel_action_response", { type: "delete", etat: false, error: "channel_not_found" })
 
 		const adminMembership = await ChannelMember.model.findOne({ channelId, userId, role: "admin" }).lean()
-		if (!adminMembership) return this.controleur.envoie(this, { channel_deleting_status: { etat: false, error: "admin_required" }, id: [socketId] })
+		if (!adminMembership) return this.send(socketId, "channel_action_response", { type: "delete", etat: false, error: "admin_required" })
 
 		const teamSocketIds = await this.getConnectedTeamMemberSocketIds(channel.teamId.toString())
 
@@ -299,22 +317,22 @@ export default class ChannelService extends ControllerBinder {
 		await ChannelMember.model.deleteMany({ channelId })
 		await Channel.model.deleteOne({ _id: channelId })
 
-		this.controleur.envoie(this, { channel_deleting_status: { etat: true, channelId }, id: teamSocketIds.length > 0 ? teamSocketIds : [socketId] })
+		this.send(teamSocketIds.length > 0 ? teamSocketIds : socketId, "channel_action_response", { type: "delete", etat: true, channelId })
 	}
 
-	private async getChannelMembers(socketId: string, payload: { channelId: string }) {
+	private getChannelMembers = async (socketId: string, payload: { channelId: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { channel_members: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_member_response", { type: "list", etat: false, error: "not_authenticated" })
 
 		const { channelId } = payload
 
 		const channel = await Channel.model.findById(channelId).lean()
-		if (!channel) return this.controleur.envoie(this, { channel_members: { etat: false, error: "channel_not_found" }, id: [socketId] })
+		if (!channel) return this.send(socketId, "channel_member_response", { type: "list", etat: false, error: "channel_not_found" })
 
 		if (!channel.isPublic) {
 			const membership = await ChannelMember.model.findOne({ channelId, userId }).lean()
-			if (!membership) return this.controleur.envoie(this, { channel_members: { etat: false, error: "not_a_member" }, id: [socketId] })
+			if (!membership) return this.send(socketId, "channel_member_response", { type: "list", etat: false, error: "not_a_member" })
 		}
 
 		const members = await ChannelMember.model.find({ channelId })
@@ -334,85 +352,85 @@ export default class ChannelService extends ControllerBinder {
 			}
 		})
 
-		this.controleur.envoie(this, { channel_members: { etat: true, members: formattedMembers }, id: [socketId] })
+		this.send(socketId, "channel_member_response", { type: "list", etat: true, members: formattedMembers })
 	}
 
-	private async addChannelMember(socketId: string, payload: { channelId: string, userId: string }) {
+	private addChannelMember = async (socketId: string, payload: { channelId: string, userId: string }) => {
 
-		const requesterId = await this.resolveUserId(socketId)
-		if (!requesterId) return this.controleur.envoie(this, { channel_member_adding_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const requesterId = this.resolveUserId(socketId)
+		if (!requesterId) return this.send(socketId, "channel_member_response", { type: "add", etat: false, error: "not_authenticated" })
 
 		const { channelId, userId: targetUserId } = payload
 
 		const adminMembership = await ChannelMember.model.findOne({ channelId, userId: requesterId, role: "admin" }).lean()
-		if (!adminMembership) return this.controleur.envoie(this, { channel_member_adding_status: { etat: false, error: "admin_required" }, id: [socketId] })
+		if (!adminMembership) return this.send(socketId, "channel_member_response", { type: "add", etat: false, error: "admin_required" })
 
 		const existingMember = await ChannelMember.model.findOne({ channelId, userId: targetUserId }).lean()
-		if (existingMember) return this.controleur.envoie(this, { channel_member_adding_status: { etat: false, error: "already_a_member" }, id: [socketId] })
+		if (existingMember) return this.send(socketId, "channel_member_response", { type: "add", etat: false, error: "already_a_member" })
 
 		const channelMember = new ChannelMember({ channelId: channelId as any, userId: targetUserId as any, role: "member" })
 		await channelMember.save()
 
 		await Channel.model.updateOne({ _id: channelId }, { $push: { members: channelMember.modelInstance._id } })
 
-		this.controleur.envoie(this, { channel_member_adding_status: { etat: true, channelId, userId: targetUserId }, id: [socketId] })
+		this.send(socketId, "channel_member_response", { type: "add", etat: true, channelId, userId: targetUserId })
 	}
 
-	private async removeChannelMember(socketId: string, payload: { channelId: string, userId: string }) {
+	private removeChannelMember = async (socketId: string, payload: { channelId: string, userId: string }) => {
 
-		const requesterId = await this.resolveUserId(socketId)
-		if (!requesterId) return this.controleur.envoie(this, { channel_member_removing_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const requesterId = this.resolveUserId(socketId)
+		if (!requesterId) return this.send(socketId, "channel_member_response", { type: "remove", etat: false, error: "not_authenticated" })
 
 		const { channelId, userId: targetUserId } = payload
 
 		const adminMembership = await ChannelMember.model.findOne({ channelId, userId: requesterId, role: "admin" }).lean()
-		if (!adminMembership) return this.controleur.envoie(this, { channel_member_removing_status: { etat: false, error: "admin_required" }, id: [socketId] })
+		if (!adminMembership) return this.send(socketId, "channel_member_response", { type: "remove", etat: false, error: "admin_required" })
 
 		const targetMembership = await ChannelMember.model.findOne({ channelId, userId: targetUserId }).lean()
-		if (!targetMembership) return this.controleur.envoie(this, { channel_member_removing_status: { etat: false, error: "not_a_member" }, id: [socketId] })
+		if (!targetMembership) return this.send(socketId, "channel_member_response", { type: "remove", etat: false, error: "not_a_member" })
 
-		if (targetMembership.role === "admin") return this.controleur.envoie(this, { channel_member_removing_status: { etat: false, error: "cannot_remove_admin" }, id: [socketId] })
+		if (targetMembership.role === "admin") return this.send(socketId, "channel_member_response", { type: "remove", etat: false, error: "cannot_remove_admin" })
 
 		await ChannelMember.model.deleteOne({ _id: targetMembership._id })
 		await Channel.model.updateOne({ _id: channelId }, { $pull: { members: targetMembership._id } })
 
-		this.controleur.envoie(this, { channel_member_removing_status: { etat: true, channelId, userId: targetUserId }, id: [socketId] })
+		this.send(socketId, "channel_member_response", { type: "remove", etat: true, channelId, userId: targetUserId })
 	}
 
-	private async leaveChannel(socketId: string, payload: { channelId: string }) {
+	private leaveChannel = async (socketId: string, payload: { channelId: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { channel_leaving_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_member_response", { type: "leave", etat: false, error: "not_authenticated" })
 
 		const { channelId } = payload
 
 		const membership = await ChannelMember.model.findOne({ channelId, userId }).lean()
-		if (!membership) return this.controleur.envoie(this, { channel_leaving_status: { etat: false, error: "not_a_member" }, id: [socketId] })
+		if (!membership) return this.send(socketId, "channel_member_response", { type: "leave", etat: false, error: "not_a_member" })
 
 		if (membership.role === "admin") {
 			const adminCount = await ChannelMember.model.countDocuments({ channelId, role: "admin" })
-			if (adminCount <= 1) return this.controleur.envoie(this, { channel_leaving_status: { etat: false, error: "last_admin_cannot_leave" }, id: [socketId] })
+			if (adminCount <= 1) return this.send(socketId, "channel_member_response", { type: "leave", etat: false, error: "last_admin_cannot_leave" })
 		}
 
 		await ChannelMember.model.deleteOne({ _id: membership._id })
 		await Channel.model.updateOne({ _id: channelId }, { $pull: { members: membership._id } })
 
-		this.controleur.envoie(this, { channel_leaving_status: { etat: true, channelId }, id: [socketId] })
+		this.send(socketId, "channel_member_response", { type: "leave", etat: true, channelId })
 	}
 
-	private async getChannelPosts(socketId: string, payload: { channelId: string }) {
+	private getChannelPosts = async (socketId: string, payload: { channelId: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { posts: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_post_response", { type: "list", etat: false, error: "not_authenticated" })
 
 		const { channelId } = payload
 
 		const channel = await Channel.model.findById(channelId).lean()
-		if (!channel) return this.controleur.envoie(this, { posts: { etat: false, error: "channel_not_found" }, id: [socketId] })
+		if (!channel) return this.send(socketId, "channel_post_response", { type: "list", etat: false, error: "channel_not_found" })
 
 		if (!channel.isPublic) {
 			const membership = await ChannelMember.model.findOne({ channelId, userId }).lean()
-			if (!membership) return this.controleur.envoie(this, { posts: { etat: false, error: "not_a_member" }, id: [socketId] })
+			if (!membership) return this.send(socketId, "channel_post_response", { type: "list", etat: false, error: "not_a_member" })
 		}
 
 		const posts = await ChannelPost.model.find({ channelId })
@@ -456,22 +474,22 @@ export default class ChannelService extends ControllerBinder {
 			}
 		}))
 
-		this.controleur.envoie(this, { posts: { etat: true, posts: formattedPosts }, id: [socketId] })
+		this.send(socketId, "channel_post_response", { type: "list", etat: true, posts: formattedPosts })
 	}
 
-	private async getUserPost(socketId: string, payload: { channelId: string, userId: string }) {
+	private getUserPost = async (socketId: string, payload: { channelId: string, userId: string }) => {
 
-		const requesterId = await this.resolveUserId(socketId)
-		if (!requesterId) return this.controleur.envoie(this, { user_post: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const requesterId = this.resolveUserId(socketId)
+		if (!requesterId) return this.send(socketId, "channel_post_response", { type: "user", etat: false, error: "not_authenticated" })
 
 		const { channelId, userId: targetUserId } = payload
 
 		const channel = await Channel.model.findById(channelId).lean()
-		if (!channel) return this.controleur.envoie(this, { user_post: { etat: false, error: "channel_not_found" }, id: [socketId] })
+		if (!channel) return this.send(socketId, "channel_post_response", { type: "user", etat: false, error: "channel_not_found" })
 
 		if (!channel.isPublic) {
 			const membership = await ChannelMember.model.findOne({ channelId, userId: requesterId }).lean()
-			if (!membership) return this.controleur.envoie(this, { user_post: { etat: false, error: "not_a_member" }, id: [socketId] })
+			if (!membership) return this.send(socketId, "channel_post_response", { type: "user", etat: false, error: "not_a_member" })
 		}
 
 		const posts = await ChannelPost.model.find({ channelId, authorId: targetUserId })
@@ -494,21 +512,21 @@ export default class ChannelService extends ControllerBinder {
 			}
 		})
 
-		this.controleur.envoie(this, { user_post: { etat: true, posts: formattedPosts }, id: [socketId] })
+		this.send(socketId, "channel_post_response", { type: "user", etat: true, posts: formattedPosts })
 	}
 
-	private async publishPost(socketId: string, payload: { channelId: string, content: string }) {
+	private publishPost = async (socketId: string, payload: { channelId: string, content: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { post_publishing_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_post_response", { type: "publish", etat: false, error: "not_authenticated" })
 
 		const { channelId, content } = payload
 
 		const channel = await Channel.model.findById(channelId).lean()
-		if (!channel) return this.controleur.envoie(this, { post_publishing_status: { etat: false, error: "channel_not_found" }, id: [socketId] })
+		if (!channel) return this.send(socketId, "channel_post_response", { type: "publish", etat: false, error: "channel_not_found" })
 
 		const membership = await ChannelMember.model.findOne({ channelId, userId }).lean()
-		if (!membership) return this.controleur.envoie(this, { post_publishing_status: { etat: false, error: "not_a_member" }, id: [socketId] })
+		if (!membership) return this.send(socketId, "channel_post_response", { type: "publish", etat: false, error: "not_a_member" })
 
 		const newPost = new ChannelPost({ channelId: channelId as any, content, authorId: userId as any })
 		await newPost.save()
@@ -534,64 +552,64 @@ export default class ChannelService extends ControllerBinder {
 
 		const broadcastSocketIds = await this.getConnectedChannelMemberSocketIds(channelId)
 
-		this.controleur.envoie(this, { post_publishing_status: { etat: true, post: formattedPost }, id: broadcastSocketIds.length > 0 ? broadcastSocketIds : [socketId] })
+		this.send(broadcastSocketIds.length > 0 ? broadcastSocketIds : socketId, "channel_post_response", { type: "publish", etat: true, post: formattedPost })
 	}
 
-	private async updatePost(socketId: string, payload: { postId: string, content: string }) {
+	private updatePost = async (socketId: string, payload: { postId: string, content: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { post_updating_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_post_response", { type: "update", etat: false, error: "not_authenticated" })
 
 		const { postId, content } = payload
 
 		const post = await ChannelPost.model.findById(postId)
-		if (!post) return this.controleur.envoie(this, { post_updating_status: { etat: false, error: "post_not_found" }, id: [socketId] })
+		if (!post) return this.send(socketId, "channel_post_response", { type: "update", etat: false, error: "post_not_found" })
 
-		if (post.authorId.toString() !== userId) return this.controleur.envoie(this, { post_updating_status: { etat: false, error: "not_the_author" }, id: [socketId] })
+		if (post.authorId.toString() !== userId) return this.send(socketId, "channel_post_response", { type: "update", etat: false, error: "not_the_author" })
 
 		post.content = content
 		post.updatedAt = new Date()
 		await post.save()
 
-		this.controleur.envoie(this, { post_updating_status: { etat: true, postId, content }, id: [socketId] })
+		this.send(socketId, "channel_post_response", { type: "update", etat: true, postId, content })
 	}
 
-	private async deletePost(socketId: string, payload: { postId: string }) {
+	private deletePost = async (socketId: string, payload: { postId: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { post_deleting_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_post_response", { type: "delete", etat: false, error: "not_authenticated" })
 
 		const { postId } = payload
 
 		const post = await ChannelPost.model.findById(postId)
-		if (!post) return this.controleur.envoie(this, { post_deleting_status: { etat: false, error: "post_not_found" }, id: [socketId] })
+		if (!post) return this.send(socketId, "channel_post_response", { type: "delete", etat: false, error: "post_not_found" })
 
 		const isAuthor = post.authorId.toString() === userId
 		const isAdmin = await ChannelMember.model.findOne({ channelId: post.channelId, userId, role: "admin" }).lean()
 
-		if (!isAuthor && !isAdmin) return this.controleur.envoie(this, { post_deleting_status: { etat: false, error: "not_authorized" }, id: [socketId] })
+		if (!isAuthor && !isAdmin) return this.send(socketId, "channel_post_response", { type: "delete", etat: false, error: "not_authorized" })
 
 		await ChannelPostResponse.model.deleteMany({ postId })
 		await ChannelPost.model.deleteOne({ _id: postId })
 
-		this.controleur.envoie(this, { post_deleting_status: { etat: true, postId }, id: [socketId] })
+		this.send(socketId, "channel_post_response", { type: "delete", etat: true, postId })
 	}
 
-	private async answerPost(socketId: string, payload: { postId: string, content: string }) {
+	private answerPost = async (socketId: string, payload: { postId: string, content: string }) => {
 
-		const userId = await this.resolveUserId(socketId)
-		if (!userId) return this.controleur.envoie(this, { post_answering_status: { etat: false, error: "not_authenticated" }, id: [socketId] })
+		const userId = this.resolveUserId(socketId)
+		if (!userId) return this.send(socketId, "channel_post_response", { type: "answer", etat: false, error: "not_authenticated" })
 
 		const { postId, content } = payload
 
 		const post = await ChannelPost.model.findById(postId).lean()
-		if (!post) return this.controleur.envoie(this, { post_answering_status: { etat: false, error: "post_not_found" }, id: [socketId] })
+		if (!post) return this.send(socketId, "channel_post_response", { type: "answer", etat: false, error: "post_not_found" })
 
-		if (post.authorId.toString() === userId) return this.controleur.envoie(this, { post_answering_status: { etat: false, error: "cannot_answer_own_post" }, id: [socketId] })
+		if (post.authorId.toString() === userId) return this.send(socketId, "channel_post_response", { type: "answer", etat: false, error: "cannot_answer_own_post" })
 
 		const channelId = post.channelId.toString()
 		const membership = await ChannelMember.model.findOne({ channelId, userId }).lean()
-		if (!membership) return this.controleur.envoie(this, { post_answering_status: { etat: false, error: "not_a_member" }, id: [socketId] })
+		if (!membership) return this.send(socketId, "channel_post_response", { type: "answer", etat: false, error: "not_a_member" })
 
 		const newResponse = new ChannelPostResponse({ postId: postId as any, content, authorId: userId as any })
 		await newResponse.save()
@@ -617,6 +635,6 @@ export default class ChannelService extends ControllerBinder {
 
 		const broadcastSocketIds = await this.getConnectedChannelMemberSocketIds(channelId)
 
-		this.controleur.envoie(this, { post_answering_status: { etat: true, postId, response: formattedResponse }, id: broadcastSocketIds.length > 0 ? broadcastSocketIds : [socketId] })
+		this.send(broadcastSocketIds.length > 0 ? broadcastSocketIds : socketId, "channel_post_response", { type: "answer", etat: true, postId, response: formattedResponse })
 	}
 }

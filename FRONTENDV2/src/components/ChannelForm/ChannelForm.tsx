@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC, type FormEvent } from "react"
+import { useState, useEffect, useCallback, type FC, type FormEvent } from "react"
 import "./ChannelForm.scss"
 import { useAuth } from "hooks/useAuth"
 import {
@@ -26,7 +26,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 	channelToEdit,
 	team,
 }) => {
-	const { controleur, user } = useAuth()
+	const { socket, user } = useAuth()
 	const [name, setName] = useState("")
 	const [isPublic, setIsPublic] = useState(true)
 	const [isLoading, setIsLoading] = useState(false)
@@ -36,124 +36,84 @@ const ChannelForm: FC<ChannelFormProps> = ({
 	const [isLoadingMembers, setIsLoadingMembers] = useState(false)
 	const [isDeleting, setIsDeleting] = useState(false)
 
-	const nomDInstance = "ChannelForm"
-	const verbose = false
-
-	const listeMessageEmis = [
-		"create_channel",
-		"update_channel",
-		"delete_channel",
-		"team_members_request",
-		"get_channel_members",
-	]
-	const listeMessageRecus = [
-		"channel_creating_status",
-		"channel_updating_status",
-		"channel_deleting_status",
-		"team_members_response",
-		"channel_members",
-	]
-
-	const handler = {
-		nomDInstance,
-		traitementMessage: (msg: any) => {
-			if (verbose || controleur?.verboseall)
-				console.log(`INFO: (${nomDInstance}) - traitementMessage - `, msg)
-
-			if (msg.channel_creating_status) {
+	const handleChannelActionResponse = useCallback((data: any) => {
+		switch (data.type) {
+			case "create":
 				setIsLoading(false)
-				if (msg.channel_creating_status.etat) {
-					onChannelCreated(msg.channel_creating_status.channel)
+				if (data.etat) {
+					onChannelCreated(data.channel)
 				} else {
-					setError(
-						msg.channel_creating_status.error ||
-							"Erreur lors de la creation du canal"
-					)
+					setError(data.error || "Erreur lors de la creation du canal")
 				}
-			}
+				break
 
-			if (msg.channel_updating_status) {
+			case "update":
 				setIsLoading(false)
-				if (msg.channel_updating_status.etat) {
-					onChannelCreated(msg.channel_updating_status.channel)
+				if (data.etat) {
+					onChannelCreated(data.channel)
 				} else {
-					setError(
-						msg.channel_updating_status.error ||
-							"Erreur lors de la mise a jour du canal"
-					)
+					setError(data.error || "Erreur lors de la mise a jour du canal")
 				}
-			}
+				break
 
-			if (msg.channel_deleting_status) {
+			case "delete":
 				setIsDeleting(false)
-				if (msg.channel_deleting_status.etat) {
+				if (data.etat) {
 					onChannelCreated({
 						...channelToEdit,
 						deleted: true,
 						id: channelToEdit.id,
 					})
 				} else {
-					setError(
-						msg.channel_deleting_status.error ||
-							"Erreur lors de la suppression du canal"
-					)
+					setError(data.error || "Erreur lors de la suppression du canal")
 				}
-			}
-
-			if (msg.team_members_response) {
-				setIsLoadingMembers(false)
-				if (msg.team_members_response.etat) {
-					const teamMembersData = msg.team_members_response.members || []
-					const membersConverted: Member[] = teamMembersData
-						.filter((member: any) => member.userId !== user?._id)
-						.map((member: any) => ({
-							id: member.userId,
-							firstname: member.firstname,
-							lastname: member.lastname,
-							picture: member.picture,
-							isSelected: false,
-						}))
-					setMembers(membersConverted)
-				}
-			}
-
-			if (msg.channel_members) {
-				if (msg.channel_members.etat) {
-					const channelMembersData =
-						msg.channel_members.members || []
-					setMembers((prevMembers) =>
-						prevMembers.map((member) => ({
-							...member,
-							isSelected: channelMembersData.some(
-								(channelMember: any) =>
-									channelMember.userId === member.id
-							),
-						}))
-					)
-				}
-			}
-		},
-	}
-
-	const loadTeamMembers = () => {
-		if (controleur) {
-			setIsLoadingMembers(true)
-			controleur.inscription(handler, listeMessageEmis, listeMessageRecus)
-			const request = { team_members_request: { teamId: team.id } }
-			controleur.envoie(handler, request)
+				break
 		}
-	}
+	}, [onChannelCreated, channelToEdit])
 
-	const loadChannelMembers = (channelId: string) => {
-		if (controleur) {
-			controleur.inscription(handler, listeMessageEmis, listeMessageRecus)
-			const request = { get_channel_members: { channelId } }
-			controleur.envoie(handler, request)
+	const handleTeamMemberResponse = useCallback((data: any) => {
+		if (data.type !== "list") return
+		setIsLoadingMembers(false)
+		if (data.etat) {
+			const teamMembersData = data.members || []
+			const membersConverted: Member[] = teamMembersData
+				.filter((member: any) => member.userId !== user?._id)
+				.map((member: any) => ({
+					id: member.userId,
+					firstname: member.firstname,
+					lastname: member.lastname,
+					picture: member.picture,
+					isSelected: false,
+				}))
+			setMembers(membersConverted)
 		}
-	}
+	}, [user?._id])
+
+	const handleChannelMemberResponse = useCallback((data: any) => {
+		if (data.type !== "list") return
+		if (data.etat) {
+			const channelMembersData = data.members || []
+			setMembers((prevMembers) =>
+				prevMembers.map((member) => ({
+					...member,
+					isSelected: channelMembersData.some(
+						(channelMember: any) =>
+							channelMember.userId === member.id
+					),
+				}))
+			)
+		}
+	}, [])
 
 	useEffect(() => {
-		loadTeamMembers()
+		if (!socket) return
+
+		socket.on("channel_action_response", handleChannelActionResponse)
+		socket.on("team_member_response", handleTeamMemberResponse)
+		socket.on("channel_member_response", handleChannelMemberResponse)
+
+		setIsLoadingMembers(true)
+		socket.send("team_member", { type: "list", teamId: team.id })
 
 		if (channelToEdit) {
 			setName(channelToEdit.name)
@@ -161,7 +121,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 			setIsEditing(true)
 
 			if (!channelToEdit.isPublic) {
-				loadChannelMembers(channelToEdit.id)
+				socket.send("channel_member", { type: "list", channelId: channelToEdit.id })
 			}
 		} else {
 			setName("")
@@ -170,9 +130,18 @@ const ChannelForm: FC<ChannelFormProps> = ({
 		}
 
 		return () => {
-			controleur?.desincription(handler, listeMessageEmis, listeMessageRecus)
+			socket.off("channel_action_response", handleChannelActionResponse)
+			socket.off("team_member_response", handleTeamMemberResponse)
+			socket.off("channel_member_response", handleChannelMemberResponse)
 		}
-	}, [channelToEdit?.id, team.id])
+	}, [
+		socket,
+		channelToEdit?.id,
+		team.id,
+		handleChannelActionResponse,
+		handleTeamMemberResponse,
+		handleChannelMemberResponse,
+	])
 
 	const handleSubmit = (e: FormEvent) => {
 		e.preventDefault()
@@ -196,46 +165,36 @@ const ChannelForm: FC<ChannelFormProps> = ({
 		setIsLoading(true)
 		setError("")
 
-		controleur?.inscription(handler, listeMessageEmis, listeMessageRecus)
-
 		if (isEditing) {
-			const updateRequest = {
-				update_channel: {
-					id: channelToEdit.id,
-					name,
-					isPublic,
-					teamId: team.id,
-					members: !isPublic ? selectedMemberIds : [],
-				},
-			}
-			controleur?.envoie(handler, updateRequest)
+			socket?.send("channel_action", {
+				type: "update",
+				id: channelToEdit.id,
+				name,
+				isPublic,
+				teamId: team.id,
+				members: !isPublic ? selectedMemberIds : [],
+			})
 		} else {
-			const createRequest = {
-				create_channel: {
-					name,
-					isPublic,
-					teamId: team.id,
-					members: !isPublic ? selectedMemberIds : [],
-				},
-			}
-			controleur?.envoie(handler, createRequest)
+			socket?.send("channel_action", {
+				type: "create",
+				name,
+				isPublic,
+				teamId: team.id,
+				members: !isPublic ? selectedMemberIds : [],
+			})
 		}
 	}
 
 	const handleDeleteChannel = () => {
-		if (!controleur || !channelToEdit) return
+		if (!socket || !channelToEdit) return
 
 		setIsDeleting(true)
 		setError("")
 
-		const request = {
-			delete_channel: { channelId: channelToEdit.id },
-		}
-		controleur.envoie(handler, request)
+		socket.send("channel_action", { type: "delete", channelId: channelToEdit.id })
 	}
 
 	const handleCancel = () => {
-		controleur?.desincription(handler, listeMessageEmis, listeMessageRecus)
 		onCancel()
 	}
 

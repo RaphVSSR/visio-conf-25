@@ -23,7 +23,7 @@ export type UserType = {
     disturb_status?: string,
     last_connection?: Date,
     direct_manager?: string,
-    roles?: Types.ObjectId,
+    roles?: string[],
 
 }
 
@@ -75,13 +75,11 @@ export default class User {
             default: "none",
             description: "User uuid of the direct manager",
         },
-        //tokens: { type: Object, default: {} },
         roles: [
             {
-                type: Schema.Types.ObjectId,
-                ref: "Role",
+                type: String,
                 default: "user",
-                description: `List of roles id created by admin in the roles collection`,
+                description: `List of role uuids (e.g. "admin", "user")`,
             },
         ],
     });
@@ -90,14 +88,9 @@ export default class User {
 
     modelInstance;
 
-    //testRootFolders;
-
     constructor(dataToConstruct: UserType){
 
         this.modelInstance = new User.model(dataToConstruct);
-
-        //this.testRootFolders = this.defTestRootFolders(dataToConstruct);
-        //this.defTestSubFolders(dataToConstruct);
 
     }
 
@@ -111,6 +104,7 @@ export default class User {
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
             status: "active" as const,
+            roles: ["admin", "user"],
         },
         {
             firstname: "test2",
@@ -120,6 +114,7 @@ export default class User {
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
             status: "active" as const,
+            roles: ["user"],
         },
         {
             firstname: "test3",
@@ -129,6 +124,7 @@ export default class User {
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
             status: "active" as const,
+            roles: ["user"],
         },
         {
             firstname: "test4",
@@ -138,6 +134,7 @@ export default class User {
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
             status: "active" as const,
+            roles: ["user"],
         },
         {
             firstname: "test5",
@@ -147,6 +144,7 @@ export default class User {
             password: sha256("12345678"),
             desc: "Une description vreumannnnn",
             status: "active" as const,
+            roles: ["user"],
         }].map(user => {
 
             const newUser = new User(user);
@@ -159,7 +157,6 @@ export default class User {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
 
         } catch (error: any) {
             

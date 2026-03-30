@@ -1,6 +1,6 @@
 # Référence de la classe HTTPServer — VisioConf
 
-**Fichier source** : `BACKEND/src/models/Core/HTTPServer.ts`
+**Fichier source** : `BACKEND/src/models/core/HTTPServer.ts`
 **Classe parente** : Aucune (classe statique autonome)
 
 ---

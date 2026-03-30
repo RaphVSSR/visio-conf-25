@@ -3,13 +3,6 @@ import type { Channel } from "pages/Teams/Teams.types"
 
 type ChannelFormMode = "create" | "edit" | null
 
-interface UseChannelManagerProps {
-	initialChannels: Channel[]
-	onChannelsChange?: (channels: Channel[]) => void
-	onChannelSelected?: (channel: Channel | null) => void
-	onChannelDeleted?: () => void
-}
-
 interface UseChannelManagerReturn {
 	channels: Channel[]
 	selectedChannel: Channel | null
@@ -26,22 +19,16 @@ interface UseChannelManagerReturn {
 	clearChannels: () => void
 }
 
-export function useChannelManager({
-	initialChannels,
-	onChannelsChange,
-	onChannelSelected,
-	onChannelDeleted,
-}: UseChannelManagerProps): UseChannelManagerReturn {
+export function useChannelManager(): UseChannelManagerReturn {
 
-	const [channels, setChannels] = useState<Channel[]>(initialChannels)
+	const [channels, setChannels] = useState<Channel[]>([])
 	const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
 	const [channelFormMode, setChannelFormMode] = useState<ChannelFormMode>(null)
 
 	const handleChannelSelect = useCallback((channel: Channel) => {
 		setSelectedChannel(channel)
 		setChannelFormMode(null)
-		onChannelSelected?.(channel)
-	}, [onChannelSelected])
+	}, [])
 
 	const handleCreateChannel = useCallback(() => {
 		setChannelFormMode("create")
@@ -53,46 +40,31 @@ export function useChannelManager({
 	}, [])
 
 	const handleChannelCreated = useCallback((channel: Channel) => {
-		setChannels(previous => {
-			const updated = [...previous, channel]
-			onChannelsChange?.(updated)
-			return updated
-		})
+		setChannels(previous => [...previous, channel])
 		setSelectedChannel(channel)
 		setChannelFormMode(null)
-		onChannelSelected?.(channel)
-	}, [onChannelsChange, onChannelSelected])
+	}, [])
 
 	const handleChannelUpdated = useCallback((channel: Channel) => {
-		setChannels(previous => {
-			const updated = previous.map(existing =>
+		setChannels(previous =>
+			previous.map(existing =>
 				existing.id === channel.id ? channel : existing
 			)
-			onChannelsChange?.(updated)
-			return updated
-		})
+		)
 		setSelectedChannel(current =>
 			current?.id === channel.id ? channel : current
 		)
 		setChannelFormMode(null)
-	}, [onChannelsChange])
+	}, [])
 
 	const handleChannelDeleted = useCallback((channelId: string) => {
-		setChannels(previous => {
-			const updated = previous.filter(channel => channel.id !== channelId)
-			onChannelsChange?.(updated)
-			return updated
-		})
+		setChannels(previous => previous.filter(channel => channel.id !== channelId))
 		setSelectedChannel(current => {
-			if (current?.id === channelId) {
-				onChannelSelected?.(null)
-				return null
-			}
+			if (current?.id === channelId) return null
 			return current
 		})
 		setChannelFormMode(null)
-		onChannelDeleted?.()
-	}, [onChannelsChange, onChannelSelected, onChannelDeleted])
+	}, [])
 
 	const handleCancelChannelForm = useCallback(() => {
 		setChannelFormMode(null)
@@ -100,35 +72,24 @@ export function useChannelManager({
 
 	const updateChannelsFromResponse = useCallback((receivedChannels: Channel[]) => {
 		setChannels(receivedChannels)
-		onChannelsChange?.(receivedChannels)
-
 		setSelectedChannel(current => {
 			if (!current) return null
-			const stillExists = receivedChannels.find(channel => channel.id === current.id)
-			if (!stillExists) {
-				onChannelSelected?.(null)
-				return null
-			}
-			return stillExists
+			return receivedChannels.find(channel => channel.id === current.id) ?? null
 		})
-	}, [onChannelsChange, onChannelSelected])
+	}, [])
 
 	const selectFirstAvailableChannel = useCallback(() => {
 		setChannels(current => {
-			const firstChannel: Channel | null = current.length > 0 ? current[0]! : null
-			setSelectedChannel(firstChannel)
-			onChannelSelected?.(firstChannel)
+			setSelectedChannel(current.length > 0 ? current[0]! : null)
 			return current
 		})
-	}, [onChannelSelected])
+	}, [])
 
 	const clearChannels = useCallback(() => {
 		setChannels([])
 		setSelectedChannel(null)
 		setChannelFormMode(null)
-		onChannelsChange?.([])
-		onChannelSelected?.(null)
-	}, [onChannelsChange, onChannelSelected])
+	}, [])
 
 	return {
 		channels,

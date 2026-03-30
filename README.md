@@ -22,11 +22,7 @@ Application web de visioconférence inspirée de Discord/Teams, développée dan
 
 [Démarage rapide détaillé](./QUICK_START.md)
 
-[Messages](./MESSAGES_DOCUMENTATION.md)
-
 [Setup des variables d'environnement](./ENV_SETUP.md)
-
-[Spécifications](./SPECIFICATION.md)
 
 <br>
 
@@ -337,7 +333,6 @@ VERBOSE=true
 
 ## 📚 Documentation supplémentaire
 
--   🔁 [Messages Socket.io](MESSAGES_DOCUMENTATION.md)
 -   ⚙️ [Configuration environnement](ENV_SETUP.md)
 
 ### 📸 Liens utiles

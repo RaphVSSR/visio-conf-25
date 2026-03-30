@@ -1,51 +1,23 @@
 
-import mongoose, { connect, disconnect, type ConnectOptions } from "mongoose"
-import path from "path";
-import { fileURLToPath } from "url"
+import { connect, disconnect, type ConnectOptions } from "mongoose"
 import fs from "fs"
-import User from "../User.ts";
-import TracedError from "../Core/TracedError.ts";
-import FileSystem, { Folder } from "./FileSystem.ts";
-import Channel from "../Channel.ts";
-import Discussion from "../Discussion.ts";
-import Team from "../Team.ts";
-import TeamMember from "../TeamMember.ts";
-import ChannelMember from "../ChannelMember.ts";
-import ChannelPost from "../ChannelPost.ts";
-import ChannelPostResponse from "../ChannelPostResponse.ts";
-import Permission from "../Permission.ts";
-import Role from "../Role.ts";
-import Session from "./authentication/Session.ts";
-import { sha256 } from "js-sha256";
-
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import User from "../User.ts"
+import TracedError from "../core/TracedError.ts"
+import FileSystem, { Folder } from "./FileSystem.ts"
+import Channel from "../Channel.ts"
+import Discussion from "../Discussion.ts"
+import Team from "../Team.ts"
+import TeamMember from "../TeamMember.ts"
+import ChannelMember from "../ChannelMember.ts"
+import ChannelPost from "../ChannelPost.ts"
+import ChannelPostResponse from "../ChannelPostResponse.ts"
+import Permission from "../Permission.ts"
+import Role from "../Role.ts"
+import { sha256 } from "js-sha256"
 
 export default class Database {
 
-	static async init(){
-
-		if (process.env.VERBOSE === "true") console.group("⚙️ Processing Database..");
-
-		await this.connect();
-
-		if (process.env.FLUSH_DB_ON_START === "true") await this.flushDb();
-
-		await User.inject();
-
-		await Permission.inject();
-		await Role.inject();
-
-		await this.injectAdminUser();
-
-		await this.prepareProjectEnv();
-
-		if (process.env.VERBOSE === "true") console.groupEnd();
-
-	}
-
-	private static async connect(){
+	static async connectToMongo(){
 
 		if (!process.env.MONGO_URI) throw new TracedError("dbConnect", "Connection URI is missing..");
 
@@ -65,13 +37,12 @@ export default class Database {
 
 	}
 
-	private static async flushDb(){
+	static async flushAllCollections(){
 
 		try {
 
 			FileSystem.flushUploadLocalDir();
 
-			await Session.flushAll();
 			await Folder.flushAll();
 			await Role.flushAll();
 			await Permission.flushAll();
@@ -92,18 +63,12 @@ export default class Database {
 		}
 	}
 
-	/**
-	 * Injecte un utilisateur admin par défaut au démarrage.
-	 * Doit être appelé APRÈS Role.inject() pour pouvoir assigner le rôle admin.
-	 */
-	private static async injectAdminUser(){
+	static async injectDefaultAdmin(){
 
 		try {
 
 			const existingAdmin = await User.getUser("dev@visioconf.com");
 			if (existingAdmin) return;
-
-			const adminRole = await Role.model.findOne({ uuid: "admin" });
 
 			const admin = new User({
 				firstname: "Dev",
@@ -113,7 +78,7 @@ export default class Database {
 				password: sha256("d3vV1s10C0nf"),
 				desc: "Admin de la plateforme",
 				status: "active",
-				roles: adminRole ? [adminRole._id] : [],
+				roles: ["admin", "user"],
 			});
 
 			await admin.save();
@@ -126,21 +91,7 @@ export default class Database {
 		}
 	}
 
-	private static async prepareProjectEnv(){
-
-		this.verifyUploadsEnvIntegrity();
-
-		try {
-
-		} catch (error: any) {
-
-			throw new TracedError("injectingCollection", error.message);
-		}
-
-	}
-
-
-	private static verifyUploadsEnvIntegrity(){
+	static ensureUploadDirectories(){
 
 		try {
 

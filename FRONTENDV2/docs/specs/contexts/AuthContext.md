@@ -7,7 +7,7 @@
 
 ## 1. Description
 
-`AuthContext` est le pont entre le service `AuthService` (logique métier pub/sub) et les composants React (UI). Le provider instancie le controleur, SocketIO, et AuthService au montage, expose le state d'authentification et les actions via React Context, et nettoie tout au démontage.
+`AuthContext` est le pont entre `AuthSync` (logique métier Socket.io) et les composants React (UI). Le provider instancie `MessageClientAdapter` et `AuthSync` au montage, expose le state d'authentification et les actions via React Context, et nettoie tout au démontage.
 
 ---
 
@@ -21,7 +21,7 @@
 | `PendingSessionRequest` | type (re-export) | Type demande multi-session |
 | `AuthState` | type (re-export) | Type state d'authentification |
 | `AuthActions` | type (re-export) | Type actions d'authentification |
-| `AuthContextType` | type (re-export) | Union AuthState & AuthActions |
+| `AuthContextType` | type (re-export) | Union AuthState & AuthActions & { socket } |
 
 ---
 
@@ -31,9 +31,8 @@
 const INITIAL_STATE: AuthState = {
     user: null,
     isAuthenticated: false,
-    isLoading: true,          // true au démarrage (en attente de la vérification de session)
+    isLoading: true,
     expiresAt: null,
-    sessionId: null,
     pendingLoginRequestId: null,
     pendingSessionRequests: [],
     showExpiryWarning: false,
@@ -48,20 +47,20 @@ const INITIAL_STATE: AuthState = {
 ### Montage (useEffect)
 
 ```typescript
-1. new Controleur()                          // Crée le bus pub/sub
-2. controleur.verboseall = VERBOSE           // Configure le logging si REACT_APP_VERBOSE
-3. SocketIO.init(controleur)                 // Crée CanalSocketio + connexion Socket.io
-4. authRef.current = new AuthService(        // Crée le service d'auth inscrit au controleur
-       controleur, setState                  // setState = callback de mise à jour du state React
-   )
+1. socket = new MessageClientAdapter(REACT_APP_BACKEND_API_URL || "http://localhost:3220")
+2. socketRef.current = socket
+3. authRef.current = new AuthSync(socket, setState)
+   // → s'abonne aux 4 messages response
+   // → envoie authenticate dès que le socket est prêt
 ```
 
 ### Démontage (cleanup)
 
 ```typescript
-1. authRef.current?.destroy()    // Désinscrit du controleur, clear timer
+1. authRef.current?.destroy()    // Désabonne des messages, clear timer
 2. authRef.current = null
-3. SocketIO.disconnect()         // Ferme le socket, reset SocketIO
+3. socket.disconnect()           // Ferme la connexion Socket.io
+4. socketRef.current = null
 ```
 
 ---
@@ -70,12 +69,12 @@ const INITIAL_STATE: AuthState = {
 
 | Action | Paramètres | Description |
 |--------|------------|-------------|
-| `login` | `email: string, password: string` | Délègue à `AuthService.login()` |
-| `register` | `data: { password, firstname, lastname, email, phone }` | Délègue à `AuthService.register()` |
-| `logout` | — | Délègue à `AuthService.logout()` |
-| `refreshSession` | — | Délègue à `AuthService.refreshSession()` |
-| `respondToPendingSession` | `requestId: string, accepted: boolean` | Délègue à `AuthService.respondToPendingSession()` |
-| `dismissExpiryWarning` | — | `setState({ showExpiryWarning: false })` (action locale, pas de message serveur) |
+| `login` | `email: string, password: string` | Délègue à `AuthSync.login()` |
+| `register` | `data: { password, firstname, lastname, email, phone }` | Délègue à `AuthSync.register()` |
+| `logout` | — | Délègue à `AuthSync.logout()` |
+| `refreshSession` | — | Délègue à `AuthSync.refreshSession()` |
+| `respondToPendingSession` | `requestId: string, accepted: boolean` | Délègue à `AuthSync.respondToPendingSession()` |
+| `dismissExpiryWarning` | — | `setState({ showExpiryWarning: false })` (action locale) |
 
 ---
 
@@ -83,8 +82,7 @@ const INITIAL_STATE: AuthState = {
 
 | Nom | Type | Description |
 |-----|------|-------------|
-| `REACT_APP_VERBOSE` | `"true" \| "false"` | Active le logging du controleur |
-| `REACT_APP_VERBOSE_LVL` | `string (number)` | Niveau de verbosité (≥3 pour `verboseall`) |
+| `REACT_APP_BACKEND_API_URL` | `string` | URL du backend. Défaut: `"http://localhost:3220"` |
 
 ---
 
@@ -92,9 +90,8 @@ const INITIAL_STATE: AuthState = {
 
 | Classe | Relation | Description |
 |--------|----------|-------------|
-| `AuthService` | AuthContext crée et détruit AuthService | Service métier inscrit au controleur |
-| `SocketIO` | AuthContext initialise et déconnecte SocketIO | Singleton Socket.io |
-| `Controleur` | AuthContext crée l'instance (JS) | Bus pub/sub partagé |
+| `AuthSync` | AuthContext crée et détruit AuthSync | Service métier Socket.io |
+| `MessageClientAdapter` | AuthContext crée et déconnecte le socket | Wrapper socket.io-client |
 | `useAuth` | Hook d'accès au AuthContext | Expose `AuthContextType` aux composants |
 
 ---
@@ -104,7 +101,7 @@ const INITIAL_STATE: AuthState = {
 ### Utilisation dans un composant
 
 ```typescript
-const { user, isAuthenticated, login, logout } = useAuth()
+const { user, isAuthenticated, socket, login, logout } = useAuth()
 
 if (!isAuthenticated) login("dev@visioconf.com", "d3vV1s10C0nf")
 ```

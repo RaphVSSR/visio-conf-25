@@ -1,239 +1,244 @@
-# Décisions Backend — VisioConf
+# Backend Decisions -- VisioConf
 
-FAQ structurelle du backend. Chaque entrée suit : question → doute → solution → pourquoi.
+Structural FAQ of the backend. Each entry follows: question --> reflection --> solution --> why.
 
 ---
 
 # 1. Architecture & Pattern
 
-## Pourquoi remplacer BetterAuth par un auth custom ?
+## Why replace BetterAuth with a custom auth?
 
-**Constat :** BetterAuth fonctionnait via des routes HTTP REST (`toNodeHandler(...)`). Tout le reste de l'app passe par Socket.io + controleur.js (pub/sub). Deux systèmes d'échange coexistaient sans raison.
+**Observation:** BetterAuth worked via REST HTTP routes (`toNodeHandler(...)`). Everything else in the app goes through Socket.io + controleur.js (pub/sub). Two exchange systems coexisted for no reason.
 
-**Solution :** Un auth custom qui passe **entièrement par Socket.io + controleur.js**, comme tous les autres composants.
+**Solution:** A custom auth that goes **entirely through Socket.io + controleur.js**, like all other components.
 
-**Principe fondateur :** Le frontend lit et affiche, le serveur décide et modifie. Le frontend utilise les données dont il dispose (cookie, expiresAt) pour afficher des modales, mais ne prend jamais de décision — si quelque chose nécessite une décision « supérieure », le serveur s'en charge.
+**Founding principle:** The frontend reads and displays, the server decides and modifies. The frontend uses available data (cookie, expiresAt) to display modals, but never makes decisions -- if something needs a "higher" decision, the server handles it.
 
 ---
 
-## Pourquoi cette arborescence backend ?
+## Why this backend file tree?
 
-**Point de départ : c'est du MVC.** Même dans une SPA moderne, le pattern MVC s'applique — la View est simplement le frontend entier (FRONTENDV2). Ça ne veut pas dire que le backend n'est pas MVC, ça veut dire que la séparation V/MC se fait au niveau du projet, pas au niveau du backend. Le backend ne contient que le **M** et le **C**.
+**Starting point: it's MVC.** Even in a modern SPA, the MVC pattern applies -- the View is simply the entire frontend (FRONTENDV2). That doesn't mean the backend isn't MVC, it means the V/MC split happens at the project level, not the backend level. The backend only contains the **M** and the **C**.
 
-**Le C est unique.** Dans cette app, le controleur.js est le seul vrai Controller au sens MVC. Il n'y a pas une couche de controllers multiples qui dispatchent vers des services — il y a **un** bus de messages pub/sub. Tout ce qui n'est pas ce bus fait partie du Model : données, services, infrastructure.
+**The C is unique.** In this app, controleur.js is the only true Controller in the MVC sense. There isn't a layer of multiple controllers dispatching to services -- there is **one** pub/sub message bus. Everything that isn't this bus is part of the Model: data, services, infrastructure.
 
-**Conséquence sur les dossiers :** La structure backend reflète directement cette réalité MVC :
-- `Controller/` = le **C** — le bus pub/sub, son pont Socket.io, et l'enveloppe TypeScript autour
-- `models/` = le **M** — tout le reste : modèles de données, services métier, infrastructure core
+**Consequence on folders:** The backend structure directly reflects this MVC reality:
+- `controller/` = the **C** -- the pub/sub bus, its Socket.io bridge, and the TypeScript wrapper around it
+- `models/` = the **M** -- everything else: data models, business services, core infrastructure
 
 ```
 src/
-├── index.ts                            ← Point d'entrée
-├── ListeMessages.ts                    ← Catalogue des messages
-├── canalsocketio.js                    ← Pont Socket.io ↔ controleur
-├── Controller/                         ← C — Le pattern pub/sub
-│   ├── controleur.js                   ← Bus de messages (OFF-LIMITS)
-│   ├── Controller.types.ts             ← Types TS du controleur
-│   ├── Controller.service.ts           ← Classe abstraite ControllerService
-│   └── Controller.abstracts.ts         ← Init (crée controleur + inscrit services)
-├── models/                             ← M — Tout le reste
-│   ├── Core/                           ← Infrastructure fondamentale
-│   │   ├── HTTPServer.ts
-│   │   ├── Collection.ts
-│   │   ├── TracedError.ts
-│   │   └── TestEnvironement.ts
-│   ├── services/                       ← Services métier
-│   │   ├── Database.ts
-│   │   ├── SocketIO.ts
-│   │   ├── FileSystem.ts
-│   │   ├── RestService.ts
-│   │   └── authentication/
-│   ├── User.ts, Team.ts, Channel.ts…  ← Modèles de données
-├── routes/                             ← Routes HTTP
-└── uploads/                            ← Fichiers uploadés
++-- index.ts                            <-- Entry point
++-- controller/                         <-- C -- The pub/sub pattern
+|   +-- controleur.js                   <-- Message bus (OFF-LIMITS)
+|   +-- canalsocketio.js                <-- Socket.io <-> controleur bridge (OFF-LIMITS)
+|   +-- Controller.types.ts             <-- TS types for the controleur
+|   +-- Controller.service.ts           <-- Abstract class ControllerService
++-- models/                             <-- M -- Everything else
+|   +-- ListeMessages.ts                <-- Message catalogue
+|   +-- clearUploads.ts                 <-- Upload cleanup utility
+|   +-- core/                           <-- Fundamental infrastructure
+|   |   +-- HTTPServer.ts
+|   |   +-- Collection.ts
+|   |   +-- TracedError.ts
+|   |   +-- TestEnvironement.ts
+|   +-- services/                       <-- Business services
+|   |   +-- Database.ts
+|   |   +-- FileSystem.ts
+|   |   +-- RestService.ts
+|   |   +-- AccessRoleGuard.ts
+|   |   +-- UserService.ts
+|   |   +-- TeamService.ts
+|   |   +-- ChannelService.ts
+|   |   +-- authentication/
+|   |       +-- AuthService.ts
+|   |       +-- SessionManager.ts
+|   +-- User.ts, Team.ts, Channel.ts... <-- Data models
++-- routes/                             <-- HTTP routes
++-- uploads/                            <-- Uploaded files
 ```
 
-**Pourquoi chaque dossier existe :**
+**Why each folder exists:**
 
-| Dossier | Raison d'être |
-|---------|---------------|
-| `src/` (racine) | Le point d'entrée (`index.ts`), le catalogue de messages (`ListeMessages.ts`), et `canalsocketio.js` qui fait le pont entre le Controller et Socket.io. |
-| `Controller/` | Le **C** du MVC. Le controleur.js (bus pub/sub unique) et tout ce qui l'enveloppe : types TS, classe abstraite `ControllerService`, et l'init qui branche les services au bus. Il vit au même niveau que `models/` car ce sont les deux moitiés du backend — C et M. |
-| `models/` | Le **M** du MVC, au sens large. En MVC, le Model n'est pas juste « les schémas de base de données » — c'est toute la logique métier, les données, et l'infrastructure. Tout ce qui n'est pas le controleur est un modèle : un modèle de données (User, Team), un modèle de service (AuthService, Database), ou un modèle d'infrastructure (HTTPServer). |
-| `models/Core/` | L'infrastructure dont **tout le reste dépend**, mais qui ne dépend de rien de métier. Si on retire Core, plus rien ne démarre. Si on retire un service ou un modèle métier, Core continue de tourner. C'est cette asymétrie de dépendance qui définit ce qui est « Core ». |
-| `models/services/` | Les services métier qui **s'inscrivent au controleur** et réagissent aux messages, ou qui fournissent des capacités transversales (DB, Socket.io, filesystem). La différence avec Core : un service porte de la logique métier ou applicative. |
-| `routes/` | Les cas résiduels qui passent par HTTP au lieu de Socket.io (upload de fichiers, etc.). Ce dossier est volontairement petit — l'essentiel transite par le bus pub/sub. |
-
----
-
-## Pourquoi le controleur.js et canalsocketio.js sont intouchables ?
-
-**Constat :** Ces deux fichiers constituent le coeur du pattern pub/sub de l'app. Le controleur est le seul vrai « Controller » au sens MVC. Tout le reste est soit un Model soit un Service.
-
-**Réflexion :**
-- Le controleur.js est un bus de messages symétrique : le même fichier tourne côté backend et frontend
-- canalsocketio.js fait le pont entre le controleur et Socket.io
-- Les composants s'inscrivent via `inscription()`, envoient via `envoie()`, reçoivent via `traitementMessage()`
-- Modifier ces fichiers casserait la symétrie et tous les composants qui s'y branchent
-
-**Solution :** Toute adaptation se fait **autour** de ces fichiers, jamais dedans. Les types et abstractions TypeScript (`Controller.types.ts`, `ControllerService` abstract class) s'ajoutent par-dessus sans toucher au JS.
+| Folder | Reason |
+|--------|--------|
+| `src/` (root) | The entry point (`index.ts`). Minimal -- everything else lives in `controller/` or `models/`. |
+| `controller/` | The **C** of MVC. controleur.js (unique pub/sub bus), canalsocketio.js (Socket.io bridge), and TypeScript wrappers: types, abstract `ControllerService`. Lives at the same level as `models/` because these are the two halves of the backend -- C and M. |
+| `models/` | The **M** of MVC, broadly. In MVC, the Model isn't just "database schemas" -- it's all business logic, data, and infrastructure. Everything that isn't the controleur is a model: a data model (User, Team), a service model (AuthService, Database), or an infrastructure model (HTTPServer). |
+| `models/core/` | Infrastructure that **everything else depends on**, but that doesn't depend on business logic. Remove core, nothing starts. Remove a service or business model, core keeps running. This dependency asymmetry defines what is "core". |
+| `models/services/` | Business services that **register with the controleur** and react to messages, or that provide cross-cutting capabilities (DB, filesystem). The difference with Core: a service carries business or application logic. |
+| `routes/` | Residual cases that go through HTTP instead of Socket.io (file uploads, etc.). This folder is intentionally small -- most traffic goes through the pub/sub bus. |
 
 ---
 
-## Pourquoi des classes statiques partout ?
+## Why are controleur.js and canalsocketio.js untouchable?
 
-**Constat :** `Database`, `AuthService`, `Session`, `FileSystem` — tout est statique.
+**Observation:** These two files are the core of the app's pub/sub pattern. The controleur is the only true "Controller" in the MVC sense. Everything else is either a Model or a Service.
 
-**Pourquoi :** Ces services sont des singletons fonctionnels. Il n'y a jamais deux instances de `Database` ou `AuthService`. Le pattern statique élimine le besoin d'instanciation et de dependency injection. Chaque service est autonome et cohérent avec son nom fonctionnel.
+**Reflection:**
+- controleur.js is a symmetric message bus: the same file runs on backend and frontend (though frontend now uses MessageClientAdapter instead)
+- canalsocketio.js bridges the controleur and Socket.io
+- Components register via `inscription()`, send via `envoie()`, receive via `traitementMessage()`
+- Modifying these files would break the symmetry and all components that plug into them
 
-**Lien avec le controleur :** Les services s'inscrivent au controleur dans leur méthode `init()` statique. Pas besoin de `new AuthService()` — `AuthService.init(controleur)` suffit.
+**Solution:** All adaptation happens **around** these files, never inside. TypeScript types and abstractions (`Controller.types.ts`, `ControllerService` abstract class) are added on top without touching the JS.
+
+---
+
+## Why static classes everywhere?
+
+**Observation:** `Database`, `FileSystem` -- these are static.
+
+**Why:** These services are functional singletons. There are never two instances of `Database`. The static pattern eliminates the need for instantiation and dependency injection. Each service is self-contained and consistent with its functional name.
+
+**AuthService note:** AuthService is no longer static. It uses `new AuthService(controleur, name)` + `authService.register()` -- an instance-based standalone pattern. It implements the same `nomDInstance` + `traitementMessage` interface as ControllerService but manages its own registration independently.
+
+**Other services (UserService, TeamService, ChannelService):** These extend the abstract `ControllerService` class and are instantiated via `new`. Registration happens automatically in the ControllerService constructor.
 
 ---
 
 # 2. Sessions
 
-## C'est quoi une session, concrètement ?
+## What is a session, concretely?
 
-**Doute initial :** Qu'est-ce qu'une session active ? Inactive ? Pourquoi maintenir une session si les données utilisateur sont déjà en DB ? Est-ce que la session stocke des credentials ?
+**Initial doubt:** What is an active session? Inactive? Why maintain a session if user data is already in DB? Does the session store credentials?
 
-**Réflexion :**
-- La session ne stocke rien de sensible — juste un `userId` et un `socketId`
-- C'est un mapping user ↔ socket(s) avec persistance
-- Elle existe = elle est active. Elle est supprimée = elle est terminée
-- Pas de champ `isActive`, pas de champ `token` — l'existence du document est la seule source de vérité
+**Reflection:**
+- The session doesn't store anything sensitive -- just a `userId` mapping
+- It's a user <-> socket(s) mapping with persistence
+- It exists = it's active. It's deleted = it's terminated
+- No `isActive` field, no `token` field -- the existence of the session is the only source of truth
 
-**Solution :** Session minimaliste : `{ userId, socketId, deviceInfo, createdAt, expiresAt }`. Rien d'autre.
-
----
-
-## Où stocker les sessions ?
-
-**Options considérées :** Redis, en mémoire, MongoDB.
-
-**Pourquoi MongoDB :** L'app utilise déjà MongoDB pour tout. Les index TTL gèrent l'expiration automatique. Les lookups par `_id` ou `socketId` s'adaptent bien aux index MongoDB. Pas de dépendance supplémentaire.
-
-**Doute ouvert :** Quand un utilisateur ferme son navigateur sans se déconnecter, la session reste en DB jusqu'au TTL. C'est voulu (reconnexion possible via cookie). Mais à grande échelle, est-ce que les sessions orphelines deviennent un problème ?
-
-**Réponse partielle :** Redis peut être ajouté plus tard comme couche de cache sans changer le modèle Session.
+**Solution:** Minimalist session managed by `connect-mongodb-session` (cookie-based). `SessionManager.ts` handles in-memory socket-to-user mapping. No dedicated MongoDB Session model.
 
 ---
 
-## Comment mapper un socket à un utilisateur ?
+## Where to store sessions?
 
-**Solution :** Stocker le `socketId` directement sur le document Session en MongoDB.
+**Options considered:** Redis, in-memory, MongoDB.
 
-**Pourquoi :** Après `authenticate`, la socket est de confiance (connexion TCP persistante = ancre de confiance). N'importe quel service peut faire `Session.getSessionBySocket(socketId)` pour identifier l'utilisateur. Pas de maps en mémoire qui seraient perdues au redémarrage.
+**Why cookie-based with MongoDB store:** The app uses `express-session` with `connect-mongodb-session` for session persistence. The cookie is auto-sent by the browser on every request. Socket-to-user mapping is in-memory via `SessionManager` (fast lookups, no DB writes on connect/disconnect).
 
-**Compromis accepté :** Une écriture DB à chaque connect/disconnect, mais ces événements sont rares comparés au trafic de messages.
+**Open doubt:** When a user closes the browser without disconnecting, the session stays in the store until TTL. This is intentional (reconnection possible via cookie). At scale, do orphan sessions become a problem?
 
----
-
-## Comment le sessionId est persisté côté client ?
-
-**Doute initial :** Cookie, `localStorage` ou `sessionStorage` ? Chacun a des compromis différents.
-
-**Réflexion :**
-- **Cookie** : envoyé avec chaque requête HTTP au serveur, protections natives (`httpOnly`, `secure`, `sameSite`), mais le backend ne lit jamais les cookies — toute l'auth passe par Socket.io. Et surtout : partagé entre tous les onglets
-- **`localStorage`** : côté client uniquement (pas envoyé au serveur), ~5-10MB, pas d'expiry. Mais même problème que les cookies — partagé entre tous les onglets
-- **`sessionStorage`** : isolé par onglet, côté client uniquement. Seul storage qui garantit qu'un onglet ne voit pas les données d'un autre
-- Le partage inter-onglets est un vrai problème : si un onglet est rejeté par le flux multi-session et qu'on supprime le storage, tous les autres onglets perdent leur sessionId
-- Pas de persistance après fermeture d'onglet — mais l'expiration est gérée côté serveur (TTL MongoDB), donc un onglet fermé = session orpheline qui expire naturellement
-
-**Solution :** `sessionStorage` — chaque onglet stocke son propre sessionId, isolé des autres.
-
-**Doute ouvert :** En production, WSS (WebSocket over TLS) est indispensable. `sessionStorage` est accessible au JavaScript — une XSS pourrait le voler. Suffisant pour le dev, à durcir pour la prod.
+**Partial answer:** Redis can be added later as a session store without changing the architecture.
 
 ---
 
-## Pourquoi 1 session = 1 socket, mais 1 user = N sessions ?
+## How to map a socket to a user?
 
-**Doute initial :** Chaque onglet du navigateur crée sa propre connexion Socket.io (son propre `socketId`). Est-ce qu'un onglet devrait réutiliser la session d'un autre onglet, ou avoir la sienne ?
+**Solution:** `SessionManager` maintains an in-memory bidirectional map between socketId and userId.
 
-**Réflexion :**
-- Si plusieurs onglets partagent une session, `bindSocket` écrase le `socketId` précédent — le premier onglet perd silencieusement sa liaison et ne reçoit plus de messages
-- Un utilisateur peut légitimement vouloir être connecté depuis plusieurs onglets/appareils
-- Le flux multi-session (approbation) sert de second facteur — mais il doit s'appliquer partout, pas seulement au `login`
+**Why:** After `authenticate`, the socket is trusted (persistent TCP connection = trust anchor). Any service can call `SessionManager.getSessionBySocket(socketId)` to identify the user. In-memory map means zero DB overhead for lookups.
 
-**Solution :** Chaque onglet a sa propre session. `authenticate` (via sessionStorage) passe par le même flux d'approbation que `login` si un socket est déjà actif pour cet utilisateur. Sur approbation → nouvelle session créée (même `userId`). Sur rejet → `login_failure` → retour au login.
+**Trade-off:** The in-memory map is lost on server restart. But sessions persist in the cookie store -- clients simply re-authenticate on reconnect.
 
 ---
 
-## Pourquoi pas de nouveau token dans session_refreshed ?
+## How is the session persisted client-side?
 
-**Réponse :** Le sessionId ne change jamais pendant la durée de vie de la session. Un refresh ne fait qu'étendre `expiresAt` en DB. Le client n'a besoin que du nouveau `expiresAt` pour mettre à jour son timer local. Renvoyer le même sessionId serait redondant.
+**Solution:** Cookie-based via `express-session` + `connect-mongodb-session`.
 
----
+**Why cookies:**
+- Auto-sent by the browser on every request (including Socket.io handshake)
+- `httpOnly` prevents JavaScript access (XSS protection)
+- No manual sessionId management on the frontend
+- No `sessionStorage` / `localStorage` needed
+- The multi-session approval flow handles multi-tab/device scenarios at the application level
 
-# 3. Authentification
-
-## Pourquoi pas de JWT ?
-
-**Doute initial :** Le JWT est standard, il permet une vérification stateless sans appel DB. Pourquoi s'en passer ?
-
-**Réflexion :**
-- À quoi sert le JWT si chaque `authenticate` interroge déjà la DB pour la session ET l'utilisateur ?
-- Dans quel cas le JWT est utile sans appel DB ? → Quand plusieurs services n'ont pas tous accès à la même DB (architecture micro-services distribuée)
-- Discord utilise tokens ET sessions : le token sert à la vérification légère entre micro-services, la session gère le compte. Deux rôles distincts
-- Est-ce que notre app est multi-services ? → Non, single-server. Le JWT n'est qu'un wrapper signé autour d'un sessionId qui finit vérifié en DB de toute façon
-
-**Solution :** Utiliser des ObjectId MongoDB bruts comme identifiants de session. Pas de JWT.
-
-**Pourquoi ça tient :** Les ObjectId ne sont pas devinables (96 bits d'entropie). La vérification se fait en DB à chaque reconnexion — exactement comme avant, mais sans la couche JWT inutile.
-
-**Doute ouvert :** À quel point de croissance le bottleneck DB justifierait de réintroduire du JWT ? Pas de réponse — « quand le nombre d'utilisateurs ou de services rend les lookups DB trop coûteux ». À garder en tête.
+**Previous approach (replaced):** `sessionStorage` was used for per-tab isolation. This has been replaced by cookies because the server-side session store with cookie transport is simpler, more secure, and handles the Socket.io use case natively.
 
 ---
 
-## Pourquoi SHA256 et pas bcrypt/argon2 ?
+## Why 1 session = 1 socket, but 1 user = N sessions?
 
-**Réponse :** Choix délibéré. SHA256 (`js-sha256`) est rapide, simple, sans dépendances natives. bcrypt/argon2 nécessitent une compilation native. Pour le développement, SHA256 suffit.
+**Initial doubt:** Each browser tab creates its own Socket.io connection (its own `socketId`). Should a tab reuse another tab's session, or have its own?
 
-**Pourquoi c'est safe pour l'instant :** `hashPassword`/`verifyPassword` sont isolés dans `AuthService`. L'upgrade vers bcrypt/argon2 = un seul fichier à modifier.
+**Reflection:**
+- If multiple tabs share a session, socket binding would overwrite the previous `socketId` -- the first tab silently loses its binding and stops receiving messages
+- A user may legitimately want to be connected from multiple tabs/devices
+- The multi-session flow (approval) serves as a second factor -- but it must apply everywhere, not just on `login`
 
-**Doute ouvert :** SHA256 est un hash rapide = vulnérable au brute force. À migrer avant la production.
-
----
-
-## Pourquoi un flux d'approbation multi-session ?
-
-**Besoin :** Si un utilisateur a déjà une session active et qu'un login arrive depuis un autre appareil, les sessions existantes doivent valider ou refuser la nouvelle connexion.
-
-**Pourquoi :** La session légitime agit comme un second facteur. Si les identifiants sont compromis, l'attaquant ne peut pas se connecter sans que l'utilisateur légitime approuve.
-
-**Fonctionnement :**
-- La notification est envoyée uniquement aux sockets du **même utilisateur**, pas à toutes les sockets
-- Les `pendingRequests` sont en mémoire (éphémères — les perdre au redémarrage = le login expire simplement)
-- Timeout configurable → auto-rejet si pas de réponse
-- Première réponse gagne, réponses tardives ignorées
-
-**Évolution du design :** Un `SessionManager` séparé avait été envisagé pour isoler cette logique. Éliminé — trop de complexité pour pas assez de gain. La logique multi-session vit dans `AuthService`, qui utilise `Session` pour le CRUD avec un naming fonctionnel (`createManualSessionValidationByUser`, `succeedManualSessionValidationByUser`, `rejectManualSessionValidationByUser`).
-
-**Doute ouvert :** L'UX est-elle bonne ? Un utilisateur sur son téléphone qui veut se connecter sur son PC doit retourner sur son téléphone pour approuver. Est-ce trop contraignant pour des utilisateurs non-techniques ?
+**Solution:** Each connection gets its own session. `authenticate` (via cookie) goes through the same approval flow as `login` if an active socket already exists for that user. On approval --> new session created (same `userId`). On rejection --> `login_response { status: "failure" }` --> back to login.
 
 ---
 
-# 4. Modèle de données
+## Why no new token in session_response { status: "refreshed" }?
 
-## Pourquoi les statuts utilisateur sont limités à waiting/active ?
-
-**Doute initial :** Faut-il un statut `banned` ? `deleted` ? `inactive` ?
-
-**Réflexion :**
-- `banned` implique une action admin — pas encore implémenté
-- `deleted` est contradictoire — si supprimé, le document n'existe plus
-- `inactive` est ambigu — inactif depuis quand ? pourquoi ?
-
-**Solution :** Deux statuts seulement : `waiting` (inscription en attente de validation) et `active`. Les autres seront ajoutés quand le besoin se présentera.
+**Answer:** The session identity is managed by the cookie, which doesn't change. A refresh only extends the expiration in the store. The client only needs the new `expiresAt` to update its local timer.
 
 ---
 
-# 5. Doutes ouverts
+# 3. Authentication
 
-| Sujet | Doute | Piste |
-|-------|-------|-------|
-| JWT | Quand le bottleneck DB justifierait du JWT ? | Quand multi-services ou trop de lookups DB |
-| Sessions orphelines | Les sessions sans socket actif posent-elles problème à grande échelle ? | Redis comme cache, ou sweep périodique |
-| Multi-session UX | L'approbation est-elle trop contraignante ? | À tester avec des vrais utilisateurs |
-| SHA256 | Vulnérable au brute force | Migrer vers bcrypt/argon2 avant prod (1 fichier) |
-| sessionStorage sécurité | XSS peut voler le sessionId | WSS obligatoire en prod |
-| Statuts utilisateur | `banned`/`deleted` manquants | À ajouter quand le besoin se présente |
+## Why no JWT?
+
+**Initial doubt:** JWT is standard, it allows stateless verification without DB calls. Why skip it?
+
+**Reflection:**
+- What good is JWT if each `authenticate` already queries the store for the session AND the DB for the user?
+- When is JWT useful without a DB call? --> When multiple services don't all have access to the same DB (distributed microservices)
+- Discord uses tokens AND sessions: the token serves for lightweight verification between microservices, the session manages the account. Two distinct roles
+- Is our app multi-service? --> No, single-server. JWT would just be a signed wrapper around a session that ends up verified in DB anyway
+
+**Solution:** Use cookie-based sessions via `connect-mongodb-session`. No JWT.
+
+**Why it holds:** The cookie is signed by `express-session`. Verification happens in the store on each reconnection -- exactly as before, but without an unnecessary JWT layer.
+
+**Open doubt:** At what growth point would the DB bottleneck justify reintroducing JWT? No answer -- "when user count or service count makes store lookups too costly". Keep in mind.
+
+---
+
+## Why SHA256 and not bcrypt/argon2?
+
+**Answer:** Deliberate choice. SHA256 (`js-sha256`) is fast, simple, no native dependencies. bcrypt/argon2 require native compilation. For development, SHA256 suffices.
+
+**Why it's safe for now:** `hashPassword`/`verifyPassword` are isolated in `AuthService`. Upgrading to bcrypt/argon2 = one file to modify.
+
+**Open doubt:** SHA256 is a fast hash = vulnerable to brute force. Migrate before production.
+
+---
+
+## Why a multi-session approval flow?
+
+**Need:** If a user already has an active session and a login comes from another device, existing sessions must validate or reject the new connection.
+
+**Why:** The legitimate session acts as a second factor. If credentials are compromised, the attacker cannot connect without the legitimate user's approval.
+
+**How it works:**
+- The notification is sent only to sockets of the **same user**, not to all sockets
+- `pendingRequests` are in-memory (ephemeral -- losing them on restart = the login simply times out)
+- Configurable timeout --> auto-reject if no response
+- First response wins, late responses ignored
+
+**Design evolution:** `SessionManager` handles the in-memory socket mapping, while the multi-session approval logic lives in `AuthService`. SessionManager is a focused utility for socket <-> user binding, not a full session model.
+
+**Open doubt:** Is the UX good? A user on their phone who wants to connect on their PC must go back to their phone to approve. Is this too constraining for non-technical users?
+
+---
+
+# 4. Data Model
+
+## Why are user statuses limited to waiting/active?
+
+**Initial doubt:** Do we need a `banned` status? `deleted`? `inactive`?
+
+**Reflection:**
+- `banned` implies an admin action -- not yet implemented
+- `deleted` is contradictory -- if deleted, the document no longer exists
+- `inactive` is ambiguous -- inactive since when? why?
+
+**Solution:** Two statuses only: `waiting` (registration pending validation) and `active`. Others will be added when the need arises.
+
+---
+
+# 5. Open Doubts
+
+| Subject | Doubt | Lead |
+|---------|-------|------|
+| JWT | When would the DB bottleneck justify JWT? | When multi-service or too many store lookups |
+| Orphan sessions | Do sessions without active sockets cause problems at scale? | Redis as store, or periodic sweep |
+| Multi-session UX | Is approval too constraining? | Test with real users |
+| SHA256 | Vulnerable to brute force | Migrate to bcrypt/argon2 before prod (1 file) |
+| Cookie security | Session hijacking via network sniffing | WSS + secure flag mandatory in prod |
+| User statuses | `banned`/`deleted` missing | Add when the need arises |

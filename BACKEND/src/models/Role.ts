@@ -106,7 +106,6 @@ export default class Role extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
 
         } catch (error: any) {
             
@@ -126,12 +125,12 @@ export default class Role extends Collection {
 
     static async updateRole(label: string, newData: Partial<RoleType>) {
 
-        return this.model.updateOne({email: label}, { $set: newData });
+        return this.model.updateOne({label: label}, { $set: newData });
     }
 
     static async updateRoles(labels: string[], newData: Partial<RoleType>) {
 
-        return this.model.updateMany({ email: {$in: labels}}, { $set: newData });
+        return this.model.updateMany({ label: {$in: labels}}, { $set: newData });
     }
 
     static async deleteRole(label: string) {

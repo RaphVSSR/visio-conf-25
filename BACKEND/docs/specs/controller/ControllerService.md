@@ -1,12 +1,12 @@
-# Référence du Controller Layer — VisioConf
+# Référence de la couche Controller — VisioConf
 
-**Fichiers sources** : `BACKEND/src/Controller/Controller.types.ts` + `Controller.service.ts` + `Controller.abstracts.ts`
+**Fichiers source** : `BACKEND/src/controller/Controller.types.ts` + `Controller.service.ts`
 
 ---
 
 ## 1. Description
 
-Le Controller layer définit les types et la classe abstraite pour le pattern pub/sub (controleur/canal). Le `controleur.js` et `canalsocketio.js` sont des fichiers JS off-limits, mais les types TypeScript et la classe de base `ControllerService` sont définis ici.
+La couche Controller définit les types et la classe abstraite pour le pattern pub/sub (controleur/canal). `controleur.js` et `canalsocketio.js` sont des fichiers JS intouchables, mais les types TypeScript et la classe de base `ControllerService` sont définis ici.
 
 ---
 
@@ -39,7 +39,7 @@ type ControllerMessage = { id: string } & Record<string, unknown>
 ```
 
 - `id` : socketId de l'émetteur
-- Les autres clés sont les noms des actions avec leur payload
+- Les autres clés sont des noms d'actions avec leur payload
 
 ---
 
@@ -47,32 +47,37 @@ type ControllerMessage = { id: string } & Record<string, unknown>
 
 | Propriété | Type | Visibilité | Description | Exemple |
 |-----------|------|------------|-------------|---------|
-| `nomDInstance` | `string` | `readonly` | Nom d'inscription dans le controleur | `"AuthService"` |
+| `nomDInstance` | `string` | `readonly` | Nom d'inscription dans le controleur | `"UserService"` |
 | `controleur` | `Controller` | `protected readonly` | Référence au controleur | `new Controller()` |
-| `messagesEmitted` | `string[]` | `readonly` | Messages que ce service peut émettre | `["auth_success", "auth_failure"]` |
-| `messagesReceived` | `string[]` | `readonly` | Messages que ce service écoute | `["login", "register"]` |
+| `messagesEmitted` | `string[]` | `readonly` | Messages que ce service peut émettre | `["user_response", "user_list_response"]` |
+| `messagesReceived` | `string[]` | `readonly` | Messages que ce service écoute | `["user", "user_list"]` |
 
 | Méthode | Paramètres | Retour | Static/Instance | Description |
 |---------|------------|--------|-----------------|-------------|
 | `constructor` | `controleur, nom, messagesEmitted, messagesReceived` | `ControllerService` | instance | S'inscrit automatiquement auprès du controleur via `controleur.inscription()` |
-| `traitementMessage` | `mesg: ControllerMessage` | `void` | instance (abstract) | Dispatcher des messages reçus. Doit être implémenté par chaque service |
+| `traitementMessage` | `mesg: ControllerMessage` | `void` | instance (abstraite) | Dispatcher de messages. Doit être implémenté par chaque service |
+
+**Note :** AuthService n'étend pas ControllerService -- il utilise un pattern autonome similaire (même interface `nomDInstance` + `traitementMessage`) mais gère sa propre inscription et son cycle de vie de manière indépendante. Tous les autres services (UserService, TeamService, ChannelService) étendent ControllerService.
 
 ---
 
-## 4. Initialisation (Controller.abstracts.ts)
+## 4. Initialisation (index.ts)
 
 ```typescript
-function init() {
-    const controleur = new Controller()
-    new CanalSocketio(SocketIO.server, controleur, "canalsocketio")
-    new AuthService(controleur, "AuthService", [...emitted], [...received])
-}
+const controleur = new Controleur()
+new CanalSocketio(server, controleur, "canalsocketio")
+const authService = new AuthService(controleur, "AuthService")
+authService.register()
+new UserService(controleur, "UserService", [...emitted], [...received])
+new TeamService(controleur, "TeamService", [...emitted], [...received])
+new ChannelService(controleur, "ChannelService", [...emitted], [...received])
 ```
 
 Séquence :
 1. Crée l'instance du controleur (JS)
 2. Crée le CanalSocketio lié au serveur Socket.io
-3. Crée et inscrit le AuthService
+3. Crée AuthService avec `new` + appelle `register()` (pattern autonome)
+4. Crée et inscrit les autres services via le constructeur de ControllerService
 
 ---
 
@@ -81,22 +86,22 @@ Séquence :
 | Service | nomDInstance | Émis | Reçus |
 |---------|-------------|------|-------|
 | `CanalSocketio` | `"canalsocketio"` | (tous les messages Socket.io) | (tous les messages Socket.io) |
-| `AuthService` | `"AuthService"` | 13 messages auth | 7 messages auth |
-| `ChannelService` | `"ChannelService"` | 15 messages channel | 15 messages channel |
-| `TeamService` | `"TeamService"` | 9 messages team | 9 messages team |
-| `UserService` | `"UserService"` | 6 messages user | 6 messages user |
+| `AuthService` | `"AuthService"` | 4 messages auth | 5 messages auth |
+| `UserService` | `"UserService"` | 2 messages user | 2 messages user |
+| `TeamService` | `"TeamService"` | 3 messages team | 3 messages team |
+| `ChannelService` | `"ChannelService"` | 4 messages channel | 4 messages channel |
 
 ---
 
 ## 6. Pattern de communication
 
 ```
-Client (Browser)
-    ↕ Socket.io
+Client (Navigateur)
+    | Socket.io
 CanalSocketio
-    ↕ controleur.envoie() / traitementMessage()
-AuthService (ou autre ControllerService)
-    ↕ MongoDB
+    | controleur.envoie() / traitementMessage()
+AuthService / UserService / TeamService / ChannelService
+    | MongoDB
 Database
 ```
 
@@ -114,22 +119,17 @@ class MyService extends ControllerService {
     }
 
     private handleMyAction(socketId: string, payload: any) {
-        // ... logique métier ...
         this.controleur.envoie(this, { id: socketId, my_action_response: { success: true } });
     }
 }
 
-// Inscription
 new MyService(controleur, "MyService", ["my_action_response"], ["my_action"]);
 ```
 
 ### Message transitant par le controleur
 
 ```typescript
-// CanalSocketio reçoit du client et envoie au controleur :
 controleur.envoie(canalsocketio, { id: "xK9...", login: { email: "john@example.com", password: "sha256...", deviceInfo: "web" } });
 
-// Le controleur route vers AuthService.traitementMessage()
-// AuthService répond via :
-controleur.envoie(this, { id: "xK9...", login_success: { user: {...}, sessionId: "s1...", expiresAt: 1709312400000 } });
+controleur.envoie(this, { id: "xK9...", login_response: { status: "success", user: {...}, expiresAt: 1709312400000 } });
 ```

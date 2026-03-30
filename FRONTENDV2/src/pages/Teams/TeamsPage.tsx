@@ -11,107 +11,84 @@ import TeamForm from "components/TeamForm/TeamForm"
 import "./TeamsPage.scss"
 
 export const TeamsPage = () => {
-	const { user, controleur } = useAuth()
+	const { user, socket } = useAuth()
 	const [isLoadingTeams, setIsLoadingTeams] = useState(true)
 	const [isLoadingChannels, setIsLoadingChannels] = useState(false)
 
-	const teamManager = useTeamManager({
-		initialTeams: [],
-		onTeamSelected: (team) => {
-			if (team) {
-				loadTeamChannels(team.id)
-			} else {
-				channelManager.clearChannels()
+	const teamManager = useTeamManager()
+	const channelManager = useChannelManager()
+
+	const { updateTeamsFromResponse } = teamManager
+	const { updateChannelsFromResponse } = channelManager
+
+	const handleTeamQueryResponse = useCallback(
+		(data: any) => {
+			if (data.type !== "list") return
+			if (data.etat) {
+				updateTeamsFromResponse(data.teams || [])
 			}
+			setIsLoadingTeams(false)
 		},
-		onTeamDeleted: () => {
-			channelManager.handleCancelChannelForm()
-		},
-	})
-
-	const channelManager = useChannelManager({
-		initialChannels: [],
-	})
-
-	const nomDInstance = "TeamsPage"
-
-	const listeMessageEmis = [
-		"teams_list_request",
-		"get_channels",
-	]
-	const listeMessageRecus = [
-		"teams_list_response",
-		"channels",
-		"channel_creating_status",
-		"channel_updating_status",
-		"channel_deleting_status",
-	]
-
-	const handleWebSocketMessage = useCallback(
-		(msg: any) => {
-			if (msg.teams_list_response) {
-				if (msg.teams_list_response.etat) {
-					teamManager.updateTeamsFromResponse(msg.teams_list_response.teams || [])
-				}
-				setIsLoadingTeams(false)
-			}
-
-			if (msg.channels) {
-				if (msg.channels.etat) {
-					channelManager.updateChannelsFromResponse(msg.channels.channels || [])
-				}
-				setIsLoadingChannels(false)
-			}
-
-			if (msg.channel_creating_status || msg.channel_updating_status || msg.channel_deleting_status) {
-				if (teamManager.selectedTeam && controleur) {
-					controleur.envoie(handler, { get_channels: { teamId: teamManager.selectedTeam.id } })
-				}
-			}
-		},
-		[teamManager, channelManager]
+		[updateTeamsFromResponse]
 	)
 
-	const handler = {
-		nomDInstance,
-		traitementMessage: handleWebSocketMessage,
-	}
+	const handleChannelQueryResponse = useCallback(
+		(data: any) => {
+			if (data.type !== "list") return
+			if (data.etat) {
+				updateChannelsFromResponse(data.channels || [])
+			}
+			setIsLoadingChannels(false)
+		},
+		[updateChannelsFromResponse]
+	)
+
+	const handleChannelActionResponse = useCallback(
+		(data: any) => {
+			if (data.type !== "create" && data.type !== "update" && data.type !== "delete") return
+			if (teamManager.selectedTeam && socket) {
+				socket.send("channel_get", { type: "list", teamId: teamManager.selectedTeam.id })
+			}
+		},
+		[teamManager.selectedTeam, socket]
+	)
 
 	useEffect(() => {
-		if (controleur && user) {
-			controleur.inscription(handler, listeMessageEmis, listeMessageRecus)
-			controleur.envoie(handler, { teams_list_request: {} })
+		if (!socket) return
+		if (teamManager.selectedTeam) {
+			setIsLoadingChannels(true)
+			socket.send("channel_get", { type: "list", teamId: teamManager.selectedTeam.id })
+		} else {
+			channelManager.clearChannels()
 		}
+	}, [socket, teamManager.selectedTeam, channelManager.clearChannels])
+
+	useEffect(() => {
+		if (!socket || !user) return
+
+		socket.on("team_get_response", handleTeamQueryResponse)
+		socket.on("channel_get_response", handleChannelQueryResponse)
+		socket.on("channel_action_response", handleChannelActionResponse)
+
+		socket.send("team_get", { type: "list" })
 
 		return () => {
-			if (controleur) {
-				controleur.desincription(handler, listeMessageEmis, listeMessageRecus)
-			}
+			socket.off("team_get_response", handleTeamQueryResponse)
+			socket.off("channel_get_response", handleChannelQueryResponse)
+			socket.off("channel_action_response", handleChannelActionResponse)
 		}
-	}, [controleur, user])
+	}, [socket, user, handleTeamQueryResponse, handleChannelQueryResponse, handleChannelActionResponse])
 
-	const loadTeamChannels = useCallback(
-		(teamId: string) => {
-			if (controleur) {
-				setIsLoadingChannels(true)
-				controleur.envoie(handler, { get_channels: { teamId } })
-			}
-		},
-		[controleur]
-	)
-
-	const reloadTeams = useCallback(() => {
-		if (controleur) {
-			controleur.envoie(handler, { teams_list_request: {} })
-		}
-	}, [controleur])
+	const { handleTeamCreated } = teamManager
 
 	const handleTeamCreatedWrapper = useCallback(
 		(team: any) => {
-			teamManager.handleTeamCreated(team)
-			setTimeout(() => reloadTeams(), 100)
+			handleTeamCreated(team)
+			if (socket) {
+				setTimeout(() => socket.send("team_get", { type: "list" }), 100)
+			}
 		},
-		[teamManager, reloadTeams]
+		[handleTeamCreated, socket]
 	)
 
 	const showTeamForm = teamManager.teamFormMode !== null

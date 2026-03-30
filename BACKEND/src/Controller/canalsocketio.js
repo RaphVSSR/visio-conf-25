@@ -1,8 +1,8 @@
-import { ListeMessagesEmis, ListeMessagesRecus } from "./ListeMessages.ts"
-import Session from "./models/services/authentication/Session.ts"
-import User from "./models/User.ts"
+import { ListeMessagesEmis, ListeMessagesRecus } from "../models/ListeMessages.ts"
+import SessionManager from "../models/services/authentication/SessionManager.ts"
+import User from "../models/User.ts"
 
-class CanalSocketio {
+class CanalSocketIO {
     controleur
     nomDInstance
     socket
@@ -59,24 +59,24 @@ class CanalSocketio {
 
             socket.on("disconnect", async () => {
                 try {
-                  const session = await Session.getSessionBySocket(socket.id);
+                    const userId = SessionManager.getUserId(socket.id)
 
-                  if (!session) {
-                    console.warn(`Aucun utilisateur trouvé pour le socket.id ${socket.id}`);
-                  } else {
-                    await User.model.updateOne(
-                      { _id: session.userId },
-                      { disturb_status: "offline" }
-                    );
-                    console.log(`👋 Utilisateur ${session.userId} mis en offline à la déconnexion.`);
-                  }
+                    if (!userId) {
+                        console.warn(`Aucun utilisateur trouvé pour le socket.id ${socket.id}`)
+                    } else {
+                        await User.model.updateOne(
+                            { _id: userId },
+                            { disturb_status: "offline" }
+                        )
+                        console.log(`👋 Utilisateur ${userId} mis en offline à la déconnexion.`)
+                    }
                 } catch (err) {
-                  console.error("Erreur lors du passage en offline à la déconnexion :", err);
+                    console.error("Erreur lors du passage en offline à la déconnexion :", err)
                 } finally {
-                  let message = { client_deconnexion: socket.id };
-                  this.controleur.envoie(this, message);
+                    let message = { socket_disconnect: socket.id }
+                    this.controleur.envoie(this, message)
                 }
-              });
+            })
 
         })
     }
@@ -108,4 +108,4 @@ class CanalSocketio {
         }
     }
 }
-export default CanalSocketio
+export default CanalSocketIO
