@@ -1,103 +1,42 @@
-# Référence de la classe TracedError — VisioConf
+# TracedError
 
-**Fichier source** : `BACKEND/src/models/core/TracedError.ts`
-**Classe parente** : `Error` (native)
+**Source**: `BACKEND/src/models/core/TracedError.ts`
 
----
+Classe d'erreur personnalisée étendant `Error`. Fournit des messages d'erreur typés et catalogués avec des identifiants uniques, des chaînes de raison optionnelles, et des stack traces améliorées via `Error.captureStackTrace`. Utilisée dans tout le backend pour une gestion cohérente des erreurs.
 
-## 1. Description
+## Propriétés
 
-`TracedError` est la classe d'erreur personnalisée du projet. Elle étend `Error` pour fournir des messages d'erreur typés et tracés, avec un identifiant d'erreur et un mécanisme de stack trace amélioré.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| id | `ErrorsType[keyof ErrorsType]["id"]` | `"dbConnect"` | Identifiant correspondant à la clé du type d'erreur |
+| reason | `string` (optional) | `"connection refused"` | Message complémentaire provenant du contexte d'émission |
 
----
+## Méthodes
 
-## 2. Propriétés de la classe
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| constructor | `type: keyof ErrorsType`, `reason?: string` | `TracedError` | Crée une erreur typée avec un message prédéfini du catalogue ErrorsType, configure la chaîne de prototypes et capture la stack trace |
+| errorHandler | `error: any` | `void` | Statique. Affiche message + raison + stack pour les instances TracedError, ou se rabat sur `console.trace` pour les erreurs inconnues |
 
-| Propriété | Type | Visibilité | Description |
-|-----------|------|------------|-------------|
-| `id` | `ErrorsType[keyof ErrorsType]["id"]` | `public` | Identifiant unique du type d'erreur |
-| `reason` | `string` | `public` (optionnel) | Message d'erreur complémentaire passé par la fonction en erreur |
+## Détails
 
----
+La constante `ErrorsType` définit 16 entrées d'erreur utilisées comme paramètre `type` du constructeur :
 
-## 3. Variables et constantes
-
-### ErrorsType — Catalogue des erreurs
-
-| Clé | ID | Message | Exemple d'usage |
-|-----|----|---------|-----------------|
-| `dbConnect` | `"dbConnect"` | Error during the MongoDB connection process | `throw new TracedError("dbConnect", err.message)` |
-| `dbClose` | `"dbClose"` | Error during the MongoDB closing process | `throw new TracedError("dbClose")` |
-| `dbFlushing` | `"dbFlushing"` | Error during the MongoDB flush | `throw new TracedError("dbFlushing", "Session flush failed")` |
-| `uploadsIntegrity` | `"uploadsIntegrity"` | Uploads's environnement integrity compromised | `throw new TracedError("uploadsIntegrity")` |
-| `collectionIntegrity` | `"collectionIntegrity"` | Collection's environnement integrity compromised | `throw new TracedError("collectionIntegrity")` |
-| `collectionSaving` | `"collectionSaving"` | Collection saving didn't succeed | `throw new TracedError("collectionSaving", err.message)` |
-| `testFilesCopying` | `"testFilesCopying"` | Error during the copying of a test file | `throw new TracedError("testFilesCopying", err.message)` |
-| `getFileSize` | `"getFileSize"` | Error during getting the file size | `throw new TracedError("getFileSize", err.message)` |
-| `restCorsDef` | `"restCorsDef"` | Error during the REST CORS definition | `throw new TracedError("restCorsDef", err.message)` |
-| `restRoutesDef` | `"restRoutesDef"` | Error during the REST routes definition | `throw new TracedError("restRoutesDef", err.message)` |
-| `injectingCollection` | `"injectingCollection"` | Error during a collection injection | `throw new TracedError("injectingCollection", "Permission inject failed")` |
-| `roleNotFound` | `"roleNotFound"` | Error a role didn't exists | `throw new TracedError("roleNotFound", "admin")` |
-| `adminCredentialsNotReferenced` | `"adminCredentialsNotReferenced"` | Error admins credentials aren't referenced in a .env file | `throw new TracedError("adminCredentialsNotReferenced")` |
-| `noTeamsFound` | `"noTeamsFound"` | Error teams collection is empty | `throw new TracedError("noTeamsFound")` |
-| `noChannelsFound` | `"noChannelsFound"` | Error channels collection is empty | `throw new TracedError("noChannelsFound")` |
-
----
-
-## 4. Méthodes
-
-| Méthode | Paramètres | Retour | Static/Instance | Description |
-|---------|------------|--------|-----------------|-------------|
-| `constructor` | `type: keyof ErrorsType, reason?: string` | `TracedError` | instance | Crée une erreur typée avec message prédéfini. Corrige le prototype et améliore la stack trace via `Error.captureStackTrace` |
-| `errorHandler` | `err: any` | `void` | static | Gestionnaire d'erreurs centralisé. Affiche le message et la raison pour les `TracedError`, ou un `console.trace` pour les erreurs inconnues |
-
----
-
-## 5. Types TypeScript
-
-```typescript
-const ErrorsType = { ... } as const;
-type ErrorsType = typeof ErrorsType;
-
-class TracedError extends Error {
-    id: ErrorsType[keyof ErrorsType]["id"];
-    reason?: string;
-
-    constructor(type: keyof ErrorsType, reason?: string);
-    static errorHandler(err: any): void;
-}
-```
-
----
-
-## 6. Utilisée par
-
-Toutes les classes du projet utilisent `TracedError` pour la gestion d'erreurs :
-- Toutes les sous-classes de `Collection` (dans `save()`)
-- `Database` (connect, flush, inject)
-- `FileSystem` (copyTestFiles, getFileSize)
-- `RestService` (CORS, routes)
-- `Channel.injectTest()`, `Team.injectTest()`
-
----
-
-## 7. Exemples
-
-### Lancer une erreur typée
-
-```typescript
-throw new TracedError("collectionSaving", "Duplicate key error on email field");
-// → TracedError { id: "collectionSaving", message: "Collection saving didn't succeed", reason: "Duplicate key error on email field" }
-```
-
-### Attraper avec errorHandler
-
-```typescript
-try {
-    await mongoose.connect(MONGO_URI);
-} catch (err) {
-    TracedError.errorHandler(new TracedError("dbConnect", err.message));
-    // Console: "Error during the MongoDB connection process"
-    //          "Reason: connection refused"
-}
-```
+| Clé | Message |
+|-----|---------|
+| dbConnect | Erreur lors du processus de connexion MongoDB |
+| dbClose | Erreur lors du processus de fermeture MongoDB |
+| dbFlushing | Erreur lors du flush MongoDB |
+| uploadsIntegrity | Intégrité de l'environnement d'uploads compromise |
+| collectionIntegrity | Intégrité de l'environnement de la collection compromise |
+| collectionSaving | La sauvegarde de la collection a échoué |
+| testFilesCopying | Erreur lors de la copie d'un fichier de test |
+| getFileSize | Erreur lors de la récupération de la taille du fichier |
+| restCorsDef | Erreur lors de la définition du CORS REST |
+| restRoutesDef | Erreur lors de la définition des routes REST |
+| injectingCollection | Erreur lors de l'injection d'une collection |
+| roleNotFound | Erreur un rôle n'existe pas |
+| adminCredentialsNotReferenced | Erreur les identifiants admin ne sont pas référencés dans un fichier .env |
+| noTeamsFound | Erreur la collection des équipes est vide |
+| noChannelsFound | Erreur la collection des channels est vide |
+| injectAdmin | Erreur lors de l'injection de l'utilisateur admin |

@@ -1,135 +1,76 @@
-# Référence de la couche Controller — VisioConf
+# Controller Layer
 
-**Fichiers source** : `BACKEND/src/controller/Controller.types.ts` + `Controller.service.ts`
+**Source**: `BACKEND/src/controller/controleur.js`, `BACKEND/src/controller/canalsocketio.js`
 
----
-
-## 1. Description
-
-La couche Controller définit les types et la classe abstraite pour le pattern pub/sub (controleur/canal). `controleur.js` et `canalsocketio.js` sont des fichiers JS intouchables, mais les types TypeScript et la classe de base `ControllerService` sont définis ici.
+La couche contrôleur implémente un pattern de bus de messages pub/sub. `Controleur` agit comme le routeur central de messages : les services enregistrent leurs noms de messages émis et reçus, puis communiquent exclusivement via `envoie()`. `CanalSocketIO` fait le pont entre les connexions Socket.io et le contrôleur, traduisant les messages socket en messages contrôleur et inversement. Tous les services suivent la même interface implicite (`nomDInstance`, `traitementMessage`, `register`) sans classe de base partagée.
 
 ---
 
-## 2. Types TypeScript
+## Controleur
 
-### Controller
+### Propriétés
 
-```typescript
-type Controller = {
-    verboseall: boolean,
-    inscription: (subscriber: ControllerSubscriber, emitted: string[], received: string[]) => void,
-    desincription: (subscriber: ControllerSubscriber, emitted: string[], received: string[]) => void,
-    envoie: (subscriber: ControllerSubscriber, message: Record<string, unknown>) => void,
-}
-```
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| listeEmission | Object | `{ "login_response": { "AuthService": <ref> } }` | Registre associant les noms de messages émis à leurs instances de service émettrices |
+| listeAbonnement | Object | `{ "login": { "AuthService": <ref> } }` | Registre associant les noms de messages souscrits à leurs instances de service abonnées |
+| verbose | boolean | `false` | Flag de logging verbeux au niveau de l'instance |
+| verboseall | boolean | `true` | Flag de logging verbeux global (surcharge verbose) |
 
-### ControllerSubscriber
+### Méthodes
 
-```typescript
-type ControllerSubscriber = {
-    nomDInstance: string,
-    traitementMessage: (mesg: ControllerMessage) => void,
-}
-```
-
-### ControllerMessage
-
-```typescript
-type ControllerMessage = { id: string } & Record<string, unknown>
-```
-
-- `id` : socketId de l'émetteur
-- Les autres clés sont des noms d'actions avec leur payload
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| inscription | emetteur (subscriber), liste_emission (string[]), liste_abonnement (string[]) | void | Enregistre les noms de messages émis et souscrits d'un service dans les deux registres |
+| desincription | emetteur (subscriber), liste_emission (string[]), liste_abonnement (string[]) | void | Retire les noms de messages émis et souscrits d'un service des deux registres |
+| envoie | emetteur (subscriber), t (object) | void | Route un objet message vers tous les abonnés ; itère les clés non-`id`, recherche les abonnés dans listeAbonnement, appelle leur `traitementMessage` |
 
 ---
 
-## 3. Classe abstraite ControllerService
+## CanalSocketIO
 
-| Propriété | Type | Visibilité | Description | Exemple |
-|-----------|------|------------|-------------|---------|
-| `nomDInstance` | `string` | `readonly` | Nom d'inscription dans le controleur | `"UserService"` |
-| `controleur` | `Controller` | `protected readonly` | Référence au controleur | `new Controller()` |
-| `messagesEmitted` | `string[]` | `readonly` | Messages que ce service peut émettre | `["user_response", "user_list_response"]` |
-| `messagesReceived` | `string[]` | `readonly` | Messages que ce service écoute | `["user", "user_list"]` |
+### Propriétés
 
-| Méthode | Paramètres | Retour | Static/Instance | Description |
-|---------|------------|--------|-----------------|-------------|
-| `constructor` | `controleur, nom, messagesEmitted, messagesReceived` | `ControllerService` | instance | S'inscrit automatiquement auprès du controleur via `controleur.inscription()` |
-| `traitementMessage` | `mesg: ControllerMessage` | `void` | instance (abstraite) | Dispatcher de messages. Doit être implémenté par chaque service |
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| controleur | Controleur | - | Référence à l'instance du contrôleur |
+| nomDInstance | string | `"canalsocketio"` | Identité du service pour l'enregistrement auprès du contrôleur |
+| socket | Server (socket.io) | - | Instance du serveur Socket.io |
+| listeDesMessagesEmis | string[] | `["login", "register", ...]` | Tous les noms de messages émettables, provenant de ListeMessagesEmis |
+| listeDesMessagesRecus | string[] | `["login_response", ...]` | Tous les noms de messages recevables, provenant de ListeMessagesRecus |
+| verbose | boolean | `false` | Flag de logging verbeux au niveau de l'instance |
 
-**Note :** AuthService n'étend pas ControllerService -- il utilise un pattern autonome similaire (même interface `nomDInstance` + `traitementMessage`) mais gère sa propre inscription et son cycle de vie de manière indépendante. Tous les autres services (UserService, TeamService, ChannelService) étendent ControllerService.
+### Méthodes
 
----
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| constructor | s (Server), c (Controleur), nom (string) | CanalSocketIO | S'enregistre auprès du contrôleur, configure les listeners socket `message`, `demande_liste`, et `disconnect` |
+| traitementMessage | mesg (object) | void | Envoie le message aux sockets cibles ; si `mesg.id` est undefined diffuse à tous, sinon émet vers chaque socket ID du tableau `mesg.id` |
 
-## 4. Initialisation (index.ts)
+### Gestionnaires d'événements socket (dans le constructeur)
 
-```typescript
-const controleur = new Controleur()
-new CanalSocketio(server, controleur, "canalsocketio")
-const authService = new AuthService(controleur, "AuthService")
-authService.register()
-new UserService(controleur, "UserService", [...emitted], [...received])
-new TeamService(controleur, "TeamService", [...emitted], [...received])
-new ChannelService(controleur, "ChannelService", [...emitted], [...received])
-```
-
-Séquence :
-1. Crée l'instance du controleur (JS)
-2. Crée le CanalSocketio lié au serveur Socket.io
-3. Crée AuthService avec `new` + appelle `register()` (pattern autonome)
-4. Crée et inscrit les autres services via le constructeur de ControllerService
+| Événement | Comportement |
+|-----------|-------------|
+| `message` | Parse le JSON, injecte `socket.id` comme `mesg.id`, transmet au contrôleur via `envoie` |
+| `demande_liste` | Répond avec `donne_liste` contenant les listes d'émission et de souscription |
+| `disconnect` | Met le `disturb_status` de l'utilisateur à `"offline"` via la recherche SessionManager, puis émet `socket_disconnect` à travers le contrôleur |
 
 ---
 
-## 5. Services inscrits
+## Interface Subscriber (implicite)
 
-| Service | nomDInstance | Émis | Reçus |
-|---------|-------------|------|-------|
-| `CanalSocketio` | `"canalsocketio"` | (tous les messages Socket.io) | (tous les messages Socket.io) |
-| `AuthService` | `"AuthService"` | 4 messages auth | 5 messages auth |
-| `UserService` | `"UserService"` | 2 messages user | 2 messages user |
-| `TeamService` | `"TeamService"` | 3 messages team | 3 messages team |
-| `ChannelService` | `"ChannelService"` | 4 messages channel | 4 messages channel |
+Chaque service enregistré auprès du contrôleur doit satisfaire cette forme. Il n'y a pas de type TypeScript ou de classe abstraite pour l'imposer.
 
----
-
-## 6. Pattern de communication
-
-```
-Client (Navigateur)
-    | Socket.io
-CanalSocketio
-    | controleur.envoie() / traitementMessage()
-AuthService / UserService / TeamService / ChannelService
-    | MongoDB
-Database
-```
+| Nom | Type | Description |
+|-----|------|-------------|
+| nomDInstance | string | Identité unique du service utilisée comme clé dans les registres du contrôleur |
+| traitementMessage | (mesg: object) => void | Gestionnaire de messages appelé par le contrôleur quand un message souscrit arrive |
 
 ---
 
-## 7. Exemples
+## Détails
 
-### Créer un nouveau service
-
-```typescript
-class MyService extends ControllerService {
-    traitementMessage(mesg: ControllerMessage) {
-        const socketId = mesg.id;
-        if (mesg.my_action) this.handleMyAction(socketId, mesg.my_action);
-    }
-
-    private handleMyAction(socketId: string, payload: any) {
-        this.controleur.envoie(this, { id: socketId, my_action_response: { success: true } });
-    }
-}
-
-new MyService(controleur, "MyService", ["my_action_response"], ["my_action"]);
-```
-
-### Message transitant par le controleur
-
-```typescript
-controleur.envoie(canalsocketio, { id: "xK9...", login: { email: "john@example.com", password: "sha256...", deviceInfo: "web" } });
-
-controleur.envoie(this, { id: "xK9...", login_response: { status: "success", user: {...}, expiresAt: 1709312400000 } });
-```
+- `controleur.js` et `canalsocketio.js` sont des fichiers JavaScript pur, pas TypeScript.
+- Les objets message utilisent toujours `id` comme clé d'identifiant de socket ; toutes les autres clés sont des noms de messages avec leurs payloads.
+- `envoie` ne route que les messages dont les noms apparaissent dans `listeEmission` pour l'expéditeur et `listeAbonnement` pour les récepteurs.
+- CanalSocketIO s'enregistre pour TOUS les noms de messages définis dans `ListeMessages.ts` (via `ListeMessagesEmis` / `ListeMessagesRecus`), agissant comme le pont universel entre les sockets et les services.

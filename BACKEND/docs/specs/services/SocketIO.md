@@ -1,67 +1,26 @@
-# Référence de la classe SocketIO — VisioConf
+# Socket.io Initialization
 
-**Fichier source** : `BACKEND/src/models/services/SocketIO.ts`
-**Classe parente** : Aucune (classe statique autonome)
+**Source**: `BACKEND/src/index.ts`
 
----
+Il n'y a pas de classe SocketIO autonome. Le serveur Socket.io est instancié directement dans index.ts, attaché au serveur HTTP et passé à CanalSocketIO pour le pont pub/sub. Le middleware de session de RestService est appliqué au moteur socket pour le partage de session basée sur les cookies.
 
-## 1. Description
+## Propriétés
 
-`SocketIO` initialise le serveur Socket.io et expose son instance pour être utilisée par le `CanalSocketio`. Le serveur est attaché au serveur HTTP existant.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `socketServer` | `Server` (socket.io) | - | Variable locale dans index.ts, instance du serveur Socket.io |
 
----
+## Méthodes
 
-## 2. Propriétés de la classe
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| `new Server(httpServer, options)` | `HTTPServer.server, { cors }` | `Server` | Crée le serveur Socket.io attaché au serveur HTTP avec la config CORS |
+| `SessionManager.bindToServer` | `socketServer: Server` | `void` | Lie le SessionManager au serveur socket pour le suivi des sessions |
+| `socketServer.engine.use` | `RestService.sessionMiddleware` | `void` | Applique le middleware express-session au moteur Socket.io pour le partage des cookies |
 
-| Propriété | Type | Visibilité | Description |
-|-----------|------|------------|-------------|
-| `server` | `Server` (socket.io) | `static` | Instance du serveur Socket.io |
+## Détails
 
----
-
-## 3. Variables et constantes
-
-| Nom | Type | Valeur | Description | Exemple |
-|-----|------|--------|-------------|---------|
-| CORS origin | `string` | `"*"` | Toutes les origines autorisées | `"*"` |
-| CORS methods | `string[]` | `["GET", "POST"]` | Méthodes HTTP autorisées | `["GET", "POST"]` |
-
----
-
-## 4. Méthodes
-
-| Méthode | Paramètres | Retour | Static/Instance | Description |
-|---------|------------|--------|-----------------|-------------|
-| `init` | — | `void` | static | Crée le serveur Socket.io attaché à `HTTPServer.server` avec la config CORS |
-
----
-
-## 5. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `HTTPServer` | SocketIO.init() utilise HTTPServer.server | Le serveur Socket.io s'attache au serveur HTTP |
-| `CanalSocketio` | CanalSocketio reçoit SocketIO.server | Le canal Socket.io utilise l'instance pour gérer les connexions |
-
----
-
-## 6. Types TypeScript
-
-```typescript
-class SocketIO {
-    static server: Server;
-    static init(): void;
-}
-```
-
----
-
-## 7. Exemples
-
-### Initialisation (index.ts)
-
-```typescript
-SocketIO.init();
-// SocketIO.server est maintenant disponible pour CanalSocketio
-new CanalSocketio(SocketIO.server, controleur, "canalsocketio");
-```
+- Origine CORS : variable d'env `FRONTEND_URL` ou `http://localhost:3000`.
+- Méthodes CORS : GET, POST. Credentials activé.
+- Le serveur socket est passé à `new CanalSocketIO(socketServer, controleur, "canalsocketio")` qui fait le pont entre les événements socket et le système pub/sub du contrôleur.
+- Services enregistrés sur le contrôleur après la configuration socket : AuthService, ChannelService, TeamService, UserService.

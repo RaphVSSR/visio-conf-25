@@ -1,40 +1,36 @@
-# Référence du composant PostResponseItem — VisioConf
+# PostResponseItem
 
-**Fichier source** : `FRONTENDV2/src/components/PostResponseItem/PostResponseItem.tsx`
-**Styles** : `FRONTENDV2/src/components/PostResponseItem/PostResponseItem.scss`
-**Type** : Composant React fonctionnel (FC)
+**Source**: `FRONTENDV2/src/components/PostResponseItem/PostResponseItem.tsx`
 
----
+Affiche une réponse unique au sein d'un fil de publication. Affiche l'avatar de l'auteur, le nom, l'horodatage et le contenu. Met en surbrillance visuellement la réponse si l'utilisateur courant en est l'auteur.
 
-## 1. Description
+## Props
 
-`PostResponseItem` affiche une réponse à un post de canal avec les informations de l'auteur et la date relative.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| response | `any` | `{ authorId: "x", authorFirstname: "Jane", content: "Reply text", createdAt: "..." }` | Objet de données de la réponse |
+| currentUserId | `string` | `"abc123"` | Utilisé pour déterminer l'auteur et afficher le badge "Vous" |
+| id | `string \| undefined` | `"response-abc"` | Attribut HTML id optionnel pour le div conteneur |
 
----
+## State
 
-## 2. Props
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| *(aucun)* | — | — | Aucun état local |
 
-```typescript
-interface PostResponseItemProps {
-    response: any
-    currentUserId: string
-    id?: string
-}
-```
+## Méthodes
 
----
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| *(aucune)* | — | — | Aucune fonction handler |
 
-## 3. Comportement
+## Détails
 
-- **Avatar** : Photo de profil ou initiales de l'auteur
-- **Badge "You"** : Affiché si la réponse est de l'utilisateur courant
-- **Date relative** : Même logique que `PostItem.formatRelativeDate()`
-- **Classe CSS** : Variante de style si l'auteur est l'utilisateur courant
+- Ajoute la classe CSS `post-response-item--author` quand `response.authorId === currentUserId`.
+- L'avatar affiche l'image si `response.authorPicture` existe, sinon les initiales depuis firstname/lastname.
+- L'horodatage est formaté via l'utilitaire `formatRelativeDate`.
+- Export par défaut.
 
----
+## Flux
 
-## 4. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `PostItem` | PostItem rend des PostResponseItem | Composant parent |
+Voir [channel-flows.md](../../flows/channel-flows.md)

@@ -1,63 +1,43 @@
-# Référence du composant TeamsSidebar — VisioConf
+# TeamsSidebar
 
-**Fichier source** : `FRONTENDV2/src/components/TeamsSidebar/TeamsSidebar.tsx`
-**Styles** : `FRONTENDV2/src/components/TeamsSidebar/TeamsSidebar.scss`
-**Type** : Composant React fonctionnel (FC)
+**Source**: `FRONTENDV2/src/components/TeamsSidebar/TeamsSidebar.tsx`
 
----
+Composant de barre latérale listant les équipes de l'utilisateur avec filtrage par recherche. Affiche les noms des équipes, les badges de rôle et fournit des actions de création/édition. Affiche un bouton paramètres pour les utilisateurs administrateurs.
 
-## 1. Description
+## Props
 
-`TeamsSidebar` affiche la liste des équipes de l'utilisateur avec recherche, sélection et actions (créer, éditer). Indique le rôle admin et l'état de non-membre via des badges.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| teams | `Team[]` | `[{ id: "t1", name: "Dev", role: "admin" }]` | Liste des équipes à afficher |
+| selectedTeam | `Team \| null` | `null` | Équipe actuellement sélectionnée, mise en surbrillance dans la liste |
+| onSelectTeam | `(team: Team) => void` | — | Appelé quand un élément d'équipe est cliqué |
+| onCreateTeam | `() => void` | — | Appelé quand le bouton de création est cliqué |
+| onEditTeam | `(team: Team) => void` | — | Appelé quand le bouton paramètres est cliqué sur une équipe admin |
+| isLoading | `boolean` | `false` | Affiche un spinner au lieu de la liste des équipes |
 
----
+## State
 
-## 2. Props
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| searchQuery | `string` | `""` | Valeur courante du champ de recherche |
 
-```typescript
-interface TeamsSidebarProps {
-    teams: Team[]
-    selectedTeam: Team | null
-    onSelectTeam: (team: Team) => void
-    onCreateTeam: () => void
-    onEditTeam: (team: Team) => void
-    isLoading: boolean
-}
-```
+## Méthodes
 
----
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| isMember | team (`Team`) | boolean | Retourne vrai si `team.role` est "admin" ou "member" |
+| isAdmin | team (`Team`) | boolean | Retourne vrai si `team.role` est "admin" |
 
-## 3. State local
+## Détails
 
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `searchQuery` | `string` | `""` | Filtre de recherche par nom d'équipe |
+- `filteredTeams` calculé via `useMemo`, filtre par nom d'équipe sans sensibilité à la casse.
+- Les non-membres voient une icône `Lock` et un badge "Non-membre" au lieu de l'icône `Users`.
+- Les équipes admin affichent un badge "Admin" et un bouton paramètres (appelle `onEditTeam` avec `stopPropagation`).
+- Utilise `framer-motion` `AnimatePresence` pour les animations d'entrée/sortie des éléments de liste.
+- L'équipe sélectionnée reçoit la classe CSS `teams-sidebar__item--selected`.
+- Le type `Team` est importé depuis `pages/Teams/Teams.types`.
+- Export nommé.
 
----
+## Flux
 
-## 4. Comportement
-
-- **Recherche** : Filtrage en temps réel par nom d'équipe (case-insensitive)
-- **Badges** : `Admin` pour les admins, indication si non-membre
-- **Settings** : Bouton d'édition visible uniquement pour les admins
-- **Animation** : Framer Motion pour l'apparition des items
-- **États** : Loading spinner, état vide avec message
-
----
-
-## 5. Composants utilisés
-
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `SearchBar` | `design-system/` | Barre de recherche des équipes |
-| `Button` | `design-system/` | Bouton de création d'équipe |
-| `LucideIcons` | `design-system/` | Icônes (Settings, Users, Plus) |
-
----
-
-## 6. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `TeamsPage` | TeamsPage rend TeamsSidebar | Composant parent |
-| `Team` | Affiche les données Team | Type de données |
+Voir [team-flows.md](../../flows/team-flows.md)

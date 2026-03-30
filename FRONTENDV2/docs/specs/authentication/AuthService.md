@@ -1,157 +1,60 @@
-# Referentiel de la classe AuthSync — VisioConf (Frontend)
+# AuthSync
 
-**Fichier source** : `FRONTENDV2/src/services/auth/AuthSync.ts`
-**Types** : `FRONTENDV2/src/services/auth/AuthSync.types.ts`
+**Source**: `FRONTENDV2/src/services/auth/AuthSync.ts` + `FRONTENDV2/src/services/auth/AuthSync.types.ts`
 
----
+Gère l'authentification frontend via les messages Socket.io et les endpoints REST. S'abonne à 3 messages de réponse serveur (`login_response`, `authenticate_response`, `register_response`), envoie les mises à jour d'état à React via un callback `setState`, et gère les timers d'expiration de session. Au démarrage du socket, envoie automatiquement `authenticate` et configure la logique de reconnexion. La déconnexion et le rafraîchissement de session utilisent des routes REST (`/auth/logout`, `/auth/refresh`).
 
-## 1. Description
+## Messages
 
-`AuthSync` gere toute l'authentification frontend via `MessageClientAdapter` (Socket.io). Elle s'abonne a 3 messages du serveur (`login_response`, `authenticate_response`, `register_response`) et dispatche les mises a jour de state React via un callback `setState`.
+| Nom | Direction | Payload (types) | Exemple | Description |
+|-----|-----------|-----------------|---------|-------------|
+| `login` | client -> server | `{ email: string, password: string }` | `{ email: "a@b.com", password: "abc" }` | Connexion avec identifiants |
+| `register` | client -> server | `{ password: string, firstname: string, lastname: string, email: string, phone: string }` | `{ password: "x", firstname: "John", ... }` | Création de compte |
+| `authenticate` | client -> server | `{}` | `{}` | Ré-authentification via cookie (rechargement de page, reconnexion socket) |
+| `login_response` | server -> client | `{ status: "success" \| "failure", user?: AuthUser, expiresAt?: number }` | `{ status: "success", user: {...}, expiresAt: 17... }` | En cas de succès : définit l'utilisateur + démarre le timer d'expiration. En cas d'échec : définit `loginRejected: true` |
+| `authenticate_response` | server -> client | `{ status: "success" \| "failure", user?: AuthUser, expiresAt?: number }` | `{ status: "success", user: {...} }` | En cas de succès : définit l'utilisateur + démarre le timer d'expiration. En cas d'échec : réinitialise l'état d'authentification |
+| `register_response` | server -> client | `{ status: "success" \| "failure", user?: AuthUser, expiresAt?: number }` | `{ status: "failure" }` | En cas de succès : définit l'utilisateur + démarre le timer d'expiration. En cas d'échec : définit `isLoading: false` |
+| `POST /auth/logout` | client -> server (REST) | — | — | Détruit la session et supprime le cookie |
+| `POST /auth/refresh` | client -> server (REST) | — | Response: `{ status: "refreshed", expiresAt: number }` | Prolonge la session, relance le timer d'expiration |
 
-Les sessions sont gerees cote serveur par `connect-mongodb-session` (cookie-based). Le logout et le refresh de session passent par des routes REST (`/auth/logout`, `/auth/refresh`).
+## Propriétés
 
----
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `socket` | `MessageClientAdapter` (private) | — | Wrapper Socket.io pour l'envoi/réception de messages |
+| `onStateChange` | `StateUpdater` (private) | — | Callback React `setState` provenant de AuthContext |
+| `expiryTimer` | `ReturnType<typeof setTimeout> \| null` (private) | — | Référence du timer d'avertissement d'expiration en cours |
+| `BACKEND_URL` | `string` (module const) | `"http://localhost:3220"` | URL du backend depuis la variable d'environnement `REACT_APP_BACKEND_API_URL` |
 
-## 2. Proprietes de la classe
+## Méthodes
 
-| Propriete | Type | Visibilite | Description |
-|-----------|------|------------|-------------|
-| `socket` | `MessageClientAdapter` | `private` | Wrapper Socket.io pour l'envoi/reception des messages |
-| `onStateChange` | `StateUpdater` | `private` | Callback `setState` du AuthContext |
-| `expiryTimer` | `ReturnType<typeof setTimeout> \| null` | `private` | Timer d'avertissement d'expiration de session |
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| `constructor` | `socket: MessageClientAdapter, onStateChange: StateUpdater` | `AuthSync` | S'abonne aux 3 messages de réponse, envoie `authenticate` quand le socket est prêt, configure le handler de reconnexion |
+| `login` | `email: string, password: string` | `void` | Définit `isLoading: true`, réinitialise `loginRejected`, envoie le message `login` |
+| `register` | `data: { password: string, firstname: string, lastname: string, email: string, phone: string }` | `void` | Définit `isLoading: true`, envoie le message `register` |
+| `logout` | — | `Promise<void>` | Envoie un POST à `/auth/logout`, efface le timer d'expiration, réinitialise l'état d'authentification |
+| `refreshSession` | — | `Promise<void>` | Envoie un POST à `/auth/refresh`, relance le timer si `status: "refreshed"`, sinon réinitialise l'état d'authentification |
+| `destroy` | — | `void` | Efface le timer d'expiration, se désabonne des 3 messages de réponse |
+| `startExpiryTimer` | `expiresAt: number` (private) | `void` | Timer à deux étapes : affiche d'abord l'avertissement (`showExpiryWarning: true`), puis réinitialise l'état d'authentification à l'expiration |
+| `clearExpiryTimer` | — (private) | `void` | Annule le timer d'expiration actif |
 
----
+## Types
 
-## 3. Variables et constantes
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `AuthUser` | object | `{ _id: "abc", firstname: "John", ... }` | Données utilisateur avec `_id`, `firstname`, `lastname`, `email`, `phone`, `status`, `job`, `desc`, `picture`, `is_online`, `disturb_status`, `roles: string[]` |
+| `AuthState` | object | `{ user: null, isAuthenticated: false, ... }` | Contient `user`, `isAuthenticated`, `isLoading`, `expiresAt`, `showExpiryWarning`, `loginRejected` |
+| `AuthActions` | object | — | Contient `login`, `register`, `logout`, `refreshSession`, `dismissExpiryWarning` |
+| `AuthContextType` | `AuthState & AuthActions & { socket: MessageClientAdapter \| null }` | — | Type de contexte complet utilisé par AuthContext |
+| `StateUpdater` | `(updater: (prev: AuthState) => AuthState) => void` | — | Callback de type React setState |
 
-| Nom | Type | Description | Exemple |
-|-----|------|-------------|---------|
-| `BACKEND_URL` | `string` | URL du backend pour les requetes REST | `"http://localhost:3220"` |
-| `REACT_APP_SESSION_EXPIRY_WARNING_MS` | `env` | Millisecondes avant expiration pour afficher l'avertissement | `"1800000"` (30 min) |
+## Détails
 
----
+- Le décalage du timer d'avertissement est piloté par la variable d'environnement `REACT_APP_SESSION_EXPIRY_WARNING_MS`
+- À la reconnexion du socket, renvoie automatiquement `authenticate` pour restaurer la session
+- La déconnexion utilise `credentials: "include"` pour envoyer le cookie de session avec la requête REST
 
-## 4. Methodes
+## Flux
 
-| Methode | Parametres | Retour | Description |
-|---------|------------|--------|-------------|
-| `constructor` | `socket: MessageClientAdapter, onStateChange: StateUpdater` | `AuthSync` | S'abonne aux 3 messages response, envoie `authenticate` des que le socket est pret |
-| `login` | `email: string, password: string` | `void` | Envoie `login` avec email, password, et `navigator.userAgent` comme deviceInfo |
-| `register` | `data: { password, firstname, lastname, email, phone }` | `void` | Envoie `register` |
-| `logout` | — | `Promise<void>` | POST `/auth/logout` (REST), clear timer, reset state |
-| `refreshSession` | — | `Promise<void>` | POST `/auth/refresh` (REST), relance timer si `refreshed` |
-| `destroy` | — | `void` | Nettoie le timer d'expiration et se desabonne des 3 messages |
-| `startExpiryTimer` | `expiresAt: number` | `void` | `private` — Double timer : avertissement puis expiration |
-| `clearExpiryTimer` | — | `void` | `private` — Annule le timer en cours |
-
----
-
-## 5. Inscription aux messages
-
-```typescript
-new AuthSync(socket, setState)
-
-// Abonnements (serveur -> client) — 3 messages
-socket.on("login_response", handleLoginResponse)         // status: success | failure
-socket.on("authenticate_response", handleAuthenticateResponse) // status: success | failure
-socket.on("register_response", handleRegisterResponse)   // status: success | failure
-
-// Envois (client -> serveur) — 3 messages Socket.io
-socket.send("login", { email, password, deviceInfo })
-socket.send("register", { password, firstname, lastname, email, phone })
-socket.send("authenticate", {})
-
-// Requetes REST (client -> serveur) — 2 endpoints
-fetch("POST /auth/logout", { credentials: "include" })
-fetch("POST /auth/refresh", { credentials: "include" })
-```
-
----
-
-## 6. Catalogue des messages
-
-**Total : 3 client->serveur (Socket.io) + 2 client->serveur (REST) + 3 serveur->client = 8 messages**
-
-### Client -> Serveur (Socket.io)
-
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `login` | `{ email: string, password: string, deviceInfo: string }` | Connexion avec identifiants |
-| `register` | `{ password, firstname, lastname, email, phone }` | Creation de compte |
-| `authenticate` | `{}` | Re-authentification via cookie (page refresh, reconnexion socket) |
-
-### Client -> Serveur (REST)
-
-| Endpoint | Methode | Description |
-|----------|---------|-------------|
-| `/auth/logout` | `POST` | Deconnexion volontaire, destroy session + clear cookie |
-| `/auth/refresh` | `POST` | Prolongation de session, renvoie `{ status, expiresAt }` |
-
-### Serveur -> Client
-
-| Message | Status | Payload | Action sur le state |
-|---------|--------|---------|---------------------|
-| `login_response` | `success` | `{ user, expiresAt }` | `isAuthenticated: true`, lance le timer |
-| `login_response` | `failure` | `{ reason }` | `loginRejected: true` |
-| `authenticate_response` | `success` | `{ user, expiresAt }` | `isAuthenticated: true`, lance le timer |
-| `authenticate_response` | `failure` | `{ reason }` | Reset du state (non authentifie) |
-| `register_response` | `success` | `{ user, expiresAt }` | `isAuthenticated: true`, lance le timer |
-| `register_response` | `failure` | `{ reason }` | `isLoading: false` |
-
----
-
-## 7. Flux par scenario
-
-> Voir [auth-flows.md](../../flows/auth-flows.md)
-
----
-
-## 8. Types TypeScript
-
-```typescript
-type StateUpdater = (updater: (prev: AuthState) => AuthState) => void
-
-type AuthUser = {
-    _id: string
-    firstname: string
-    lastname: string
-    email: string
-    phone: string
-    status: string
-    job: string
-    desc: string
-    picture: string
-    is_online: boolean
-    disturb_status: string
-    roles: string[]
-}
-
-type AuthState = {
-    user: AuthUser | null
-    isAuthenticated: boolean
-    isLoading: boolean
-    expiresAt: number | null
-    showExpiryWarning: boolean
-    loginRejected: boolean
-}
-
-type AuthActions = {
-    login: (email: string, password: string) => void
-    register: (data: { password, firstname, lastname, email, phone }) => void
-    logout: () => void
-    refreshSession: () => void
-    dismissExpiryWarning: () => void
-}
-
-type AuthContextType = AuthState & AuthActions & { socket: MessageClientAdapter | null }
-```
-
----
-
-## 9. Relations
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `MessageClientAdapter` | AuthSync utilise socket.on/off/send | Communication Socket.io |
-| `AuthContext` | AuthContext cree et detruit AuthSync | Le provider React gere le lifecycle |
+Voir [auth-flows.md](../../flows/auth-flows.md)

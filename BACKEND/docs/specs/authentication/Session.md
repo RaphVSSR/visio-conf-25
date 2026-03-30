@@ -1,97 +1,37 @@
-# Référence de la classe SessionManager — VisioConf
+# SessionManager
 
-**Fichier source** : `BACKEND/src/models/services/authentication/SessionManager.ts`
-**Classe** : Statique (pas d'instanciation)
-**Dépendances** : `socket.io` (Server), `express-session` (via socket.request.session)
+**Source**: `BACKEND/src/models/services/authentication/SessionManager.ts`
 
----
+Classe statique qui gère la liaison socket-utilisateur via les rooms Socket.io et `express-session`. Les sessions sont stockées dans MongoDB via `connect-mongodb-session`. Le mapping entre sockets et utilisateurs est maintenu dans `socket.request.session.userId` et les rooms Socket.io nommées par userId.
 
-## 1. Description
+## Propriétés
 
-`SessionManager` gère le mapping socket ↔ utilisateur via **Socket.io rooms** et **express-session**. Pas de collection MongoDB dédiée — les sessions sont stockées dans le store `connect-mongodb-session` (collection `sessions`), et le mapping socket-user est géré via `socket.request.session.userId` + Socket.io rooms.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `io` | `Server` (socket.io, private static) | — | Référence à l'instance du serveur Socket.io |
 
----
+## Méthodes
 
-## 2. Propriétés
-
-| Propriété | Type | Visibilité | Description |
-|-----------|------|------------|-------------|
-| `io` | `Server` (socket.io) | `private static` | Référence au serveur Socket.io |
-
----
-
-## 3. Variables et constantes
-
-| Nom | Type | Valeur | Description | Exemple |
-|-----|------|--------|-------------|---------|
-| `SESSION_DURATION` | `env` | `process.env.SESSION_DURATION \|\| "24h"` | Durée d'une session. Format: `{number}{s\|m\|h\|d}` | `"24h"`, `"30m"`, `"7d"` |
-
----
-
-## 4. Méthodes
-
-| Méthode | Paramètres | Retour | Description |
-|---------|------------|--------|-------------|
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
 | `bindToServer` | `io: Server` | `void` | Stocke la référence au serveur Socket.io |
-| `bind` | `socketId: string, userId: string` | `void` | Écrit `userId` dans `socket.request.session`, `session.save()`, `socket.join(userId)` |
-| `unbind` | `socketId: string` | `void` | Lit `session.userId`, `socket.leave(userId)`, supprime `session.userId`, `session.save()` |
-| `getUserId` | `socketId: string` | `string \| null` | Lit `socket.request.session.userId` |
-| `getUserSocketIds` | `userId: string` | `string[]` | Lit le room Socket.io nommé `userId`, retourne les socketIds |
-| `hasActiveSessions` | `userId: string` | `boolean` | Vérifie si le room existe et `size > 0` |
-| `refreshSession` | `socketId: string` | `void` | Met à jour `session.cookie.maxAge` avec la durée configurée, `session.save()` |
-| `getSessionDurationMs` | — | `number` | Parse `SESSION_DURATION` et retourne en millisecondes |
-| `parseExpiryToMs` | `expiry: string` | `number` | `private static` — Convertit `{number}{s\|m\|h\|d}` en ms. Défaut: 24h |
+| `bind` | `socketId: string, userId: string` | `void` | Écrit `userId` dans `socket.request.session`, sauvegarde la session, ajoute le socket à la room userId |
+| `unbind` | `socketId: string` | `void` | Lit `session.userId`, quitte la room userId, supprime `session.userId`, sauvegarde la session |
+| `getUserId` | `socketId: string` | `string \| null` | Lit et retourne `socket.request.session.userId`, ou null si absent |
+| `getUserSocketIds` | `userId: string` | `string[]` | Retourne tous les socketIds dans la room Socket.io nommée par userId |
+| `hasActiveSessions` | `userId: string` | `boolean` | Retourne true si la room userId existe et contient au moins un socket |
+| `refreshSession` | `socketId: string` | `void` | Met à jour `session.cookie.maxAge` avec la durée configurée, sauvegarde la session |
+| `getSessionDurationMs` | — | `number` | Parse la variable d'env `SESSION_DURATION` et retourne la durée en millisecondes |
+| `parseExpiryToMs` | `expiry: string` (private static) | `number` | Convertit le format `{number}{s\|m\|h\|d}` en millisecondes, défaut à 24h si invalide |
 
----
+## Détails
 
-## 5. Architecture de session
+La variable d'env `SESSION_DURATION` accepte le format `{number}{s|m|h|d}` (ex. `"24h"`, `"30m"`, `"7d"`). Défaut à `"24h"` si non définie ou non parseable.
 
-```
-express-session (cookie)
-    ↕ connect-mongodb-session (store MongoDB, collection "sessions")
-socket.request.session
-    ├─ .userId    → écrit par bind(), lu par getUserId(), supprimé par unbind()
-    ├─ .cookie    → .maxAge mis à jour par refreshSession()
-    └─ .save()    → persiste dans le store MongoDB
+Toutes les méthodes sont statiques. Pas d'instanciation nécessaire — appeler `SessionManager.bindToServer(io)` au démarrage, puis utiliser les méthodes statiques directement.
 
-Socket.io rooms
-    ├─ socket.join(userId)    → bind()
-    ├─ socket.leave(userId)   → unbind()
-    └─ io.sockets.adapter.rooms.get(userId)  → getUserSocketIds(), hasActiveSessions()
-```
+`bind()` et `unbind()` appellent tous deux `session.save()` pour persister les changements dans le store de sessions MongoDB. Le join/leave des rooms Socket.io maintient le mapping en mémoire synchronisé pour `getUserSocketIds()` et `hasActiveSessions()`.
 
----
+## Flux
 
-## 6. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `AuthService` | Utilise SessionManager | bind, unbind, getUserId, getUserSocketIds, hasActiveSessions, refreshSession |
-| `ChannelService` | Utilise SessionManager | getUserId (resolveUserId), getUserSocketIds (broadcast) |
-| `TeamService` | Utilise SessionManager | getUserId (resolveUserId) |
-| `UserService` | Utilise SessionManager | getUserId (resolveUserId) |
-| `AccessRoleGuard` | Utilise SessionManager | getUserId (resolveUser) |
-| `RestService` | Configure express-session | sessionMiddleware partagé avec Socket.io handshake |
-
----
-
-## 7. Exemples
-
-```typescript
-SessionManager.bindToServer(io)
-
-SessionManager.bind("socketId123", "userId456")
-// → socket.request.session.userId = "userId456"
-// → socket.join("userId456")
-
-SessionManager.getUserId("socketId123")           // → "userId456"
-SessionManager.getUserSocketIds("userId456")       // → ["socketId123", "socketIdABC"]
-SessionManager.hasActiveSessions("userId456")      // → true
-
-SessionManager.refreshSession("socketId123")       // → session.cookie.maxAge = 86400000
-SessionManager.getSessionDurationMs()              // → 86400000 (24h)
-
-SessionManager.unbind("socketId123")
-// → socket.leave("userId456")
-// → delete session.userId
-```
+Voir [auth-flows.md](../../flows/auth-flows.md)

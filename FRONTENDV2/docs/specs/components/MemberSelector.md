@@ -1,70 +1,43 @@
-# Référence du composant MemberSelector — VisioConf
+# MemberSelector
 
-**Fichier source** : `FRONTENDV2/src/components/MemberSelector/MemberSelector.tsx`
-**Styles** : `FRONTENDV2/src/components/MemberSelector/MemberSelector.scss`
-**Type** : Composant React fonctionnel (FC)
+**Source**: `FRONTENDV2/src/components/MemberSelector/MemberSelector.tsx`
 
----
+Composant réutilisable de sélection de membres avec recherche, basculement tout sélectionner, et affichage séparé entre les membres sélectionnés et disponibles. Utilisé dans TeamForm pour gérer l'appartenance à l'équipe.
 
-## 1. Description
+## Props
 
-`MemberSelector` est un composant réutilisable pour la sélection de membres. Utilisé par `TeamForm` et `ChannelForm` pour gérer les membres d'une équipe ou d'un canal. Offre recherche, sélection individuelle et "tout sélectionner".
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| members | `Member[]` | `[{ id: "1", firstname: "John", lastname: "Doe", isSelected: false }]` | Liste complète des membres à afficher |
+| onMemberToggle | `(member: Member) => void` | — | Appelé quand un membre est ajouté ou retiré |
+| onSelectAll | `(() => void) \| undefined` | — | Appelé quand le bouton tout sélectionner est cliqué |
+| isLoading | `boolean` | `false` | Affiche un état de chargement au lieu de la liste des membres disponibles |
+| searchPlaceholder | `string` | `"Rechercher des utilisateurs..."` | Texte placeholder pour le champ de recherche |
+| canManageMembers | `boolean` | `true` | Contrôle si les boutons de suppression apparaissent sur les membres sélectionnés |
+| currentUserId | `string \| undefined` | `"abc123"` | Utilisé pour afficher le badge "Vous" et empêcher l'auto-suppression |
+| selectedMembersTitle | `string \| undefined` | `"Membres actuels (3)"` | Titre personnalisé pour la section des sélectionnés |
+| availableMembersTitle | `string \| undefined` | `"Ajouter des membres"` | Titre personnalisé pour la section des disponibles |
+| memberFilter | `((member: Member) => boolean) \| undefined` | — | Filtre supplémentaire appliqué après la recherche |
+| showSelectedSection | `boolean` | `true` | Indique si la section des membres sélectionnés doit être rendue |
 
----
+## State
 
-## 2. Props
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| searchTerm | `string` | `""` | Valeur courante du champ de recherche |
+| filteredMembers | `Member[]` | `[]` | Membres filtrés par le terme de recherche et memberFilter |
 
-```typescript
-export interface MemberSelectorProps {
-    members: Member[]
-    onMemberToggle: (member: Member) => void
-    onSelectAll?: () => void
-    isLoading?: boolean
-    searchPlaceholder?: string
-    canManageMembers?: boolean
-    currentUserId?: string
-    selectedMembersTitle?: string
-    availableMembersTitle?: string
-    memberFilter?: (member: Member) => boolean
-    showSelectedSection?: boolean
-}
+## Méthodes
 
-export interface Member {
-    id: string
-    userId?: string
-    firstname: string
-    lastname: string
-    picture?: string
-    role?: string
-    isSelected: boolean
-}
-```
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| renderMemberAvatar | member (`Member`) | JSX | Affiche l'image avatar ou les initiales en repli |
+| renderMemberInfo | member (`Member`), showRole (`boolean`) | JSX | Affiche le nom, le badge "Vous" et le label de rôle optionnel |
 
----
+## Détails
 
-## 3. State local
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `searchTerm` | `string` | `""` | Terme de recherche |
-| `filteredMembers` | `Member[]` | — | Membres filtrés par recherche |
-
----
-
-## 4. Comportement
-
-- **Recherche** : Filtrage en temps réel par prénom/nom (case-insensitive)
-- **Deux sections** : Membres sélectionnés (en haut) et disponibles (en bas)
-- **Tout sélectionner** : Toggle qui sélectionne/désélectionne tous les membres
-- **Badge "You"** : Affiché pour l'utilisateur courant
-- **Rôle** : Affiché optionnellement à côté du nom
-- **Boutons** : Add (UserPlus) / Remove (UserMinus) selon l'état de sélection
-
----
-
-## 5. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `TeamForm` | TeamForm rend MemberSelector | Composant parent (gestion membres équipe) |
-| `ChannelForm` | ChannelForm rend MemberSelector | Composant parent (gestion membres canal) |
+- Interface `Member` : `{ id: string, userId?: string, firstname: string, lastname: string, picture?: string, role?: string, isSelected: boolean }`.
+- La recherche filtre par `firstname + lastname` sans sensibilité à la casse, puis applique le `memberFilter` optionnel.
+- Les membres sélectionnés ne peuvent pas se retirer eux-mêmes (vérifie `member.id` et `member.userId` contre `currentUserId`).
+- Le bouton tout sélectionner bascule entre "Sélectionner tout" / "Désélectionner tout" selon `areAllAvailableSelected`.
+- Export par défaut (pas d'export nommé).

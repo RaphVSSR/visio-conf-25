@@ -1,67 +1,54 @@
-# Référence du composant ChannelForm — VisioConf
+# ChannelForm
 
-**Fichier source** : `FRONTENDV2/src/components/ChannelForm/ChannelForm.tsx`
-**Styles** : `FRONTENDV2/src/components/ChannelForm/ChannelForm.scss`
-**Type** : Composant React fonctionnel (FC)
+**Source**: `FRONTENDV2/src/components/ChannelForm/ChannelForm.tsx`
 
----
+Composant de formulaire pour la création et l'édition de canaux au sein d'une équipe. Gère le nom du canal, le basculement de visibilité public/privé, et la sélection de membres pour les canaux privés.
 
-## 1. Description
+## Props
 
-`ChannelForm` est le formulaire de création et d'édition de canal au sein d'une équipe. Gère la visibilité (public/privé) et la sélection de membres pour les canaux privés.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| onChannelCreated | `(channel: any) => void` | -- | Callback en cas de création, mise à jour ou suppression réussie |
+| onCancel | `() => void` | -- | Callback pour fermer le formulaire |
+| channelToEdit | `any` (optional) | `{ id, name, isPublic }` | Si fourni, le formulaire passe en mode édition avec les valeurs pré-remplies |
+| team | `Team` | `{ id, name }` | Équipe à laquelle le canal appartient |
 
----
+## State
 
-## 2. Props
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| socket | `Socket` (from useAuth) | -- | Instance socket pour la communication serveur |
+| user | `UserAuth` (from useAuth) | -- | Utilisateur courant, utilisé pour se filtrer de la liste des membres |
+| name | `string` | `"General"` | Valeur du champ de saisie du nom du canal |
+| isPublic | `boolean` | `true` | Basculement de visibilité du canal |
+| isLoading | `boolean` | `false` | Soumission en cours |
+| error | `string` | `""` | Message d'erreur de validation ou serveur |
+| members | `Member[]` | `[{ id, firstname, ... }]` | Liste des membres de l'équipe sélectionnables |
+| isEditing | `boolean` | `false` | Vrai quand channelToEdit est fourni |
+| isLoadingMembers | `boolean` | `false` | Chargement des membres de l'équipe depuis le serveur |
+| isDeleting | `boolean` | `false` | Suppression en cours |
 
-```typescript
-interface ChannelFormProps {
-    onChannelCreated: (channel: any) => void
-    onCancel: () => void
-    channelToEdit?: any
-    team: Team
-}
-```
+## Méthodes
 
----
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| handleChannelActionResponse | data: `any` | void | Gère les réponses de création/mise à jour/suppression du serveur |
+| handleTeamMemberResponse | data: `any` | void | Traite la réponse de la liste des membres de l'équipe, filtre l'utilisateur courant |
+| handleChannelMemberResponse | data: `any` | void | Marque les membres existants du canal comme pré-sélectionnés |
+| handleSubmit | event: `FormEvent` | void | Valide et envoie la création ou la mise à jour via socket |
+| handleDeleteChannel | -- | void | Envoie l'action de suppression du canal via socket |
+| handleCancel | -- | void | Appelle la prop onCancel |
+| handleMemberToggle | member: `Member` | void | Bascule la sélection d'un membre individuel |
+| handleSelectAll | -- | void | Sélectionne tous les membres si certains ne le sont pas, sinon désélectionne tout |
 
-## 3. State local
+## Détails
 
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `name` | `string` | `""` / channelToEdit.name | Nom du canal |
-| `isPublic` | `boolean` | `true` / channelToEdit.isPublic | Visibilité du canal |
-| `isLoading` | `boolean` | `false` | État de soumission |
-| `error` | `string` | `""` | Message d'erreur |
-| `members` | `Member[]` | `[]` | Membres sélectionnables |
-| `isEditing` | `boolean` | — | Mode création ou édition |
-| `isLoadingMembers` | `boolean` | `true` | Chargement des membres |
-| `isDeleting` | `boolean` | `false` | État de suppression |
+- S'abonne aux événements socket `channel_action_response`, `team_member_response`, `channel_member_response` au montage ; se désabonne au nettoyage
+- Au montage, envoie `team_member { type: "list" }` pour récupérer les membres disponibles
+- En mode édition, envoie également `channel_member { type: "list" }` pour les canaux privés afin de pré-sélectionner les membres existants
+- Validation : nom requis ; au moins 1 membre requis pour les canaux privés
+- Utilise le sous-composant `MemberSelector` pour la sélection des membres des canaux privés
 
----
+## Flux
 
-## 4. Comportement clé
-
-- **Canal public** : Pas de sélection de membres (tous les membres de l'équipe sont ajoutés automatiquement)
-- **Canal privé** : Affiche le `MemberSelector`, au moins 1 membre requis
-- **Édition** : Charge les membres actuels du canal et les pré-sélectionne
-- **Validation** : Nom requis, membres requis si privé
-
----
-
-## 6. Composants utilisés
-
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `MemberSelector` | `components/` | Sélection des membres (canaux privés) |
-| `Button` | `design-system/` | Actions du formulaire |
-
----
-
-## 7. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `TeamsPage` | TeamsPage rend ChannelForm | Composant parent |
-| `MemberSelector` | ChannelForm rend MemberSelector | Sous-composant de sélection |
-| `useAuth` | ChannelForm utilise useAuth() | Controleur et userId |
+Voir [channel-flows.md](../../flows/channel-flows.md)

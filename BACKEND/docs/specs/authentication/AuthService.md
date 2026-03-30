@@ -1,223 +1,55 @@
-# Referentiel de la classe AuthService — VisioConf
+# AuthService
 
-**Fichier source** : `BACKEND/src/models/services/authentication/AuthService.ts`
-**Classe parente** : Aucune (autonome)
+**Source**: `BACKEND/src/models/services/authentication/AuthService.ts`
 
----
+Gère toute l'authentification basée sur les sockets (login, register, reconnexion, déconnexion) via le pattern pub/sub du contrôleur. Délègue la gestion des sessions à `SessionManager` et le hashage des mots de passe à SHA256. N'étend pas `ControllerService` — gère sa propre référence `controleur`, son `nomDInstance`, et sa Map de handlers.
 
-## 1. Description
+## Messages
 
-`AuthService` gere toute l'authentification via le pattern pub/sub du controleur. Il gere le login, l'inscription, l'authentification par cookie, et la deconnexion socket. Il n'etend pas `ControllerService` — il possede ses propres references `controleur`, `nomDInstance` et Map `handlers`. La gestion des sessions est deleguee a `SessionManager`. Les sessions sont basees sur les cookies via `connect-mongodb-session`.
+| Nom | Direction | Payload (types) | Exemple | Description |
+|-----|-----------|-----------------|---------|-------------|
+| `login` | Client -> Server | `{ email: string, password: string }` | `{ email: "dev@visioconf.com", password: "a1b2c3..." }` | Authentification avec identifiants |
+| `register` | Client -> Server | `{ password: string, firstname: string, lastname: string, email: string, phone: string }` | `{ password: "mdp", firstname: "John", ... }` | Création d'un nouveau compte |
+| `authenticate` | Client -> Server | none (userId résolu depuis le cookie de session) | `{}` | Reconnexion via une session existante |
+| `socket_disconnect` | Internal | `string` (socketId) | `"xK9mP2..."` | Émis lorsqu'un socket se déconnecte |
+| `login_response` | Server -> Client | `{ status: "success", user: object, expiresAt: number }` ou `{ status: "failure", reason: "user_not_found" \| "wrong_password" }` | `{ status: "success", user: {...}, expiresAt: 1709312400000 }` | Résultat du login |
+| `register_response` | Server -> Client | `{ status: "success", user: object, expiresAt: number }` ou `{ status: "failure", reason: "email_already_exists" \| string }` | `{ status: "failure", reason: "email_already_exists" }` | Résultat de l'inscription |
+| `authenticate_response` | Server -> Client | `{ status: "success", user: object, expiresAt: number }` ou `{ status: "failure", reason: "session_expired" \| "user_not_found" }` | `{ status: "success", user: {...}, expiresAt: 1709312400000 }` | Résultat de la reconnexion |
 
-Le logout et le refresh de session passent par des routes REST (`/auth/logout`, `/auth/refresh`) definies dans `AuthRoutes.ts`.
+## Propriétés
 
----
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `controleur` | `any` | — | Référence au contrôleur pour l'envoi/réception de messages |
+| `nomDInstance` | `string` | `"AuthService"` | Nom d'instance pour l'enregistrement auprès du contrôleur |
+| `handlers` | `Map<string, MessageHandler>` (private) | — | Associe les noms de messages à leurs fonctions de traitement |
 
-## 2. Proprietes de la classe
+## Méthodes
 
-| Propriete | Type | Visibilite | Description |
-|-----------|------|------------|-------------|
-| `controleur` | `any` | `public` | Reference au controleur pour l'envoi/reception de messages |
-| `nomDInstance` | `string` | `public` | `"AuthService"` — nom d'inscription dans le controleur |
-| `handlers` | `Map<string, MessageHandler>` | `private` | Map des noms de messages vers leurs fonctions de traitement |
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| `constructor` | `controleur: any, name: string` | `AuthService` | Stocke la référence au contrôleur et le nom d'instance |
+| `register` | — | `void` | Enregistre tous les handlers et appelle `controleur.inscription()` avec les listes de messages sortants/entrants |
+| `traitementMessage` | `msg: any` | `void` | Dispatcheur : extrait la clé d'action du message, recherche le handler, l'exécute |
+| `registerHandler` | `messageName: string, handler: MessageHandler` (private) | `void` | Ajoute un handler à la Map `handlers` |
+| `send` | `socketIds: string \| string[], messageName: string, payload: unknown` (private) | `void` | Encapsule `controleur.envoie()`, normalise socketIds en tableau |
+| `login` | `socketId: string, payload: { email: string, password: string }` (private async) | `Promise<void>` | Vérifie les identifiants via `User.getUser()` + `verifyPassword()`, lie la session, envoie `login_response` |
+| `authenticate` | `socketId: string` (private async) | `Promise<void>` | Résout le userId depuis `SessionManager.getUserId()`, récupère l'utilisateur, lie la session, envoie `authenticate_response` |
+| `handleRegister` | `socketId: string, payload: { password: string, firstname: string, lastname: string, email: string, phone: string }` (private async) | `Promise<void>` | Vérifie l'unicité de l'email, crée l'utilisateur avec mot de passe hashé, lie la session, envoie `register_response` |
+| `socketDisconnect` | `socketId: string` (private) | `void` | Appelle `SessionManager.unbind()` |
+| `bindSession` | `socketId: string, userId: string` (private static) | `number` | Appelle `SessionManager.bind()`, retourne le timestamp `expiresAt` |
+| `sanitizeUser` | `user: Record<string, any>` (private static) | `object` | Retourne l'objet utilisateur sans le champ `password` |
+| `hashPassword` | `password: string` (private static) | `string` | Retourne le hash SHA256 du mot de passe |
+| `verifyPassword` | `password: string, hash: string` (private static) | `boolean` | Compare le SHA256 de l'entrée avec le hash stocké |
 
----
+## Détails
 
-## 3. Methodes
+La méthode `register()` construit sa liste de messages sortants depuis `getMessagesByDomain("auth").received` et `getMessagesByDomain("socket").received`. Les messages entrants sont dérivés de `[...this.handlers.keys()]`.
 
-| Methode | Parametres | Retour | Static/Instance | Description |
-|---------|------------|--------|-----------------|-------------|
-| `register` | — | `void` | instance | Enregistre tous les handlers via `registerHandler()` et appelle `controleur.inscription()` |
-| `traitementMessage` | `msg: any` | `void` | instance | Dispatcher principal. Extrait la cle d'action, recherche le handler, l'execute |
-| `registerHandler` | `messageName: string, handler: MessageHandler` | `void` | `private` | Enregistre une fonction dans la Map `handlers` |
-| `send` | `socketIds: string \| string[], messageName: string, payload: unknown` | `void` | `private` | Encapsule `controleur.envoie()`, normalise socketIds en tableau |
-| `login` | `socketId: string, payload: { email, password, deviceInfo }` | `Promise<void>` | `private` | Authentification par identifiants. Verifie email/password, lie la session |
-| `authenticate` | `socketId: string` | `Promise<void>` | `private` | Reconnexion via cookie. Pas de payload — userId resolu depuis `SessionManager.getUserId(socketId)` |
-| `handleRegister` | `socketId: string, payload: { password, firstname, lastname, email, phone }` | `Promise<void>` | `private` | Cree un compte, hache le mot de passe, lie la session |
-| `socketDisconnect` | `socketId: string` | `void` | `private` | Gere la deconnexion socket. Delie la session via `SessionManager.unbind()` |
-| `bindSession` | `socketId: string, userId: string` | `number` (expiresAt) | `private static` | Appelle `SessionManager.bind()`, retourne le timestamp `expiresAt` |
-| `sanitizeUser` | `user: Record<string, any>` | `object` | `private static` | Supprime le champ `password` de l'objet utilisateur |
-| `parseDeviceInfo` | `ua: string` | `string` | `private static` | Parse la chaine user-agent en format lisible (ex. "Chrome sur Windows") |
-| `hashPassword` | `password: string` | `string` | `private static` | Hash SHA256 du mot de passe |
-| `verifyPassword` | `password: string, hash: string` | `boolean` | `private static` | Compare le hash SHA256 avec le hash stocke |
+Le payload `login` dans le code source n'inclut pas `deviceInfo` — seulement `email` et `password`.
 
----
+Les nouveaux comptes utilisateurs sont créés avec `roles: ["user"]` par défaut.
 
-## 4. Inscription au Controleur
+## Flux
 
-```typescript
-const authService = new AuthService(controleur, "AuthService")
-authService.register()
-```
-
-```typescript
-register() {
-    this.registerHandler("login", this.login)
-    this.registerHandler("authenticate", this.authenticate)
-    this.registerHandler("register", this.handleRegister)
-    this.registerHandler("socket_disconnect", this.socketDisconnect)
-
-    const outgoing = [...getMessagesByDomain("auth").received, ...getMessagesByDomain("socket").received]
-    this.controleur.inscription(this, outgoing, [...this.handlers.keys()])
-}
-```
-
-Sortants (le serveur peut emettre) : `login_response`, `register_response`, `authenticate_response`, `socket_disconnect`
-Entrants (le serveur ecoute) : `login`, `authenticate`, `register`, `socket_disconnect`
-
----
-
-## 5. Catalogue des messages
-
-**Total : 3 client->serveur (Socket.io) + 2 client->serveur (REST) + 3 serveur->client + 1 interne = 9 messages**
-
-### Client -> Serveur (Socket.io)
-
-| Message | Payload | Description | Exemple |
-|---------|---------|-------------|---------|
-| `login` | `{ email: string, password: string, deviceInfo: string }` | Connexion avec identifiants | `{ login: { email: "dev@visioconf.com", password: "a1b2c3...", deviceInfo: "Mozilla/5.0..." }, id: "xK9mP2..." }` |
-| `register` | `{ password: string, firstname: string, lastname: string, email: string, phone: string }` | Creation de compte | `{ register: { password: "mdp", ... }, id: "xK9mP2..." }` |
-| `authenticate` | — (pas de payload, cookie envoye automatiquement) | Reconnexion via session cookie | `{ authenticate: {}, id: "xK9mP2..." }` |
-
-### Client -> Serveur (REST — AuthRoutes.ts)
-
-| Endpoint | Methode | Description |
-|----------|---------|-------------|
-| `/auth/refresh` | `POST` | Prolonge la session. Repond `{ status: "refreshed", expiresAt }` ou `{ status: "failure", reason }` |
-| `/auth/logout` | `POST` | Detruit la session + clear cookie. Repond `{ status: "disconnected" }` |
-
-### Interne
-
-| Message | Source | Description |
-|---------|--------|-------------|
-| `socket_disconnect` | CanalSocketio | Declenche par la deconnexion du socket. Appelle `SessionManager.unbind()` |
-
-### Serveur -> Client (Socket.io)
-
-| Message | Status | Payload | Exemple |
-|---------|--------|---------|---------|
-| `login_response` | `"success"` | `{ status, user, expiresAt }` | `{ login_response: { status: "success", user: {...}, expiresAt: 170... }, id: ["xK9..."] }` |
-| | `"failure"` | `{ status, reason: "user_not_found" \| "wrong_password" }` | `{ login_response: { status: "failure", reason: "wrong_password" }, id: ["xK9..."] }` |
-| `register_response` | `"success"` | `{ status, user, expiresAt }` | `{ register_response: { status: "success", user: {...}, expiresAt: 170... }, id: ["xK9..."] }` |
-| | `"failure"` | `{ status, reason: "email_already_exists" \| string }` | `{ register_response: { status: "failure", reason: "email_already_exists" }, id: ["xK9..."] }` |
-| `authenticate_response` | `"success"` | `{ status, user, expiresAt }` | `{ authenticate_response: { status: "success", user: {...}, expiresAt: 170... }, id: ["xK9..."] }` |
-| | `"failure"` | `{ status, reason: "session_expired" \| "user_not_found" }` | `{ authenticate_response: { status: "failure", reason: "session_expired" }, id: ["xK9..."] }` |
-
-### Dispatch (traitementMessage)
-
-| Cle du message | Methode handler | Payload |
-|----------------|-----------------|---------|
-| `login` | `this.login` | `{ email, password, deviceInfo }` |
-| `authenticate` | `this.authenticate` | — (pas de payload) |
-| `register` | `this.handleRegister` | `{ firstname, lastname, email, password, phone }` |
-| `socket_disconnect` | `this.socketDisconnect` | `string` (socketId) |
-
-### Table d'assignation
-
-| Message | Emetteur | Recepteur |
-|---------|----------|-----------|
-| `login` | AuthContext (LoginForm) | AuthService |
-| `register` | AuthContext (SignupForm) | AuthService |
-| `authenticate` | AuthContext | AuthService |
-| `login_response` | AuthService | AuthContext |
-| `register_response` | AuthService | AuthContext |
-| `authenticate_response` | AuthService | AuthContext |
-
----
-
-## 6. Flux de scenarios
-
-> Voir [auth-flows.md](../../flows/auth-flows.md)
-
----
-
-## 7. Types TypeScript
-
-```typescript
-type MessageHandler = (socketId: string, payload: any) => void
-
-class AuthService {
-    controleur: any
-    nomDInstance: string
-    private handlers: Map<string, MessageHandler>
-    register(): void
-    traitementMessage(msg: any): void
-}
-
-interface User {
-    _id: string
-    firstname: string
-    lastname: string
-    email: string
-    phone: string
-    status: string
-    job: string
-    desc: string
-    picture: string
-    is_online: boolean
-    disturb_status: string
-    roles: string[]
-}
-
-interface LoginPayload {
-    email: string
-    password: string
-    deviceInfo: string
-}
-
-interface RegisterPayload {
-    password: string
-    firstname: string
-    lastname: string
-    email: string
-    phone: string
-}
-
-interface LoginResponse {
-    status: "success" | "failure"
-    user?: User
-    expiresAt?: number
-    reason?: "user_not_found" | "wrong_password"
-}
-
-interface RegisterResponse {
-    status: "success" | "failure"
-    user?: User
-    expiresAt?: number
-    reason?: "email_already_exists" | string
-}
-
-interface AuthenticateResponse {
-    status: "success" | "failure"
-    user?: User
-    expiresAt?: number
-    reason?: "session_expired" | "user_not_found"
-}
-```
-
----
-
-## 8. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `SessionManager` | AuthService -> SessionManager.bind/unbind/getUserId | Gestion des sessions en memoire |
-| `User` | AuthService -> User.getUser(), User constructor | Recherche et creation d'utilisateurs |
-| `Controller` (controleur) | AuthService <-> Controller (messages) | Recoit et emet des messages via le pub/sub |
-| `ListeMessages` | AuthService -> getMessagesByDomain() | Recupere les listes de messages pour l'inscription |
-| `AuthRoutes` | Routes REST complementaires | `/auth/refresh` et `/auth/logout` |
-
----
-
-## 9. Exemples
-
-### Flux complet de connexion (messages)
-
-```typescript
-// 1. Le client envoie via CanalSocketio :
-{ id: "xK9...", login: { email: "dev@visioconf.com", password: sha256("d3vV1s10C0nf"), deviceInfo: "Mozilla/5.0..." } }
-
-// 2. AuthService.traitementMessage() recherche "login" dans la Map handlers -> appelle this.login()
-// 3. Reponse :
-{ id: ["xK9..."], login_response: { status: "success", user: { firstname: "Admin", ... }, expiresAt: 1709312400000 } }
-```
+Voir [auth-flows.md](../../flows/auth-flows.md)

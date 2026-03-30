@@ -1,53 +1,32 @@
-# Référence du hook useChannelManager — VisioConf
+# useChannelManager
 
-**Fichier source** : `FRONTENDV2/src/hooks/useChannelManager.ts`
-**Type** : Hook React personnalisé
+**Source**: `FRONTENDV2/src/hooks/useChannelManager.ts`
 
----
+Hook de gestion d'état pour les canaux au sein d'une équipe. Gère la sélection, la création, l'édition, la suppression et la réinitialisation complète. Symétrique à `useTeamManager` mais sans gestion des membres. Ne prend aucun paramètre.
 
-## 1. Description
+## Propriétés
 
-`useChannelManager` gère l'état des canaux au sein d'une équipe : sélection, création, édition, suppression. Symétrique à `useTeamManager` mais pour les canaux. Ne prend aucun paramètre.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `channels` | `Channel[]` | `[{ id: "1", name: "general" }]` | Liste courante des canaux |
+| `selectedChannel` | `Channel \| null` | `{ id: "1", name: "general" }` | Canal actuellement sélectionné |
+| `channelFormMode` | `"create" \| "edit" \| null` | `"create"` | Mode de formulaire actif |
 
----
+## Méthodes / Actions / Valeurs retournées
 
-## 2. Signature
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| `handleChannelSelect` | `channel: Channel` | `void` | Sélectionne le canal, ferme le formulaire |
+| `handleCreateChannel` | — | `void` | Ouvre le formulaire en mode création |
+| `handleEditChannel` | `channel: Channel` | `void` | Sélectionne le canal, ouvre le formulaire en mode édition |
+| `handleChannelCreated` | `channel: Channel` | `void` | Ajoute le canal à la liste, le sélectionne, ferme le formulaire |
+| `handleChannelUpdated` | `channel: Channel` | `void` | Met à jour le canal dans la liste par `id`, met à jour la sélection si même canal, ferme le formulaire |
+| `handleChannelDeleted` | `channelId: string` | `void` | Supprime le canal de la liste, efface la sélection si le canal supprimé était sélectionné, ferme le formulaire |
+| `handleCancelChannelForm` | — | `void` | Ferme le formulaire |
+| `updateChannelsFromResponse` | `channels: Channel[]` | `void` | Remplace la liste complète des canaux, préserve la sélection si le canal existe toujours |
+| `selectFirstAvailableChannel` | — | `void` | Sélectionne `channels[0]` ou `null` si vide |
+| `clearChannels` | — | `void` | Vide la liste des canaux, efface la sélection, ferme le formulaire |
 
-```typescript
-export function useChannelManager(): UseChannelManagerReturn
-```
+## Flux
 
----
-
-## 3. Valeurs retournées
-
-### State
-
-| Propriété | Type | Description |
-|-----------|------|-------------|
-| `channels` | `Channel[]` | Liste des canaux |
-| `selectedChannel` | `Channel \| null` | Canal sélectionné |
-| `channelFormMode` | `"create" \| "edit" \| null` | Mode du formulaire |
-
-### Actions
-
-| Action | Paramètres | Description |
-|--------|------------|-------------|
-| `handleChannelSelect` | `channel: Channel` | Sélectionne un canal, ferme le formulaire |
-| `handleCreateChannel` | — | Ouvre le formulaire en mode création |
-| `handleEditChannel` | `channel: Channel` | Sélectionne le canal, ouvre le formulaire en mode édition |
-| `handleChannelCreated` | `channel: Channel` | Ajoute le canal à la liste, le sélectionne, ferme le formulaire |
-| `handleChannelUpdated` | `channel: Channel` | Met à jour le canal dans la liste (par id), met à jour la sélection si même canal |
-| `handleChannelDeleted` | `channelId: string` | Retire le canal de la liste, reset la sélection si c'était le canal courant |
-| `handleCancelChannelForm` | — | Ferme le formulaire |
-| `updateChannelsFromResponse` | `channels: Channel[]` | Remplace la liste en bulk, conserve la sélection si le canal existe encore |
-| `selectFirstAvailableChannel` | — | Sélectionne `channels[0]` ou `null` si vide |
-| `clearChannels` | — | Vide la liste, la sélection, et le formulaire |
-
----
-
-## 4. Composants qui utilisent useChannelManager
-
-| Composant | Propriétés utilisées |
-|-----------|----------------------|
-| `TeamsPage` | Toutes les propriétés et actions |
+Voir [channel-flows.md](../../flows/channel-flows.md)

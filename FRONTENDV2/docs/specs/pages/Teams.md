@@ -1,145 +1,43 @@
-# Référence de la page Teams — VisioConf
+# TeamsPage
 
-**Fichier source** : `FRONTENDV2/src/pages/Teams/TeamsPage.tsx`
-**Styles** : `FRONTENDV2/src/pages/Teams/TeamsPage.scss`
-**Types** : `FRONTENDV2/src/pages/Teams/Teams.types.ts`
-**Type** : Composant React fonctionnel — Page
+**Source**: `FRONTENDV2/src/pages/Teams/TeamsPage.tsx`
 
----
+Page principale pour la gestion des équipes et des canaux. Compose une barre latérale d'équipes, des onglets de canaux, une vue de canal et des formulaires en overlay pour la création/édition d'équipes et de canaux. S'abonne aux événements socket pour les données en temps réel.
 
-## 1. Description
+## Props
 
-`TeamsPage` est la page principale de gestion des équipes et de leurs canaux. Compose la sidebar des équipes, les onglets de canaux, la vue canal et les formulaires de création/édition. Protégée par la garde `UserAuth`.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| — | — | — | Aucune prop |
 
----
+## State
 
-## 2. Structure HTML sémantique
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| user | `User \| null` | `{ _id: "abc" }` | Depuis `useAuth()`, utilisateur courant |
+| socket | `MessageClientAdapter \| null` | — | Depuis `useAuth()`, wrapper socket |
+| isLoadingTeams | `boolean` | `true` | Indicateur de chargement pour la récupération de la liste des équipes |
+| isLoadingChannels | `boolean` | `false` | Indicateur de chargement pour la récupération de la liste des canaux |
+| teamManager | `UseTeamManager` | — | Depuis `useTeamManager()` : teams, selectedTeam, teamFormMode, handlers |
+| channelManager | `UseChannelManager` | — | Depuis `useChannelManager()` : channels, selectedChannel, channelFormMode, handlers |
 
-```html
-<main id="teamsPage">
-    <TeamsSidebar />                    ← Liste des équipes
+## Méthodes
 
-    <section id="teamsContent">
-        <!-- Si formulaire ouvert -->
-        <TeamForm /> | <ChannelForm />
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| handleTeamQueryResponse | data (`any`) | `void` | Traite `team_get_response` avec `type: "list"`, met à jour les équipes via le manager |
+| handleChannelQueryResponse | data (`any`) | `void` | Traite `channel_get_response` avec `type: "list"`, met à jour les canaux via le manager |
+| handleChannelActionResponse | data (`any`) | `void` | Sur réponse de création/mise à jour/suppression de canal, re-récupère la liste des canaux pour l'équipe sélectionnée |
+| handleTeamCreatedWrapper | team (`any`) | `void` | Appelle `teamManager.handleTeamCreated` puis re-récupère la liste des équipes après un délai de 100ms |
 
-        <!-- Sinon, contenu équipe -->
-        <header id="teamHeader">
-            <h1>{team.name}</h1>
-        </header>
-        <ChannelTabs />                 ← Onglets des canaux
-        <ChannelView />                 ← Vue du canal sélectionné
-    </section>
-</main>
-```
+## Détails
 
----
+- Abonnements socket : `team_get_response`, `channel_get_response`, `channel_action_response` (enregistrés au montage, nettoyés au démontage).
+- Au montage envoie `team_get { type: "list" }` pour charger les équipes.
+- Quand `selectedTeam` change, envoie `channel_get { type: "list", teamId }` ou efface les canaux si aucune équipe sélectionnée.
+- Priorité d'affichage : overlay TeamForm > overlay ChannelForm > contenu équipe avec ChannelTabs + ChannelView > état vide.
+- Route : protégée par la garde `UserAuth`.
 
-## 3. State
+## Flux
 
-| Variable | Type | Source | Description |
-|----------|------|--------|-------------|
-| `isLoadingTeams` | `boolean` | local | Chargement de la liste des équipes |
-| `isLoadingChannels` | `boolean` | local | Chargement des canaux de l'équipe |
-| `teams, selectedTeam, teamFormMode` | — | `useTeamManager` | État des équipes |
-| `channels, selectedChannel, channelFormMode` | — | `useChannelManager` | État des canaux |
-
----
-
-## 4. Hooks utilisés
-
-| Hook | Rôle |
-|------|------|
-| `useAuth()` | Utilisateur courant et controleur |
-| `useTeamManager()` | Gestion d'état des équipes. Callback `onTeamSelected` → charge les canaux |
-| `useChannelManager()` | Gestion d'état des canaux |
-
----
-
-## 5. Comportement clé
-
-- **Chargement initial** : Demande la liste des équipes au montage
-- **Sélection équipe** : Charge les canaux de l'équipe sélectionnée, sélectionne le premier canal
-- **Formulaires overlay** : TeamForm et ChannelForm s'affichent par dessus le contenu
-- **Réactivité** : Les réponses de création/mise à jour/suppression de canaux mettent à jour la liste et la sélection
-- **État vide** : Message d'invitation quand aucune équipe sélectionnée
-
----
-
-## 6. Composants utilisés
-
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `TeamsSidebar` | `components/` | Sidebar de sélection d'équipe |
-| `TeamForm` | `components/` | Formulaire création/édition d'équipe |
-| `ChannelTabs` | `components/` | Onglets de navigation des canaux |
-| `ChannelView` | `components/` | Vue principale du canal sélectionné |
-| `ChannelForm` | `components/` | Formulaire création/édition de canal |
-
----
-
-## 7. Types (Teams.types.ts)
-
-```typescript
-interface Team {
-    id: string
-    name: string
-    description?: string
-    picture?: string
-    createdBy: string
-    createdAt: string
-    updatedAt: string
-    role?: "admin" | "member"
-}
-
-interface Channel {
-    id: string
-    name: string
-    teamId: string
-    createdBy: string
-    isPublic: boolean
-    createdAt: string
-}
-
-interface ChannelMember {
-    id: string
-    userId: string
-    role: "admin" | "member"
-    firstname?: string
-    lastname?: string
-    picture?: string
-}
-
-interface ChannelPost {
-    id: string
-    channelId: string
-    content: string
-    authorId: string
-    authorName: string
-    authorAvatar?: string
-    createdAt: string
-    responseCount: number
-    responses?: ChannelPostResponse[]
-}
-
-interface ChannelPostResponse {
-    id: string
-    postId: string
-    content: string
-    authorId: string
-    authorName: string
-    authorAvatar?: string
-    createdAt: string
-}
-```
-
----
-
-## 8. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `useAuth` | TeamsPage utilise useAuth() | State d'auth et controleur |
-| `useTeamManager` | TeamsPage utilise useTeamManager() | Gestion d'état des équipes |
-| `useChannelManager` | TeamsPage utilise useChannelManager() | Gestion d'état des canaux |
-| `UserAuth` | TeamsPage est protégé par UserAuth | Garde de route |
+Voir [team-flows.md](../../flows/team-flows.md)

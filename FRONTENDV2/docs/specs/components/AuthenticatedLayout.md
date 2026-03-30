@@ -1,59 +1,30 @@
-# Référence du composant AuthenticatedLayout — VisioConf
+# AuthenticatedLayout
 
-**Fichier source** : `FRONTENDV2/src/components/AuthenticatedLayout/AuthenticatedLayout.tsx`
-**Styles** : `FRONTENDV2/src/components/AuthenticatedLayout/AuthenticatedLayout.scss`
-**Type** : Composant React fonctionnel (FC)
+**Source**: `FRONTENDV2/src/components/AuthenticatedLayout/AuthenticatedLayout.tsx`
 
----
+Wrapper de mise en page racine pour les routes authentifiées. Compose le NavigationSidebar avec les données utilisateur et un React Router Outlet pour le rendu des routes imbriquées.
 
-## 1. Description
+## Props
 
-`AuthenticatedLayout` est le layout principal pour les utilisateurs authentifiés. Il compose la `NavigationSidebar` et un `Outlet` React Router pour les routes imbriquées.
+Aucune prop (rendu en tant que `FC` sans paramètres).
 
----
+## State
 
-## 2. Structure HTML sémantique
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| user | `UserAuth \| null` (from useAuth) | `{ firstname: "John", ... }` | Objet utilisateur authentifié courant |
+| logout | `() => void` (from useAuth) | `logout()` | Callback de déconnexion passé au onLogout de NavigationSidebar |
 
-```html
-<div id="authenticatedLayout">
-    <NavigationSidebar
-        items={NAVIGATION_ITEMS}
-        logoSource="..."
-        logoAltText="..."
-        brandLabel="..."
-        userData={{ firstname, lastname, roles }}
-        onLogout={logout}
-    />
-    <main id="mainContent">
-        <Outlet />
-    </main>
-</div>
-```
+## Méthodes
 
----
+Aucune méthode handler définie.
 
-## 3. Props et state
+## Détails
 
-| Source | Propriété | Utilisation |
-|--------|-----------|-------------|
-| `useAuth()` | `user` | Données utilisateur pour la sidebar (firstname, lastname, roles) |
-| `useAuth()` | `logout` | Callback de déconnexion passé à la sidebar |
+- Construit un objet `SidebarUserData` à partir des champs de `user` : firstname, lastname, roles (valeurs par défaut : chaîne vide / tableau vide si null)
+- Passe les constantes `NAVIGATION_ITEMS` et `SIDEBAR_BRAND` à NavigationSidebar
+- Les routes enfants sont rendues dans `<main id="authenticatedContent">` via `<Outlet />`
 
----
+## Flux
 
-## 4. Composants utilisés
-
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `NavigationSidebar` | `components/` | Navigation latérale avec items et profil |
-| `Outlet` | `react-router-dom` | Rendu des routes enfants |
-
----
-
-## 5. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `useAuth` | Layout utilise useAuth() | State d'auth et action logout |
-| `NavigationSidebar` | Layout rend NavigationSidebar | Navigation principale |
-| `UserAuth` | Layout est rendu par UserAuth | Garde de route parente |
+Voir [auth-flows.md](../../flows/auth-flows.md)

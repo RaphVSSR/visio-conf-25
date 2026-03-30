@@ -1,75 +1,36 @@
-# Référence du composant SignupForm — VisioConf
+# SignupForm
 
-**Fichier source** : `FRONTENDV2/src/components/SignupForm/SignupForm.tsx`
-**Styles** : `FRONTENDV2/src/components/SignupForm/SignupForm.scss`
-**Type** : Composant React fonctionnel
+**Source**: `FRONTENDV2/src/components/SignupForm/SignupForm.tsx`
 
----
+Composant de formulaire d'inscription avec validation native HTML5. Collecte firstname, lastname, email, password (min 8 caractères) et phone. Redirige vers `/home` quand déjà authentifié.
 
-## 1. Description
+## Props
 
-`SignupForm` est le formulaire d'inscription. Il collecte les informations utilisateur (prénom, nom, email, mot de passe, téléphone), utilise la validation HTML5 native (minLength 8 pour le mot de passe), et redirige vers `/home` après inscription réussie.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| *(aucun)* | — | — | Aucune prop, utilise le hook `useAuth` |
 
----
+## State
 
-## 2. State local
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| showPwd | `boolean` | `false` | Bascule le champ mot de passe entre type text et password |
 
-| State | Type | Valeur initiale | Description |
-|-------|------|-----------------|-------------|
-| `showPwd` | `boolean` | `false` | Visibilité du mot de passe |
+## Méthodes
 
----
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| handleSubmit | event (`FormEvent<HTMLFormElement>`) | void | Valide le formulaire, extrait tous les champs depuis FormData, appelle `register()` |
 
-## 3. State depuis useAuth
+## Détails
 
-| Propriété | Utilisation |
-|-----------|-------------|
-| `register` | Appelé à la soumission du formulaire |
-| `isLoading` | Désactive le bouton submit, affiche "Inscription en cours..." |
-| `isAuthenticated` | Auto-redirection vers /home si true |
+- Consomme `register`, `isLoading`, `isAuthenticated` depuis `useAuth()`.
+- Un `useEffect` redirige vers `/home` avec `replace: true` quand `isAuthenticated` devient vrai.
+- `register` est appelé avec un objet : `{ email, password, firstname, lastname, phone }`.
+- Le champ mot de passe impose `minLength={8}` via l'attribut HTML.
+- Le bouton de soumission est désactivé pendant le chargement, affiche le texte "Inscription en cours...".
+- Lien vers `/login` via `Link` de `react-router-dom`.
 
----
+## Flux
 
-## 4. Structure HTML sémantique
-
-```html
-<form id="signupForm" onSubmit={handleSubmit}>
-    <img src="logos/logo_univ_grand.svg" />
-    <h1>Créer son compte</h1>
-    <fieldset id="inputWrapper">
-        <input name="firstname" type="text" required />
-        <input name="lastname" type="text" required />
-        <input name="email" type="email" required />
-        <div id="pwdWrapper">
-            <input name="password" type="password" minLength={8} required />
-            <Eye/EyeOff />
-        </div>
-        <input name="phone" type="tel" required />
-    </fieldset>
-    <footer id="signupFooter">
-        <button type="submit" disabled={isLoading} />
-        <Link to="/login">Déjà un compte ?</Link>
-    </footer>
-</form>
-```
-
----
-
-## 5. Champs du formulaire
-
-| Champ | Type HTML | Name | Validation |
-|-------|-----------|------|------------|
-| Prénom | `text` | `firstname` | required |
-| Nom | `text` | `lastname` | required |
-| Email | `email` | `email` | required |
-| Mot de passe | `password` | `password` | required, minLength 8 |
-| Téléphone | `tel` | `phone` | required |
-
----
-
-## 6. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `useAuth` | SignupForm utilise useAuth() | register, isLoading, isAuthenticated |
-| `Signup` | Signup rend SignupForm | Page wrapper |
+Voir [auth-flows.md](../../flows/auth-flows.md)

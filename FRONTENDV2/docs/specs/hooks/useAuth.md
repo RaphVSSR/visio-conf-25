@@ -1,78 +1,30 @@
-# Référence du hook useAuth — VisioConf
+# useAuth
 
-**Fichier source** : `FRONTENDV2/src/hooks/useAuth.ts`
-**Type** : Hook React personnalisé
+**Source**: `FRONTENDV2/src/hooks/useAuth.ts`
 
----
+Hook pour accéder à `AuthContext`. Encapsule `useContext(AuthContext)` avec une garde de fournisseur qui lance une erreur si utilisé en dehors de `AuthProvider`. Point d'accès unique pour l'état et les actions d'authentification dans les composants.
 
-## 1. Description
+## Valeurs retournées
 
-`useAuth` est le hook d'accès au `AuthContext`. Il encapsule `useContext(AuthContext)` avec une vérification de provider et un typage strict. C'est le seul point d'accès recommandé au state et aux actions d'authentification.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `user` | `AuthUser \| null` | `{ _id: "abc", firstname: "John", ... }` | Données de l'utilisateur authentifié |
+| `isAuthenticated` | `boolean` | `true` | Indique si l'utilisateur est authentifié |
+| `isLoading` | `boolean` | `false` | Indique si une opération d'authentification est en cours |
+| `expiresAt` | `number \| null` | `1711800000000` | Timestamp d'expiration de la session |
+| `showExpiryWarning` | `boolean` | `false` | Indique si l'avertissement d'expiration de session doit être affiché |
+| `loginRejected` | `boolean` | `false` | Indique si la dernière tentative de connexion a été rejetée |
+| `socket` | `MessageClientAdapter \| null` | — | Wrapper client Socket.io |
+| `login` | `(email: string, password: string) => void` | `login("a@b.com", "pass")` | Déclenche la connexion |
+| `register` | `(data: { password, firstname, lastname, email, phone }) => void` | `register({...})` | Déclenche l'inscription |
+| `logout` | `() => void` | `logout()` | Déclenche la déconnexion |
+| `refreshSession` | `() => void` | `refreshSession()` | Prolonge la session courante |
+| `dismissExpiryWarning` | `() => void` | `dismissExpiryWarning()` | Masque l'avertissement d'expiration |
 
-**Note :** Le fichier s'appelait `useAuthMessages.ts` (nom historique) et a été renommé en `useAuth.ts` pour la cohérence.
+## Détails
 
----
+- Lance l'erreur `"useAuth must be used within an AuthProvider"` si le contexte est null
 
-## 2. Signature
+## Flux
 
-```typescript
-function useAuth(): AuthContextType
-```
-
-- **Retour** : `AuthContextType` = `AuthState & AuthActions`
-- **Erreur** : Throw `"useAuth must be used within an AuthProvider"` si utilisé en dehors du provider
-
----
-
-## 3. Valeurs retournées
-
-### State (AuthState)
-
-| Propriété | Type | Description |
-|-----------|------|-------------|
-| `user` | `AuthUser \| null` | Données utilisateur authentifié |
-| `isAuthenticated` | `boolean` | L'utilisateur est-il authentifié ? |
-| `isLoading` | `boolean` | Une opération d'auth est en cours ? |
-| `expiresAt` | `number \| null` | Timestamp d'expiration de la session |
-| `showExpiryWarning` | `boolean` | Faut-il afficher l'avertissement d'expiration ? |
-| `loginRejected` | `boolean` | La derniere tentative de login a echoue ? |
-
-### Actions (AuthActions)
-
-| Action | Paramètres | Description |
-|--------|------------|-------------|
-| `login` | `email: string, password: string` | Lance une connexion |
-| `register` | `data: { password, firstname, lastname, email, phone }` | Lance une inscription |
-| `logout` | — | Déconnecte l'utilisateur |
-| `refreshSession` | — | Prolonge la session |
-| `dismissExpiryWarning` | — | Ferme l'avertissement d'expiration |
-
----
-
-## 4. Composants qui utilisent useAuth
-
-| Composant | Propriétés utilisées |
-|-----------|----------------------|
-| `LoginForm` | `login`, `isLoading`, `isAuthenticated`, `loginRejected` |
-| `SignupForm` | `register`, `isLoading`, `isAuthenticated` |
-| `Home` | `isAuthenticated`, `user`, `logout` |
-| `UserAuth` | `isAuthenticated`, `isLoading` |
-| `AdminAuth` | `user` |
-| `AuthenticatedLayout` | `user`, `logout` |
-| `TeamsPage` | `user` (controleur via user context) |
-| `TeamForm` | `user` (controleur et userId) |
-| `ChannelForm` | `user` (controleur et userId) |
-| `ChannelView` | `user` (controleur) |
-| `AuthToasts` | `showExpiryWarning`, `expiresAt`, `refreshSession`, `dismissExpiryWarning` |
-
----
-
-## 5. Exemples
-
-```typescript
-const { user, isAuthenticated, login } = useAuth()
-
-if (!isAuthenticated) return <Navigate to="/login" replace />
-
-return <h1>Bonjour, {user?.firstname}</h1>
-```
+Voir [auth-flows.md](../../flows/auth-flows.md)

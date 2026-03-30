@@ -1,114 +1,44 @@
-# Référence du AuthContext — VisioConf
+# AuthContext
 
-**Fichier source** : `FRONTENDV2/src/contexts/AuthContext.tsx`
-**Type** : React Context Provider
+**Source**: `FRONTENDV2/src/contexts/AuthContext.tsx`
 
----
+Fournisseur de contexte React faisant le pont entre `AuthSync` (logique d'authentification Socket.io) et les composants React. Crée une instance `MessageClientAdapter` et `AuthSync` au montage, expose l'état et les actions d'authentification via le contexte, et nettoie au démontage.
 
-## 1. Description
+## Propriétés
 
-`AuthContext` est le pont entre `AuthSync` (logique métier Socket.io) et les composants React (UI). Le provider instancie `MessageClientAdapter` et `AuthSync` au montage, expose le state d'authentification et les actions via React Context, et nettoie tout au démontage.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `AuthContext` | `Context<AuthContextType \| null>` | — | L'objet de contexte React, exporté |
+| `INITIAL_STATE` | `AuthState` (module const) | `{ user: null, isAuthenticated: false, isLoading: true, ... }` | État par défaut avec `isLoading: true`, tout le reste null/false |
 
----
+## Méthodes / Actions / Valeurs retournées
 
-## 2. Exports
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| `AuthProvider` | `children: ReactNode` | `JSX.Element` | Composant fournisseur, crée socket + AuthSync au montage, détruit au démontage |
+| `login` | `email: string, password: string` | `void` | Délègue à `AuthSync.login()` |
+| `register` | `data: { password: string, firstname: string, lastname: string, email: string, phone: string }` | `void` | Délègue à `AuthSync.register()` |
+| `logout` | — | `void` | Délègue à `AuthSync.logout()` |
+| `refreshSession` | — | `void` | Délègue à `AuthSync.refreshSession()` |
+| `dismissExpiryWarning` | — | `void` | Définit localement `showExpiryWarning: false` via setState |
 
-| Export | Type | Description |
-|--------|------|-------------|
-| `AuthContext` | `Context<AuthContextType \| null>` | Le context React |
-| `AuthProvider` | `FC<PropsWithChildren>` | Le composant provider |
-| `AuthUser` | type (re-export) | Type utilisateur |
-| `AuthState` | type (re-export) | Type state d'authentification |
-| `AuthActions` | type (re-export) | Type actions d'authentification |
-| `AuthContextType` | type (re-export) | Union AuthState & AuthActions & { socket } |
+## Exports
 
----
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `AuthContext` | `Context<AuthContextType \| null>` | — | L'objet de contexte |
+| `AuthProvider` | `FC<PropsWithChildren>` | `<AuthProvider>{children}</AuthProvider>` | Le composant fournisseur |
+| `AuthUser` | type (re-export) | — | Depuis `AuthSync.types.ts` |
+| `AuthState` | type (re-export) | — | Depuis `AuthSync.types.ts` |
+| `AuthActions` | type (re-export) | — | Depuis `AuthSync.types.ts` |
+| `AuthContextType` | type (re-export) | — | Depuis `AuthSync.types.ts` |
 
-## 3. State initial
+## Détails
 
-```typescript
-const INITIAL_STATE: AuthState = {
-    user: null,
-    isAuthenticated: false,
-    isLoading: true,
-    expiresAt: null,
-    showExpiryWarning: false,
-    loginRejected: false,
-}
-```
+- Utilise la variable d'environnement `REACT_APP_BACKEND_API_URL` (défaut `http://localhost:3220`) pour la connexion socket
+- La valeur du contexte inclut `socket: MessageClientAdapter | null` en plus de l'état et des actions
+- Le montage crée socket + AuthSync ; le démontage appelle `destroy()` puis `disconnect()`
 
----
+## Flux
 
-## 4. Lifecycle du provider
-
-### Montage (useEffect)
-
-```typescript
-1. socket = new MessageClientAdapter(REACT_APP_BACKEND_API_URL || "http://localhost:3220")
-2. socketRef.current = socket
-3. authRef.current = new AuthSync(socket, setState)
-   // → s'abonne aux 4 messages response
-   // → envoie authenticate dès que le socket est prêt
-```
-
-### Démontage (cleanup)
-
-```typescript
-1. authRef.current?.destroy()    // Désabonne des messages, clear timer
-2. authRef.current = null
-3. socket.disconnect()           // Ferme la connexion Socket.io
-4. socketRef.current = null
-```
-
----
-
-## 5. Actions exposées
-
-| Action | Paramètres | Description |
-|--------|------------|-------------|
-| `login` | `email: string, password: string` | Délègue à `AuthSync.login()` |
-| `register` | `data: { password, firstname, lastname, email, phone }` | Délègue à `AuthSync.register()` |
-| `logout` | — | Délègue à `AuthSync.logout()` |
-| `refreshSession` | — | Délègue à `AuthSync.refreshSession()` |
-| `dismissExpiryWarning` | — | `setState({ showExpiryWarning: false })` (action locale) |
-
----
-
-## 6. Variables d'environnement
-
-| Nom | Type | Description |
-|-----|------|-------------|
-| `REACT_APP_BACKEND_API_URL` | `string` | URL du backend. Défaut: `"http://localhost:3220"` |
-
----
-
-## 7. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `AuthSync` | AuthContext crée et détruit AuthSync | Service métier Socket.io |
-| `MessageClientAdapter` | AuthContext crée et déconnecte le socket | Wrapper socket.io-client |
-| `useAuth` | Hook d'accès au AuthContext | Expose `AuthContextType` aux composants |
-
----
-
-## 8. Exemples
-
-### Utilisation dans un composant
-
-```typescript
-const { user, isAuthenticated, socket, login, logout } = useAuth()
-
-if (!isAuthenticated) login("dev@visioconf.com", "d3vV1s10C0nf")
-```
-
-### Montage dans App.tsx
-
-```tsx
-<AuthProvider>
-    <ToastProvider>
-        <BrowserRouter>...</BrowserRouter>
-        <AuthToasts />
-    </ToastProvider>
-</AuthProvider>
-```
+Voir [auth-flows.md](../../flows/auth-flows.md)

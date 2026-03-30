@@ -1,221 +1,52 @@
-# Référence du Modèle User — VisioConf
+# User
 
-**Fichier source** : `BACKEND/src/models/User.ts`
-**Classe parente** : Aucune (classe autonome, n'étend pas Collection)
-**Collection MongoDB** : `User`
+**Source**: `BACKEND/src/models/User.ts`
 
----
+Représente un utilisateur de la plateforme avec ses identifiants d'authentification, ses informations de profil et sa présence en ligne. N'étend pas Collection (classe autonome avec sa propre méthode save).
 
-## 1. Schema complet
+## Schema
 
-| Champ | Type | Required | Default | Ref | Description | Exemple |
-|-------|------|----------|---------|-----|-------------|---------|
-| `_id` | `ObjectId` | auto | auto | — | Identifiant MongoDB | `ObjectId('67a1...')` |
-| `socket_id` | `String` | non | `"none"` | — | ID du socket connecté | `"xK9_2mZqR..."` |
-| `firstname` | `String` | oui | — | — | Prénom | `"John"` |
-| `lastname` | `String` | oui | — | — | Nom de famille | `"Doe"` |
-| `email` | `String` | oui | — | — | Adresse email | `"john.doe@example.com"` |
-| `phone` | `String` | oui | — | — | Numéro de téléphone | `"06 12 34 56 78"` |
-| `status` | `String` | oui | `"waiting"` | — | Statut du compte. Enum: `"waiting"`, `"active"` | `"active"` |
-| `password` | `String` | oui | — | — | Mot de passe hashé en SHA256 | `"2cf24dba5fb0a30e..."` |
-| `job` | `String` | non | — | — | Job description | `"Responsable RH"` |
-| `desc` | `String` | non | `""` | — | User description | `"Passionné de tech"` |
-| `date_created` | `Date` | oui | `Date.now` | — | Date de création du compte | `2026-03-01T10:00:00Z` |
-| `picture` | `String` | oui | `"default_profile_picture.png"` | — | Nom du fichier de la photo de profil | `"default_profile_picture.png"` |
-| `is_online` | `Boolean` | oui | `false` | — | Indique si l'utilisateur est en ligne | `false` |
-| `disturb_status` | `String` | oui | `"available"` | — | Statut de disponibilité. Enum: `"available"`, `"offline"`, `"dnd"` | `"available"` |
-| `last_connection` | `Date` | oui | `Date.now` | — | Date de la dernière connexion | `2026-03-01T10:00:00Z` |
-| `direct_manager` | `String` | oui | `"none"` | — | User uuid of the direct manager | `"none"` |
-| `roles` | `ObjectId[]` | non | `"user"` | `Role` | List of roles id created by admin in the roles collection | `[ObjectId('...')]` |
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| socket_id | String | `"xK9_2mZqR..."` | ID de connexion socket actuel (défaut : "none") |
+| firstname | String (required) | `"John"` | Prénom |
+| lastname | String (required) | `"Doe"` | Nom de famille |
+| email | String (required) | `"john@visioconf.com"` | Adresse email, utilisée comme clé de recherche principale |
+| phone | String (required) | `"06 52 14 55 45"` | Numéro de téléphone |
+| status | String (required, enum) | `"active"` | Statut du compte : "waiting" ou "active" (défaut : "waiting") |
+| password | String (required) | `"e3b0c44..."` | Mot de passe hashé en SHA256 |
+| job | String | `"Developer"` | Intitulé de poste |
+| desc | String | `"A description"` | Description de l'utilisateur (défaut : "") |
+| date_created | Date (required) | `2026-03-30T...` | Horodatage d'inscription (défaut : Date.now) |
+| picture | String (required) | `"profile.png"` | Nom de fichier de la photo de profil (défaut : "default_profile_picture.png") |
+| is_online | Boolean (required) | `true` | Statut en ligne (défaut : false) |
+| disturb_status | String (required, enum) | `"available"` | Disponibilité : "available", "offline", "dnd" (défaut : "available") |
+| last_connection | Date (required) | `2026-03-30T...` | Horodatage de dernière connexion (défaut : Date.now) |
+| direct_manager | String (required) | `"admin"` | uuid utilisateur du responsable direct (défaut : "none") |
+| roles | String[] | `["admin", "user"]` | Liste des chaînes uuid de rôles (défaut par entrée : "user") |
 
----
+## Méthodes
 
-## 2. Propriétés de la classe
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| constructor | dataToConstruct (UserType) | User | Crée une nouvelle instance User |
+| save | -- | Promise\<void\> | Persiste l'instance, lance TracedError en cas d'échec |
+| inject (static) | -- | Promise\<void\> | Injecte 5 utilisateurs de test (test1-test5) avec mots de passe hashés en SHA256 |
+| getUser (static) | email (string) | Promise | Trouve un utilisateur par email, valide le format d'email d'abord (retourne undefined si invalide) |
+| getUsers (static) | emails (string[]) | Promise | Trouve plusieurs utilisateurs par email, retire les formats invalides avant la requête |
+| updateUser (static) | email (string), newData (Partial\<UserType\>) | Promise | Met à jour un utilisateur par email, valide le format d'abord |
+| updateUsers (static) | emails (string[]), newData (Partial\<UserType\>) | Promise | Met à jour plusieurs utilisateurs par email, retire les formats invalides |
+| deleteUser (static) | email (string) | Promise | Supprime un utilisateur par email, valide le format d'abord |
+| deleteUsers (static) | emails (string[]) | Promise | Supprime plusieurs utilisateurs par email, retire les formats invalides |
+| flushAll (static) | -- | Promise | Supprime tous les documents User |
 
-| Propriété | Type | Visibilité | Description |
-|-----------|------|------------|-------------|
-| `schema` | `Schema<UserType>` | `protected static` | Schéma Mongoose de la collection |
-| `model` | `Model<UserType>` | `static` | Modèle Mongoose (singleton via `mongoose.models`) |
-| `modelInstance` | `Document<UserType>` | `public` | Instance du document Mongoose pour les opérations d'écriture |
+## Détails
 
----
+- UserType exporté pour usage externe (inclut _id optionnel)
+- Toutes les méthodes statiques mono-utilisateur valident l'email via regex `/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/` avant la requête
+- Mots de passe hashés avec SHA256 via la librairie js-sha256
+- Les rôles sont stockés comme des uuid de type string, pas des références ObjectId (malgré le fait que UserType déclare string[])
 
-## 3. Variables et constantes
+## Flux
 
-| Nom | Type | Valeur | Description |
-|-----|------|--------|-------------|
-| `models` | `object` | `mongoose.models` | Cache des modèles Mongoose enregistrés |
-| Regex email | `RegExp` | `/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/` | Validation email utilisée dans toutes les méthodes CRUD |
-
----
-
-## 4. Méthodes
-
-| Méthode | Paramètres | Retour | Static/Instance | Description |
-|---------|------------|--------|-----------------|-------------|
-| `constructor` | `dataToConstruct: UserType` | `User` | instance | Crée une instance avec un nouveau document Mongoose |
-| `save` | — | `Promise<void>` | instance | Sauvegarde le `modelInstance` en base de données |
-| `inject` | — | `Promise<void>` | static | **[DEV]** Injecte 5 utilisateurs de test (test1–test5, password partagé: sha256("12345678")). En production, les utilisateurs sont créés via `register` (formulaire d'inscription) avec un mot de passe unique par utilisateur |
-| `getUser` | `email: string` | `Promise<Document \| null \| undefined>` | static | Trouve un utilisateur par email. Valide le format email avant requête |
-| `getUsers` | `emails: string[]` | `Promise<Document[]>` | static | Trouve plusieurs utilisateurs par emails. Filtre les emails invalides |
-| `updateUser` | `email: string, newData: Partial<UserType>` | `Promise<UpdateResult \| undefined>` | static | Met à jour un utilisateur par email. Valide le format email |
-| `updateUsers` | `emails: string[], newData: Partial<UserType>` | `Promise<UpdateResult>` | static | Met à jour plusieurs utilisateurs par emails |
-| `deleteUser` | `email: string` | `Promise<DeleteResult \| undefined>` | static | Supprime un utilisateur par email. Valide le format email |
-| `deleteUsers` | `emails: string[]` | `Promise<DeleteResult>` | static | Supprime plusieurs utilisateurs par emails |
-| `flushAll` | — | `Promise<DeleteResult>` | static | **[DEV]** Supprime tous les utilisateurs |
-
----
-
-## 5. Catalogue des messages associés
-
-### Client → Serveur (2 messages with type sub-dispatch)
-
-| Message | Type | Payload | Description |
-|---------|------|---------|-------------|
-| `user_get` | `"list"` | `{}` | Demande la liste de tous les utilisateurs actifs |
-| `user_get` | `"info"` | `{ userId: string }` | Demande les informations complètes d'un utilisateur |
-| `user_get` | `"search"` | `{ query: string }` | Recherche d'utilisateurs par nom/email (regex, max 20 résultats) |
-| `user_update` | `"profile"` | `{ firstname?, lastname?, phone?, job?, desc?, picture? }` | Mise à jour du profil de l'utilisateur connecté |
-| `user_update` | `"status"` | `{ userId: string, status: string }` | Mise à jour du statut d'un utilisateur |
-| `user_update` | `"roles"` | `{ userId: string, roles: string[] }` | Mise à jour des rôles d'un utilisateur |
-
-### Serveur → Client (2 messages with type sub-dispatch)
-
-| Message | Type | Payload | Description |
-|---------|------|---------|-------------|
-| `user_get_response` | `"list"` | `{ etat: boolean, users: { id, firstname, lastname, email, picture, isOnline, job }[] }` | Liste des utilisateurs actifs |
-| `user_get_response` | `"info"` | `{ etat: boolean, user: { id, firstname, lastname, email, picture, isOnline, job, desc, phone, dateCreated } }` | Informations complètes d'un utilisateur |
-| `user_get_response` | `"search"` | `{ etat: boolean, users: User[] }` | Résultats de recherche |
-| `user_update_response` | `"profile"` | `{ etat: boolean, error?: string }` | Confirmation de la mise à jour du profil |
-| `user_update_response` | `"status"` | `{ etat: boolean, userId?: string, status?: string }` | Confirmation de la mise à jour du statut |
-| `user_update_response` | `"roles"` | `{ etat: boolean, userId?: string, roles?: string[] }` | Confirmation de la mise à jour des rôles |
-
-**Total : 2 client→serveur + 2 serveur→client = 4 messages (6 sub-types)**
-
----
-
-## 6. Types TypeScript
-
-```typescript
-type UserType = {
-    _id?: Types.ObjectId,
-    socket_id?: string,
-    firstname: string,
-    lastname: string,
-    email: string,
-    phone: string,
-    status?: "waiting" | "active",
-    password: string,
-    job?: string,
-    desc: string,
-    date_created?: Date,
-    picture?: string,
-    is_online?: boolean,
-    disturb_status?: string,
-    last_connection?: Date,
-    direct_manager?: string,
-    roles?: Types.ObjectId,
-}
-```
-
----
-
-## 7. Relations avec autres modèles
-
-| Modèle | Relation | Description |
-|--------|----------|-------------|
-| `Role` | User.roles[] → Role | Chaque utilisateur référence un tableau de rôles |
-| `Discussion` | User ← Discussion.members[], Discussion.creator, Discussion.messages[].sender | Les discussions référencent les utilisateurs |
-| `Team` | User ← Team.createdBy | Les équipes sont créées par un utilisateur |
-| `TeamMember` | User ← TeamMember.id | Les membres d'équipe référencent un utilisateur |
-| `Channel` | User ← Channel.createdBy | Les canaux sont créés par un utilisateur |
-| `ChannelMember` | User ← ChannelMember.userId | Les membres de canal référencent un utilisateur |
-| `ChannelPost` | User ← ChannelPost.authorId | Les posts référencent un auteur |
-| `ChannelPostResponse` | User ← ChannelPostResponse.authorId | Les réponses référencent un auteur |
-| `Session` | User ← Session.userId | Les sessions sont liées à un utilisateur |
-| `File/Folder` | User ← File.ownerId, Folder.ownerId | Les fichiers/dossiers appartiennent à un utilisateur |
-
----
-
-## 8. Index et contraintes
-
-| Index | Champs | Type | Description |
-|-------|--------|------|-------------|
-| `_id` | `_id` | unique (auto) | Index par défaut MongoDB |
-
-Aucun index personnalisé défini. La validation email est faite côté application (regex) et non côté schéma.
-
----
-
-## 9. Exemples
-
-### Créer et sauvegarder un utilisateur
-
-```typescript
-import { sha256 } from "js-sha256";
-
-const user = new User({
-    firstname: "Alice",
-    lastname: "Dupont",
-    email: "alice.dupont@example.com",
-    phone: "06 12 34 56 78",
-    password: sha256("monMotDePasse"),
-    desc: "Développeuse fullstack",
-    job: "Développeuse",
-});
-await user.save();
-```
-
-### Requêter un utilisateur
-
-```typescript
-const user = await User.getUser("alice.dupont@example.com");
-// → { _id: ObjectId("..."), firstname: "Alice", lastname: "Dupont", status: "waiting", is_online: false, ... }
-
-// Email invalide → retourne undefined (pas de requête DB)
-const nope = await User.getUser("not-an-email");
-// → undefined
-```
-
-### Mettre à jour un utilisateur
-
-```typescript
-await User.updateUser("alice.dupont@example.com", { status: "active", is_online: true });
-```
-
-### Document MongoDB
-
-```json
-{
-    "_id": "ObjectId('67a1...')",
-    "socket_id": "none",
-    "firstname": "Alice",
-    "lastname": "Dupont",
-    "email": "alice.dupont@example.com",
-    "phone": "06 12 34 56 78",
-    "status": "waiting",
-    "password": "2cf24dba5fb0a30e26e83b2ac5b9e29e...",
-    "job": "Développeuse",
-    "desc": "Développeuse fullstack",
-    "picture": "default_profile_picture.png",
-    "is_online": false,
-    "disturb_status": "available",
-    "direct_manager": "none",
-    "roles": ["ObjectId('...')"],
-    "date_created": "2026-03-01T10:00:00.000Z",
-    "last_connection": "2026-03-01T10:00:00.000Z"
-}
-```
-
-### Message Socket.io — lister les utilisateurs
-
-```typescript
-// Client
-{ id: socketId, user_get: { type: "list" } }
-
-// Serveur
-{ id: socketId, user_get_response: { type: "list", etat: true, users: [
-    { firstname: "Alice", lastname: "Dupont", email: "alice.dupont@example.com", status: "active", ... },
-    { firstname: "test1", lastname: "testlast1", email: "test1@visioconf.com", ... }
-]}}
-```
+Voir [user-flows.md](../../flows/user-flows.md)

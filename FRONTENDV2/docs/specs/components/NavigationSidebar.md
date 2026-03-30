@@ -1,95 +1,40 @@
-# Référence du composant NavigationSidebar — VisioConf
+# NavigationSidebar
 
-**Fichier source** : `FRONTENDV2/src/components/NavigationSidebar/NavigationSidebar.tsx`
-**Styles** : `FRONTENDV2/src/components/NavigationSidebar/NavigationSidebar.scss`
-**Type** : Composant React fonctionnel (FC)
+**Source**: `FRONTENDV2/src/components/NavigationSidebar/NavigationSidebar.tsx`
 
----
+Barre latérale principale de l'application avec navigation repliable. S'agrandit au survol de la souris, se replie quand la souris quitte la zone. Filtre les éléments de navigation par rôles utilisateur et affiche un logo de marque, des liens de navigation, les informations utilisateur et un bouton de déconnexion.
 
-## 1. Description
+## Props
 
-`NavigationSidebar` est la barre de navigation latérale principale. Elle se replie/déplie au survol avec une animation Framer Motion. Filtre les items de navigation par rôle utilisateur.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| items | `NavigationItem[]` | `[{ label: "Equipes", path: "/equipes", icon: "Users" }]` | Éléments de navigation à afficher |
+| logoSource | `string` | `"/logos/logo_univ_grand.svg"` | Chemin vers l'image du logo de marque |
+| logoAltText | `string` | `"Logo Université de Toulon"` | Texte alternatif pour le logo |
+| brandLabel | `string` | `"Université de Toulon"` | Label texte affiché à côté du logo quand la barre est agrandie |
+| userData | `SidebarUserData` | `{ firstname: "John", lastname: "Doe", roles: ["admin"] }` | Informations de l'utilisateur courant pour l'avatar et le filtrage par rôle |
+| onLogout | `() => void` | — | Appelé quand le bouton de déconnexion est cliqué |
 
----
+## State
 
-## 2. Props
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| expanded | `boolean` | `false` | Indique si la barre latérale est en état agrandi |
 
-```typescript
-interface NavigationSidebarProps {
-    items: NavigationItem[]
-    logoSource: string
-    logoAltText: string
-    brandLabel: string
-    userData: SidebarUserData
-    onLogout: () => void
-}
+## Méthodes
 
-interface NavigationItem {
-    label: string
-    path: string
-    icon: keyof typeof icons
-    requiresRole?: string
-}
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| *(aucune)* | — | — | Aucune fonction handler nommée, handlers inline uniquement |
 
-interface SidebarUserData {
-    firstname: string
-    lastname: string
-    roles: string[]
-}
-```
+## Détails
 
----
-
-## 3. State local
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `expanded` | `boolean` | `false` | État replié/déplié de la sidebar (au hover) |
-
----
-
-## 4. Configuration exportée
-
-```typescript
-export const NAVIGATION_ITEMS: NavigationItem[] = [
-    { label: "Discussions", path: "/discussions", icon: "MessageSquare" },
-    { label: "Equipes", path: "/equipes", icon: "Users" },
-    { label: "Drive", path: "/drive", icon: "FolderOpen" },
-    { label: "Annuaire", path: "/annuaire", icon: "BookOpen" },
-    { label: "Admin", path: "/admin", icon: "UserRoundCog", requiresRole: "admin" },
-]
-
-export const SIDEBAR_BRAND = {
-    logoSource: "/logos/logo_univ_grand.svg",
-    logoAltText: "Logo Université de Toulon",
-    brandLabel: "Université de Toulon",
-}
-```
-
----
-
-## 5. Comportement
-
-- **Filtrage par rôle** : Les items avec `requiresRole` sont masqués si l'utilisateur n'a pas le rôle correspondant
-- **Animation** : Framer Motion pour l'expansion au hover (largeur variable)
-- **Avatar** : Initiales de l'utilisateur (firstname[0] + lastname[0])
-- **Déconnexion** : Bouton en bas de la sidebar
-
----
-
-## 6. Composants utilisés
-
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `LucideIcons` | `design-system/` | Icônes de navigation dynamiques |
-| `NavLink` | `react-router-dom` | Liens de navigation avec état actif |
-| `motion.nav` | `framer-motion` | Animation d'expansion |
-
----
-
-## 7. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `AuthenticatedLayout` | Layout rend NavigationSidebar | Composant parent |
-| `LucideIcons` | Sidebar utilise LucideIcons | Rendu dynamique des icônes |
+- Exporte l'interface `NavigationItem` : `{ label: string, path: string, icon: keyof typeof icons, requiresRole?: string }`.
+- Exporte l'interface `SidebarUserData` : `{ firstname: string, lastname: string, roles: string[] }`.
+- Exporte la constante `NAVIGATION_ITEMS` avec 5 entrées : Discussions, Équipes, Drive, Annuaire, Admin (admin uniquement).
+- Exporte la constante `SIDEBAR_BRAND` avec les valeurs par défaut de logo/alt/label.
+- Les éléments avec `requiresRole` sont masqués sauf si `userData.roles` inclut ce rôle.
+- Utilise `NavLink` de react-router-dom avec la classe `navItemActive` pour la route active.
+- L'avatar utilisateur affiche les initiales (premier caractère de firstname + lastname).
+- Utilise `framer-motion` pour l'animation initiale de glissement (`x: -20 -> 0`).
+- Utilise `LucideIcons` de `design-system/components` pour le rendu dynamique des icônes.

@@ -1,69 +1,44 @@
-# Référence du composant PostItem — VisioConf
+# PostItem
 
-**Fichier source** : `FRONTENDV2/src/components/PostItem/PostItem.tsx`
-**Styles** : `FRONTENDV2/src/components/PostItem/PostItem.scss`
-**Type** : Composant React fonctionnel (FC)
+**Source**: `FRONTENDV2/src/components/PostItem/PostItem.tsx`
 
----
+Affiche une publication unique avec les informations de l'auteur, le contenu, un formulaire de réponse en ligne et les réponses imbriquées. Le bouton de réponse est masqué pour les utilisateurs administrateurs.
 
-## 1. Description
+## Props
 
-`PostItem` affiche un post de canal avec les informations de l'auteur, la date relative, les réponses et un formulaire de réponse intégré.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| post | `any` | `{ authorId: "x", authorFirstname: "John", content: "Hello", responses: [] }` | Objet de données de la publication |
+| currentUserId | `string` | `"abc123"` | ID de l'utilisateur connecté, utilisé pour le badge "Vous" |
+| onAddResponse | `(content: string) => void` | — | Appelé avec le texte de réponse lors de la soumission d'une réponse |
+| isAdmin | `boolean` | `false` | Quand vrai, masque le bouton de réponse |
 
----
+## State
 
-## 2. Props
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| showReplyForm | `boolean` | `false` | Bascule la visibilité de la zone de texte de réponse |
+| replyContent | `string` | `""` | Texte courant du champ de réponse |
+| responses | `any[]` | `[]` | Copie locale de `post.responses`, synchronisée via useEffect |
 
-```typescript
-interface PostItemProps {
-    post: any
-    currentUserId: string
-    onAddResponse: (content: string) => void
-    isAdmin: boolean
-}
-```
+## Méthodes
 
----
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| handleSubmitReply | — | void | Valide que le contenu est non vide, appelle `onAddResponse`, réinitialise le formulaire |
+| handleReplyClick | — | void | Bascule `showReplyForm` |
 
-## 3. State local
+## Détails
 
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `showReplyForm` | `boolean` | `false` | Formulaire de réponse visible |
-| `replyContent` | `string` | `""` | Contenu de la réponse |
-| `replyInputRef` | `RefObject` | — | Focus auto sur le textarea |
-| `responses` | `any[]` | `post.responses` | Réponses au post |
+- `replyInputRef` (useRef) donne automatiquement le focus à la zone de texte quand le formulaire de réponse s'ouvre.
+- Les réponses sont synchronisées depuis la prop `post.responses` via useEffect.
+- La touche Entrée (sans Shift) soumet la réponse.
+- Le bouton de soumission est désactivé quand `replyContent` est vide ou ne contient que des espaces.
+- L'avatar de l'auteur affiche l'image si `post.authorPicture` existe, sinon les initiales.
+- Les horodatages sont formatés via l'utilitaire `formatRelativeDate`.
+- Chaque réponse affiche un composant enfant `PostResponseItem`.
+- Export par défaut.
 
----
+## Flux
 
-## 4. Fonctions utilitaires
-
-| Fonction | Description |
-|----------|-------------|
-| `formatRelativeDate(dateString)` | Convertit une date en format relatif ("Il y a 5 minutes", "Hier", etc.) |
-
----
-
-## 5. Comportement
-
-- **Badge auteur** : Affiché si le post est de l'utilisateur courant
-- **Réponses** : Affichées en dessous du post, avec compteur
-- **Formulaire de réponse** : Toggle via bouton "Répondre", textarea avec envoi
-- **Animation** : Framer Motion fade-in à l'apparition
-
----
-
-## 6. Composants utilisés
-
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `PostResponseItem` | `components/` | Affichage d'une réponse |
-
----
-
-## 7. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `ChannelView` | ChannelView rend des PostItem | Composant parent |
-| `PostResponseItem` | PostItem rend des PostResponseItem | Sous-composant |
+Voir [channel-flows.md](../../flows/channel-flows.md)
