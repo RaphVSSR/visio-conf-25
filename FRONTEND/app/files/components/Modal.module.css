@@ -1,0 +1,493 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.modalBody {
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background-color: #f7faff;
+  color: #1E3664;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #1E3664;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+.inputGroup {
+  display: flex;
+  align-items: center;
+}
+
+.inputSuffix {
+  padding: 8px 12px;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.inputGroup .input {
+  border-radius: 6px 0 0 6px;
+}
+
+.errorText {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.cancelButton,
+.confirmButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+}
+
+.cancelButton:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.confirmButton {
+  background-color: #1E3664;
+  border: 1px solid #1E3664;
+  color: white;
+}
+
+.confirmButton:hover {
+  background-color: #4338ca;
+}
+
+.confirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteButton {
+  background-color: #ef4444;
+  border-color: #ef4444;
+}
+
+.deleteButton:hover {
+  background-color: #dc2626;
+}
+
+.warningMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background-color: #fee2e2;
+  border-radius: 6px;
+  color: #b91c1c;
+}
+
+.warningIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.warningMessage p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.folderList {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  margin-top: 12px;
+  padding-right: 4px; /* Add some padding to prevent content from touching the scrollbar */
+}
+
+.folderItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  color: #4b5563;
+}
+
+.folderItem:hover {
+  background-color: #f3f4f6;
+}
+
+.folderItem.selected {
+  background-color: #eff6ff;
+  color: #1E3664;
+}
+
+.folderItemIcon {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.loading {
+  padding: 16px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #1E3664;
+}
+
+.shareLink {
+  display: flex;
+  margin-top: 16px;
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copyButton:hover {
+  background-color: #e5e7eb;
+}
+
+.shareLink .input {
+  border-radius: 6px 0 0 6px;
+}
+
+/* Unified Share Modal Styles */
+.shareTypeSelector {
+  margin-bottom: 24px;
+}
+
+.shareTypeLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.shareOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shareOption {
+  display: block;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shareOption:hover {
+  border-color: #d1d5db;
+  background-color: #f9fafb;
+}
+
+.shareOption.selected {
+  border-color: #1e3664;
+  background-color: #eff6ff;
+}
+
+.shareOptionContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shareOptionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.shareOption.selected .shareOptionIcon {
+  background-color: #1e3664;
+  color: white;
+}
+
+.shareOptionInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shareOptionTitle {
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.shareOption.selected .shareOptionTitle {
+  color: #1e3664;
+}
+
+.shareOptionDescription {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.radioInput {
+  display: none;
+}
+
+.publicShareSection,
+.teamShareSection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.teamsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.teamOption {
+  display: block;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.teamOption:hover {
+  border-color: #d1d5db;
+  background-color: #f9fafb;
+}
+
+.teamOption.selected {
+  border-color: #1e3664;
+  background-color: #eff6ff;
+}
+
+.teamContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teamIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.teamOption.selected .teamIcon {
+  background-color: #1e3664;
+  color: white;
+}
+
+.teamInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teamName {
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.teamOption.selected .teamName {
+  color: #1e3664;
+}
+
+.teamDescription {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.checkIcon {
+  color: #1e3664;
+  flex-shrink: 0;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.emptyState svg {
+  margin-bottom: 12px;
+  color: #9ca3af;
+}
+
+.emptyState p {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 4px 0;
+  color: #374151;
+}
+
+.emptyState span {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Team Share Modal Styles */
+.shareInfo {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+}
+
+.shareInfo p {
+  margin: 0;
+  font-size: 14px;
+  color: #0369a1;
+}
+
+.checkboxInput {
+  display: none;
+}
+
+.selectedCount {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #166534;
+  text-align: center;
+}
+

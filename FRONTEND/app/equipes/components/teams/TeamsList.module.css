@@ -1,0 +1,215 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.createButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: #1e3664;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.createButton:hover {
+  background-color: #4338ca;
+}
+
+.searchContainer {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background-color: #f9fafb;
+}
+
+.searchInput:focus {
+  border-color: #1e3664;
+}
+
+.teamsList {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.teamItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 4px;
+  position: relative;
+}
+
+.teamItem:hover {
+  background-color: #f3f4f6;
+}
+
+.selected {
+  background-color: #eff6ff;
+}
+
+.selected:hover {
+  background-color: #dbeafe;
+}
+
+.teamContent {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+}
+
+.teamIcon {
+  color: #1e3664;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: #eff6ff;
+  border-radius: 8px;
+}
+
+.teamImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.teamInfo {
+  flex: 1;
+  overflow: hidden;
+}
+
+.teamName {
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.adminBadge {
+  font-size: 11px;
+  padding: 2px 6px;
+  background-color: #1e3664;
+  color: #ffffff;
+  border-radius: 10px;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.lockedBadge {
+  font-size: 11px;
+  padding: 2px 6px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-radius: 10px;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.teamActions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.teamActionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background-color: transparent;
+  color: #6b7280;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.teamActionButton:hover {
+  background-color: #e5e7eb;
+  color: #1e3664;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #6b7280;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #6b7280;
+  text-align: center;
+  font-size: 14px;
+}
+
+.createTeamButton {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background-color: #1e3664;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.createTeamButton:hover {
+  background-color: #4338ca;
+}

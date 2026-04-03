@@ -1,0 +1,147 @@
+import React, { Dispatch, FC, SetStateAction } from 'react'
+import "./AdminTabPanel.scss";
+import { Drama, ListChecks, LucideIcon, MessagesSquare, UsersRound, X } from 'lucide-react';
+
+export type AdminTabType = {
+
+	name : string,
+	icon : LucideIcon,
+	subOption : {
+
+		label: string,
+		condition: boolean
+
+	}[],
+};
+
+export type AdminTabProps = {
+
+	tabSelected: string,
+	setTabSelected: Dispatch<SetStateAction<string | null>>,
+};
+
+export const AdminTabPanel: FC<AdminTabProps> = ({
+
+	tabSelected,
+	setTabSelected
+
+}) => {
+
+	const tabsData = [
+        {
+            name : "Utilisateurs",
+            icon : <UsersRound size={40} />,
+            subOption : [
+                {
+					label: "Lister",
+				},
+                {
+					label: "Modifier",
+				},
+                {
+					label: "Valider",
+				},
+                {
+					label: "Désactiver",
+				},
+                {
+					label: "Bannir",
+				},
+            ],
+        },
+        {
+            name : "Rôles",
+            icon : <Drama size={40} />,
+            subOption :[
+                {
+					label: "Lister",
+				},
+                {
+					label: "Créer",
+				},
+                {
+					label: "Dupliquer",
+				},
+                {
+					label: "Modifier",
+				},
+                {
+					label: "Supprimer",
+				},
+            ],
+        },
+        {
+            name : "Permissions",
+            icon : <ListChecks size={40} />,
+            subOption : [
+                {
+					label: "Lister",
+				},
+                {
+					label: "Créer",
+				},
+                {
+					label: "Modifier",
+				},
+            ],
+        },
+        {
+            name : "Equipes",
+            icon : <MessagesSquare size={40} />,
+            subOption : [
+                {
+					label: "Lister",
+				},
+                {
+					label: "Créer",
+				},
+                {
+					label: "Modifier",
+				},
+                {
+					label: "Supprimer",
+				},
+            ],
+        },
+	];
+
+	const tabDataSelected = tabsData.find(tab => tab.name === tabSelected);
+
+	if (!tabDataSelected) return null;
+
+  return (
+
+	<section
+		id="adminTab"
+	>
+		<section id="tabHeader">
+
+			<div id="row1">
+
+				<div className="col1">
+
+					{tabDataSelected.icon}
+					<p id='tabTitle'>{tabDataSelected.name}</p>
+
+				</div>
+				<div className="col2">
+
+					<X id='backIco' size={48} onClick={() => setTabSelected(null)}/>
+
+				</div>
+
+			</div>
+			<ul id="tabOptions">
+				{tabDataSelected.subOption.map((option, index) =>
+
+					<li key={index} className='option'>
+						<p className="optionLabel">{option.label}</p>
+					</li>
+				)}
+			</ul>
+
+
+		</section>
+	</section>
+  )
+}

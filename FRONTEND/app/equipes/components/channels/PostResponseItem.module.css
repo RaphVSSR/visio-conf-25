@@ -1,0 +1,144 @@
+.responseItem {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s ease;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.responseItem:hover {
+  background-color: #f3f4f6;
+}
+
+.authorResponse {
+  background-color: #eff6ff;
+}
+
+.authorResponse:hover {
+  background-color: #dbeafe;
+}
+
+.responseHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #1e3664;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.userName {
+  font-weight: 500;
+  color: #111827;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.authorBadge {
+  font-size: 10px;
+  padding: 1px 5px;
+  background-color: #1e3664;
+  color: #ffffff;
+  border-radius: 10px;
+}
+
+.timestamp {
+  font-size: 12px;
+  color: #6b7280;
+  display: block;
+  margin-top: 2px;
+}
+
+.responseActions {
+  position: relative;
+}
+
+.optionsButton {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.optionsButton:hover {
+  background-color: #e5e7eb;
+  color: #1e3664;
+}
+
+.optionsMenu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  min-width: 150px;
+  overflow: hidden;
+}
+
+.optionItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: all 0.2s ease;
+}
+
+.optionItem:hover {
+  background-color: #f3f4f6;
+  color: #1e3664;
+}
+
+.responseText {
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

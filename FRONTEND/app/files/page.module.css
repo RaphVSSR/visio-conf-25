@@ -1,0 +1,81 @@
+.page {
+  height: 100vh;
+  width: 100%;
+  background-color: #f7f7f7;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.error {
+  background-color: #fee2e2;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  color: #b91c1c;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dismissButton {
+  background: none;
+  border: none;
+  color: #b91c1c;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.fileExplorerContainer {
+  flex: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.titleContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.icon {
+  color: #1E3664;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+}
+

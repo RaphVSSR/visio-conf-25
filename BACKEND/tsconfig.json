@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+
+		"rootDir": "./src",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"target": "esnext",
+		"moduleDetection": "force",
+		"allowImportingTsExtensions": true,
+
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+
+		"moduleResolution": "bundler",
+		"module": "esnext",
+		"noEmit": true,
+		"outDir": null,
+		"sourceMap": false,
+
+		"lib": ["ESNext"],
+	},
+	"include": ["src/**/*.ts"],
+}

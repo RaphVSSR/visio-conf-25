@@ -1,0 +1,275 @@
+.fileItem {
+  position: relative;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  overflow: visible;
+}
+
+.fileItem.grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  width: 160px;
+  height: 160px;
+}
+
+.fileItem.list {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  width: 100%;
+}
+
+.fileItem:hover {
+  border-color: rgba(79, 70, 229, 0.3);
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fileItem.grid .iconContainer {
+  margin-bottom: 8px;
+  height: 80px;
+}
+
+.fileItem.list .iconContainer {
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.thumbnail {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.fileItem.list .thumbnail {
+  width: 40px;
+  height: 40px;
+}
+
+.fileDetails {
+  display: flex;
+  overflow: hidden;
+}
+
+.fileItem.grid .fileDetails {
+  flex-direction: column;
+  width: 100%;
+  justify-content: center;
+  flex: 1;
+}
+
+.fileItem.list .fileDetails {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.fileName {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileItem.grid .fileName {
+  font-size: 14px;
+  text-align: center;
+  max-width: 140px;
+}
+
+.fileItem.list .fileName {
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fileNameContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.fileNameText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.fileDate,
+.fileSize {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.fileItem.list .fileDate {
+  width: 120px;
+  text-align: right;
+}
+
+.fileItem.list .fileSize {
+  width: 80px;
+  text-align: right;
+}
+
+.fileActions {
+  position: absolute;
+  z-index: 40;
+}
+
+.fileItem.grid .fileActions {
+  top: 8px;
+  right: 8px;
+}
+
+.fileItem.list .fileActions {
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.menuButton {
+  background-color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.menuButton:hover {
+  background-color: #f3f4f6;
+  color: #1E3664;
+}
+
+.menuDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 180px;
+  z-index: 1050;
+  overflow: hidden;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  width: 100%;
+  border: none;
+  background-color: transparent;
+  color: #6b7280;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.menuItem:hover {
+  background-color: #f3f4f6;
+}
+
+.menuItem.deleteItem {
+  color: #ef4444;
+}
+
+.menuItem.deleteItem:hover {
+  background-color: #fee2e2;
+}
+
+/* Sharing indicators */
+.teamSharedIndicator,
+.publicSharedIndicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.teamSharedIndicator {
+  background-color: #dbeafe;
+  color: #3b82f6;
+}
+
+.publicSharedIndicator {
+  background-color: #ecfdf5;
+  color: #10b981;
+}
+
+.fileIndicators {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.fileOwner {
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .fileItem.grid {
+    width: 120px;
+    height: 140px;
+    padding: 12px;
+  }
+
+  .fileItem.grid .iconContainer {
+    height: 60px;
+  }
+
+  .thumbnail,
+  .fileItem.grid .thumbnail {
+    width: 60px;
+    height: 60px;
+  }
+  .fileItem.list .fileDate {
+    display: none;
+  }
+    /* Responsive adjustments for file indicators */
+  .fileIndicators {
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .teamSharedIndicator,
+  .publicSharedIndicator {
+    width: 16px;
+    height: 16px;
+  }
+}
+

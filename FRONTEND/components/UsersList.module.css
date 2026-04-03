@@ -1,0 +1,73 @@
+.usersListContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.searchContainer {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 12px 12px 40px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  background-color: white;
+  transition: all 0.2s ease;
+  color: #1E3664;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #1E3664;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+.usersCount {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.usersListWrapper {
+  width: 100%;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px); /* Adjust based on your header and other elements */
+  border-radius: 8px;
+  padding-right: 4px; /* Add some padding to prevent content from touching the scrollbar */
+}
+
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.noResults {
+  text-align: center;
+  padding: 40px 0;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .searchInput {
+    padding: 10px 10px 10px 36px;
+  }
+}
+

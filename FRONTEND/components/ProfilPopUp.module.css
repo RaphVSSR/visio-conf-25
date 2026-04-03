@@ -1,0 +1,237 @@
+.container {
+  display: inline-block;
+}
+
+.profileButton {
+  width: 50px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 50px;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50px;
+}
+
+.popUp {
+  position: absolute;
+  top: -30px;
+  right: -320px;
+  width: 318px;
+  height: 264px;
+  flex-shrink: 0;
+  border-radius: 17px;
+  background: #f7faff;
+  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+  transform: translateY(-100%);
+}
+
+.popUp p {
+  margin: 0;
+}
+.photoProfil {
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  border-radius: 86px;
+}
+
+.infosProfil {
+  width: 100%;
+  height: 77px;
+  display: flex;
+  align-items: center;
+  margin: 10px 20px;
+}
+
+.infos {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 15px;
+  gap: 20px;
+  height: 100%;
+}
+
+.names {
+  color: #223a6a;
+  font-weight: 700;
+  font-size: 18px;
+  margin: 0;
+}
+
+.job {
+  color: #636363;
+  font-size: 16px;
+  font-weight: 400;
+  margin: 0;
+}
+.shadowBloc {
+  width: 100%;
+  height: 60px;
+  background: #f7faff;
+  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  color: #636363;
+  padding: 0 21px;
+  font-size: 17px;
+  font-weight: 600;
+  font-style: normal;
+  line-height: normal;
+  position: "relative";
+  cursor: pointer;
+}
+.deconnexion {
+  border-radius: 0 0 17px 17px;
+  color: #cb0000;
+  display: "flex";
+  flex-direction: "row";
+  gap: 12px;
+}
+.parametres {
+  display: "flex";
+  flex-direction: "row";
+  gap: 12px;
+}
+.status {
+  cursor: pointer;
+  justify-content: space-between;
+  transition: background-color 0.2s ease;
+}
+
+.status:hover {
+  background-color: #f0f4ff;
+}
+
+.statusContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+}
+
+.menu {
+  position: absolute;
+  top: 40;
+  left: 101%;
+  border: 1px solid #ccc;
+  border-radius: 17px;
+  background: #f7faff;
+  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.25);
+  padding: 8px;
+  margin-top: 4px;
+  z-index: 10;
+  width: 220px;
+  height: 170px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 17px;
+  color: #636363;
+  font-weight: 500;
+}
+
+.menuItem:hover {
+  background-color: #f0f0f0;
+}
+
+/* Error message styles */
+.errorMessage {
+  padding: 8px 16px;
+  background-color: #fee2e2;
+  border-radius: 8px;
+  margin: 8px 16px;
+  font-size: 14px;
+  color: #dc2626;
+  border-left: 4px solid #dc2626;
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Success message styles */
+.successMessage {
+  padding: 8px 12px;
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+  margin: 4px 0;
+  font-size: 14px;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Loading indicator */
+.loadingIndicator {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Disabled state for menu items */
+.menuItem:disabled,
+.menuItem.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Status change transition */
+.statusContent {
+  transition: all 0.2s ease;
+}
+
+/* Profile button hover effect */
+.profileButton:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Styles for menu header and close button removed - no longer used */

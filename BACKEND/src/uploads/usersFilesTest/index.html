@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisioConf - Plateforme de Communication</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+<body>
+    <!-- Header avec navigation -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="logo_univ.png" alt="Université de Toulon">
+                <h1>VisioConf MMI</h1>
+            </div>
+            
+            <nav class="navigation">
+                <ul>
+                    <li><a href="#accueil" class="nav-link active">Accueil</a></li>
+                    <li><a href="#equipes" class="nav-link">Équipes</a></li>
+                    <li><a href="#discussion" class="nav-link">Discussion</a></li>
+                    <li><a href="#fichiers" class="nav-link">Fichiers</a></li>
+                    <li><a href="#annuaire" class="nav-link">Annuaire</a></li>
+                </ul>
+            </nav>
+            
+            <div class="user-menu">
+                <div class="user-avatar">
+                    <img src="avatar-default.png" alt="Avatar utilisateur">
+                </div>
+                <span class="user-name">Utilisateur</span>
+                <button class="dropdown-btn">▼</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenu principal -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Section hero -->
+            <section class="hero" id="accueil">
+                <div class="hero-content">
+                    <h2>Bienvenue sur VisioConf</h2>
+                    <p>La plateforme de communication collaborative du département MMI</p>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="users-count">0</span>
+                            <span class="stat-label">Utilisateurs actifs</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="teams-count">0</span>
+                            <span class="stat-label">Équipes</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="files-count">0</span>
+                            <span class="stat-label">Fichiers partagés</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section fonctionnalités -->
+            <section class="features">
+                <h3>Fonctionnalités principales</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📹</div>
+                        <h4>Visioconférence</h4>
+                        <p>Organisez des réunions et cours en ligne avec une qualité professionnelle</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">💬</div>
+                        <h4>Chat intégré</h4>
+                        <p>Communiquez en temps réel avec vos collègues et étudiants</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">📁</div>
+                        <h4>Partage de fichiers</h4>
+                        <p>Partagez et collaborez sur vos documents en toute sécurité</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">👥</div>
+                        <h4>Gestion d'équipes</h4>
+                        <p>Organisez vos projets et collaborateurs efficacement</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section activité récente -->
+            <section class="recent-activity">
+                <h3>Activité récente</h3>
+                <div class="activity-list" id="activity-list">
+                    <!-- Les activités seront chargées dynamiquement -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>VisioConf MMI</h4>
+                    <p>Plateforme de communication collaborative pour le département MMI de l'Université de Toulon.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Liens utiles</h4>
+                    <ul>
+                        <li><a href="#aide">Aide</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="#conditions">Conditions d'utilisation</a></li>
+                        <li><a href="#confidentialite">Confidentialité</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Support technique</h4>
+                    <p>Email: support@mmi.univ-tln.fr</p>
+                    <p>Téléphone: 04 94 14 XX XX</p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Université de Toulon - Département MMI. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>

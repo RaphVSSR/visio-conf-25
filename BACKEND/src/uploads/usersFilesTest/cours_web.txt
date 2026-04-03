@@ -1,0 +1,91 @@
+# COURS DE DÉVELOPPEMENT WEB
+## Département MMI - Université de Toulon
+
+### Sommaire
+1. Introduction au développement web
+2. HTML5 et sémantique
+3. CSS3 et mise en page responsive
+4. JavaScript et interactivité
+5. Frameworks modernes
+
+---
+
+## Chapitre 1: Introduction au développement web
+
+Le développement web moderne implique la création d'applications interactives et responsives. 
+Les technologies fondamentales incluent :
+
+- **HTML5** : Structure et sémantique
+- **CSS3** : Présentation et mise en page
+- **JavaScript** : Logique et interactivité
+
+### Architecture client-serveur
+Le web fonctionne sur un modèle client-serveur où :
+- Le client (navigateur) envoie des requêtes HTTP
+- Le serveur traite ces requêtes et renvoie des réponses
+- Les données peuvent être au format HTML, JSON, XML, etc.
+
+### Standards du W3C
+Il est essentiel de respecter les standards définis par le W3C pour :
+- Assurer la compatibilité entre navigateurs
+- Améliorer l'accessibilité
+- Optimiser le référencement (SEO)
+
+---
+
+## Chapitre 2: HTML5 et sémantique
+
+HTML5 apporte de nouveaux éléments sémantiques :
+- `<header>` : En-tête de page ou de section
+- `<nav>` : Navigation principale
+- `<main>` : Contenu principal
+- `<article>` : Contenu autonome
+- `<section>` : Section thématique
+- `<aside>` : Contenu annexe
+- `<footer>` : Pied de page
+
+### Exemple de structure HTML5
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Site Web</title>
+</head>
+<body>
+    <header>
+        <h1>Titre du site</h1>
+        <nav>
+            <ul>
+                <li><a href="#accueil">Accueil</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+        <article>
+            <h2>Article principal</h2>
+            <p>Contenu de l'article...</p>
+        </article>
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 Mon Site Web</p>
+    </footer>
+</body>
+</html>
+```
+
+---
+
+## Exercices pratiques
+
+1. Créer une page HTML5 valide avec tous les éléments sémantiques
+2. Valider le code avec le validateur W3C
+3. Tester l'accessibilité avec des outils comme WAVE
+
+Date de dernière mise à jour : Juin 2025
+Auteur : Département MMI, Université de Toulon
