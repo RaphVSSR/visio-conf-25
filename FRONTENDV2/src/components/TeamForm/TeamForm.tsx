@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FC, type FormEvent, type ChangeEvent } from "react"
+import { useState, useEffect, useCallback, useRef, type FC, type FormEvent, type ChangeEvent } from "react"
 import "./TeamForm.scss"
 import { useAuth } from "hooks/useAuth"
 import { Users, X, AlertCircle, Upload, Trash2 } from "lucide-react"
@@ -31,145 +31,164 @@ const TeamForm: FC<TeamFormProps> = ({
 	const [teamPicture, setTeamPicture] = useState<string>("")
 	const [picturePreview, setPicturePreview] = useState<string>("")
 
-	const handleTeamActionResponse = useCallback((data: any) => {
-		switch (data.type) {
-			case "create":
-				setIsLoading(false)
-				if (data.etat) {
-					onTeamCreated(data.team)
-				} else {
-					setError(data.error || "Erreur lors de la creation de l'equipe")
-				}
-				break
+	const onTeamCreatedRef = useRef(onTeamCreated)
+	const teamToEditRef = useRef(teamToEdit)
+	const userIdRef = useRef(user?._id)
+	const socketRef = useRef(socket)
 
-			case "update":
-				setIsLoading(false)
-				if (data.etat) {
-					onTeamCreated(data.team)
-				} else {
-					setError(data.error || "Erreur lors de la mise a jour de l'equipe")
-				}
-				break
+	useEffect(() => { onTeamCreatedRef.current = onTeamCreated }, [onTeamCreated])
+	useEffect(() => { teamToEditRef.current = teamToEdit }, [teamToEdit])
+	useEffect(() => { userIdRef.current = user?._id }, [user?._id])
+	useEffect(() => { socketRef.current = socket }, [socket])
 
-			case "delete":
-				setIsDeleting(false)
-				if (data.etat) {
-					onTeamCreated({
-						...teamToEdit,
-						deleted: true,
-						id: teamToEdit?.id,
-					} as Team)
-				} else {
-					setError(data.error || "Erreur lors de la suppression de l'equipe")
-				}
-				break
-		}
-	}, [onTeamCreated, teamToEdit])
-
-	const handleUserQueryResponse = useCallback((data: any) => {
-		if (data.type !== "list") return
-		setIsLoadingUsers(false)
-		if (data.etat) {
-			const users = data.users || []
-			const membersConverted: Member[] = users
-				.filter((u: any) => u.id !== user?._id)
-				.map((u: any) => ({
-					id: u.id,
-					firstname: u.firstname,
-					lastname: u.lastname,
-					picture: u.picture,
-					isSelected: false,
-				}))
-			setMembers(membersConverted)
-		}
-	}, [user?._id])
-
-	const handleTeamMemberResponse = useCallback((data: any) => {
-		switch (data.type) {
-			case "list":
-				setIsLoadingMembers(false)
-				if (data.etat) {
-					const teamMembersData = data.members || []
-					setTeamMembers(teamMembersData)
-					setMembers((prevMembers) =>
-						prevMembers.map((member) => ({
-							...member,
-							isSelected: teamMembersData.some(
-								(teamMember: any) => teamMember.userId === member.id
-							),
-						}))
-					)
-				}
-				break
-
-			case "add":
-				setIsLoading(false)
-				if (data.etat) {
-					if (teamToEdit) {
-						loadTeamMembers(teamToEdit.id)
-						setSuccessMessage("Membre ajoute avec succes")
-						setTimeout(() => setSuccessMessage(""), 3000)
-					}
-				} else {
-					const addedUserId = data.userId
-					if (addedUserId) {
-						setMembers((prevMembers) =>
-							prevMembers.map((member) =>
-								member.id === addedUserId
-									? { ...member, isSelected: false }
-									: member
-							)
-						)
-					}
-					setError(data.error || "Erreur lors de l'ajout du membre")
-				}
-				break
-
-			case "remove":
-				setIsLoading(false)
-				if (data.etat) {
-					if (teamToEdit) {
-						loadTeamMembers(teamToEdit.id)
-						setSuccessMessage("Membre retire avec succes")
-						setTimeout(() => setSuccessMessage(""), 3000)
-					}
-				} else {
-					const removedUserId = data.userId
-					if (removedUserId) {
-						setMembers((prevMembers) =>
-							prevMembers.map((member) =>
-								member.id === removedUserId
-									? { ...member, isSelected: true }
-									: member
-							)
-						)
-					}
-					setError(data.error || "Erreur lors de la suppression du membre")
-				}
-				break
-		}
-	}, [teamToEdit])
-
-	const loadUsers = () => {
-		if (!socket) return
-		setIsLoadingUsers(true)
-		socket.send("user_get", { type: "list" })
-	}
-
-	const loadTeamMembers = (teamId: string) => {
-		if (!socket) return
+	const loadTeamMembers = useCallback((teamId: string) => {
+		const sock = socketRef.current
+		if (!sock) return
 		setIsLoadingMembers(true)
-		socket.send("team_member", { type: "list", teamId })
-	}
+		sock.send("team_member", { type: "list", teamId })
+	}, [])
 
 	useEffect(() => {
 		if (!socket) return
+
+		const handleTeamActionResponse = (data: any) => {
+			switch (data.type) {
+				case "create":
+					setIsLoading(false)
+					if (data.etat) {
+						onTeamCreatedRef.current(data.team)
+					} else {
+						setError(data.error || "Erreur lors de la creation de l'equipe")
+					}
+					break
+
+				case "update":
+					setIsLoading(false)
+					if (data.etat) {
+						onTeamCreatedRef.current(data.team)
+					} else {
+						setError(data.error || "Erreur lors de la mise a jour de l'equipe")
+					}
+					break
+
+				case "delete":
+					setIsDeleting(false)
+					if (data.etat) {
+						const edit = teamToEditRef.current
+						onTeamCreatedRef.current({
+							...edit,
+							deleted: true,
+							id: edit?.id,
+						} as Team)
+					} else {
+						setError(data.error || "Erreur lors de la suppression de l'equipe")
+					}
+					break
+			}
+		}
+
+		const handleUserQueryResponse = (data: any) => {
+			if (data.type !== "list") return
+			setIsLoadingUsers(false)
+			if (data.etat) {
+				const users = data.users || []
+				const membersConverted: Member[] = users
+					.filter((u: any) => u.id !== userIdRef.current)
+					.map((u: any) => ({
+						id: u.id,
+						firstname: u.firstname,
+						lastname: u.lastname,
+						picture: u.picture,
+						isSelected: false,
+					}))
+				setMembers(membersConverted)
+			}
+		}
+
+		const handleTeamMemberResponse = (data: any) => {
+			switch (data.type) {
+				case "list":
+					setIsLoadingMembers(false)
+					if (data.etat) {
+						const teamMembersData = data.members || []
+						setTeamMembers(teamMembersData)
+						setMembers((prevMembers) =>
+							prevMembers.map((member) => ({
+								...member,
+								isSelected: teamMembersData.some(
+									(teamMember: any) => teamMember.userId === member.id
+								),
+							}))
+						)
+					}
+					break
+
+				case "add":
+					setIsLoading(false)
+					if (data.etat) {
+						const edit = teamToEditRef.current
+						if (edit) {
+							loadTeamMembers(edit.id)
+							setSuccessMessage("Membre ajoute avec succes")
+							setTimeout(() => setSuccessMessage(""), 3000)
+						}
+					} else {
+						const addedUserId = data.userId
+						if (addedUserId) {
+							setMembers((prevMembers) =>
+								prevMembers.map((member) =>
+									member.id === addedUserId
+										? { ...member, isSelected: false }
+										: member
+								)
+							)
+						}
+						setError(data.error || "Erreur lors de l'ajout du membre")
+					}
+					break
+
+				case "remove":
+					setIsLoading(false)
+					if (data.etat) {
+						const edit = teamToEditRef.current
+						if (edit) {
+							loadTeamMembers(edit.id)
+							setSuccessMessage("Membre retire avec succes")
+							setTimeout(() => setSuccessMessage(""), 3000)
+						}
+					} else {
+						const removedUserId = data.userId
+						if (removedUserId) {
+							setMembers((prevMembers) =>
+								prevMembers.map((member) =>
+									member.id === removedUserId
+										? { ...member, isSelected: true }
+										: member
+								)
+							)
+						}
+						setError(data.error || "Erreur lors de la suppression du membre")
+					}
+					break
+			}
+		}
 
 		socket.on("team_action_response", handleTeamActionResponse)
 		socket.on("user_get_response", handleUserQueryResponse)
 		socket.on("team_member_response", handleTeamMemberResponse)
 
-		loadUsers()
+		return () => {
+			socket.off("team_action_response", handleTeamActionResponse)
+			socket.off("user_get_response", handleUserQueryResponse)
+			socket.off("team_member_response", handleTeamMemberResponse)
+		}
+	}, [socket, loadTeamMembers])
+
+	useEffect(() => {
+		if (!socket) return
+
+		setIsLoadingUsers(true)
+		socket.send("user_get", { type: "list" })
 
 		if (teamToEdit) {
 			setName(teamToEdit.name || "")
@@ -183,19 +202,7 @@ const TeamForm: FC<TeamFormProps> = ({
 			setTeamPicture("")
 			setIsEditing(false)
 		}
-
-		return () => {
-			socket.off("team_action_response", handleTeamActionResponse)
-			socket.off("user_get_response", handleUserQueryResponse)
-			socket.off("team_member_response", handleTeamMemberResponse)
-		}
-	}, [
-		socket,
-		teamToEdit?.id,
-		handleTeamActionResponse,
-		handleUserQueryResponse,
-		handleTeamMemberResponse,
-	])
+	}, [socket, teamToEdit?.id, loadTeamMembers])
 
 	const handleSubmit = (e: FormEvent) => {
 		e.preventDefault()

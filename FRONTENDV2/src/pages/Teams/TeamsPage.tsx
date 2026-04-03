@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useAuth } from "hooks/useAuth"
 import { useTeamManager } from "hooks/useTeamManager"
 import { useChannelManager } from "hooks/useChannelManager"
@@ -18,53 +18,43 @@ export const TeamsPage = () => {
 	const teamManager = useTeamManager()
 	const channelManager = useChannelManager()
 
-	const { updateTeamsFromResponse } = teamManager
-	const { updateChannelsFromResponse } = channelManager
+	const selectedTeamRef = useRef(teamManager.selectedTeam)
+	const updateTeamsRef = useRef(teamManager.updateTeamsFromResponse)
+	const updateChannelsRef = useRef(channelManager.updateChannelsFromResponse)
+	const socketRef = useRef(socket)
 
-	const handleTeamQueryResponse = useCallback(
-		(data: any) => {
-			if (data.type !== "list") return
-			if (data.etat) {
-				updateTeamsFromResponse(data.teams || [])
-			}
-			setIsLoadingTeams(false)
-		},
-		[updateTeamsFromResponse]
-	)
-
-	const handleChannelQueryResponse = useCallback(
-		(data: any) => {
-			if (data.type !== "list") return
-			if (data.etat) {
-				updateChannelsFromResponse(data.channels || [])
-			}
-			setIsLoadingChannels(false)
-		},
-		[updateChannelsFromResponse]
-	)
-
-	const handleChannelActionResponse = useCallback(
-		(data: any) => {
-			if (data.type !== "create" && data.type !== "update" && data.type !== "delete") return
-			if (teamManager.selectedTeam && socket) {
-				socket.send("channel_get", { type: "list", teamId: teamManager.selectedTeam.id })
-			}
-		},
-		[teamManager.selectedTeam, socket]
-	)
-
-	useEffect(() => {
-		if (!socket) return
-		if (teamManager.selectedTeam) {
-			setIsLoadingChannels(true)
-			socket.send("channel_get", { type: "list", teamId: teamManager.selectedTeam.id })
-		} else {
-			channelManager.clearChannels()
-		}
-	}, [socket, teamManager.selectedTeam, channelManager.clearChannels])
+	useEffect(() => { selectedTeamRef.current = teamManager.selectedTeam }, [teamManager.selectedTeam])
+	useEffect(() => { updateTeamsRef.current = teamManager.updateTeamsFromResponse }, [teamManager.updateTeamsFromResponse])
+	useEffect(() => { updateChannelsRef.current = channelManager.updateChannelsFromResponse }, [channelManager.updateChannelsFromResponse])
+	useEffect(() => { socketRef.current = socket }, [socket])
 
 	useEffect(() => {
 		if (!socket || !user) return
+
+		const handleTeamQueryResponse = (data: any) => {
+			if (data.type !== "list") return
+			if (data.etat) {
+				updateTeamsRef.current(data.teams || [])
+			}
+			setIsLoadingTeams(false)
+		}
+
+		const handleChannelQueryResponse = (data: any) => {
+			if (data.type !== "list") return
+			if (data.etat) {
+				updateChannelsRef.current(data.channels || [])
+			}
+			setIsLoadingChannels(false)
+		}
+
+		const handleChannelActionResponse = (data: any) => {
+			if (data.type !== "create" && data.type !== "update" && data.type !== "delete") return
+			const team = selectedTeamRef.current
+			const sock = socketRef.current
+			if (team && sock) {
+				sock.send("channel_get", { type: "list", teamId: team.id })
+			}
+		}
 
 		socket.on("team_get_response", handleTeamQueryResponse)
 		socket.on("channel_get_response", handleChannelQueryResponse)
@@ -77,7 +67,17 @@ export const TeamsPage = () => {
 			socket.off("channel_get_response", handleChannelQueryResponse)
 			socket.off("channel_action_response", handleChannelActionResponse)
 		}
-	}, [socket, user, handleTeamQueryResponse, handleChannelQueryResponse, handleChannelActionResponse])
+	}, [socket, user?._id])
+
+	useEffect(() => {
+		if (!socket) return
+		if (teamManager.selectedTeam) {
+			setIsLoadingChannels(true)
+			socket.send("channel_get", { type: "list", teamId: teamManager.selectedTeam.id })
+		} else {
+			channelManager.clearChannels()
+		}
+	}, [socket, teamManager.selectedTeam?.id, channelManager.clearChannels])
 
 	const { handleTeamCreated } = teamManager
 
