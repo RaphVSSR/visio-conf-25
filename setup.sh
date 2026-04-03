@@ -1,275 +1,47 @@
 #!/bin/bash
 
-# Force UTF-8 (usually default in modern Linux/macOS)
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 
-# Color definitions using tput
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-YELLOW=$(tput setaf 3)
-BLUE=$(tput setaf 4)
-CYAN=$(tput setaf 6)
-WHITE=$(tput setaf 7)
-NC=$(tput sgr0) # No Color
+SCRIPT_DIR="$(pwd)"
+WIZARD_DIR="./wizard"
+REPO_URL="https://github.com/RaphVSSR/visio-conf-25.git"
+PROJECT_DIR=""
 
-write_color() {
-    echo "${!2:-$WHITE}${1}${NC}"
-}
+source "$WIZARD_DIR/core/colors.sh"
+source "$WIZARD_DIR/core/menu.sh"
+source "$WIZARD_DIR/core/dependencies.sh"
+source "$WIZARD_DIR/shared/generate-env.sh"
 
-invoke_compose() {
-    local args=("$@")
-    "${compose_cmd[@]}" "${args[@]}"
-    local exit_code=$?
-    if [ $exit_code -ne 0 ]; then
-        write_color "ERREUR: ${compose_cmd[*]} ${args[*]} (code: $exit_code)" RED
-        return 1
-    fi
-    return 0
-}
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) _win_refresh_path ;; esac
 
-generate_env() {
-    local template="$1"
-    local output="$2"
-    local label="$3"
-
-    if [ ! -f "$template" ]; then
-        write_color "X Fichier $template introuvable" RED
-        return 1
-    fi
-
-    write_color "" WHITE
-    write_color "== Configuration $label ==" CYAN
-    > "$output"
-
-    local state="header"
-
-    while IFS= read -r line || [ -n "$line" ]; do
-        if [ "$state" = "header" ]; then
-            if [[ "$line" =~ ^# ]]; then
-                continue
-            elif [[ -z "$line" ]]; then
-                state="past_header"
-                continue
-            else
-                state="content"
-            fi
-        fi
-
-        if [ "$state" = "past_header" ]; then
-            if [[ -z "$line" ]]; then
-                continue
-            fi
-            state="content"
-        fi
-
-        if [[ -z "$line" ]] || [[ "$line" =~ ^# ]]; then
-            echo "$line" >> "$output"
-            continue
-        fi
-
-        local key="${line%%=*}"
-        local raw_value="${line#*=}"
-
-        local default_value="$raw_value"
-        local hint=""
-        if [[ "$raw_value" == *" #"* ]]; then
-            default_value="${raw_value%% #*}"
-            hint="${raw_value#*#}"
-        fi
-
-        local prompt_text="${BLUE}[${label}]${NC} ${CYAN}${key}${NC} [${YELLOW}${default_value}${NC}]"
-        if [ -n "$hint" ]; then
-            prompt_text="$prompt_text (${GREEN}${hint}${NC})"
-        fi
-
-        read -p "$prompt_text: " user_value < /dev/tty
-        if [ -z "$user_value" ]; then
-            user_value="$default_value"
-        fi
-
-        echo "${key}=${user_value}" >> "$output"
-    done < "$template"
-
-    write_color "V $label .env.local genere avec succes" GREEN
-}
-
-# Main menu
 while true; do
+    cd "$SCRIPT_DIR"
     clear
-    write_color "=== Gestionnaire MMI-VisioConf ==="
-    write_color "1. Gestion avec Docker (recommande)" GREEN
-    write_color "2. Installation locale" BLUE
-    write_color "3. Configurer les fichiers .env.local" YELLOW
-    write_color "4. Fermer le gestionnaire" RED
-    read -p "Choix (1 - 4): " choice
+    show_header
 
-    case $choice in
+    arrow_menu --style boxes \
+        --colors "CYAN,YELLOW,CYAN,RED" \
+        "Docker Manager (recommended)" \
+        "Legacy Manager" \
+        "Generate .env files" \
+        "Quit"
+
+    case $MENU_RESULT in
+        0)
+            source "$WIZARD_DIR/docker/manager.sh"
+            docker_manager
+            ;;
         1)
-            clear
-            write_color ">> Mode Docker selectionne" CYAN
-            # Check Docker
-            if ! command -v docker >/dev/null 2>&1; then
-                write_color "X Docker non detecte. Installez Docker Desktop : https://www.docker.com/products/docker-desktop" RED
-                exit 1
-            fi
-
-            # Detect Docker Compose V2 or V1
-            compose_cmd=()
-            if docker compose version >/dev/null 2>&1; then
-                compose_cmd=(docker compose)
-                write_color "Compose V2 detecte. Prefix: ${compose_cmd[*]}" GREEN
-            elif command -v docker-compose >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then
-                compose_cmd=(docker-compose)
-                write_color "Compose V1 detecte. Prefix: ${compose_cmd[*]}" GREEN
-            else
-                write_color "Nouvelle version de Docker Compose manquante.." RED
-                write_color "Ancienne version de Docker Compose manquante.." RED
-                write_color "ERREUR: Docker Compose est manquant sur votre système." RED
-                exit 1
-            fi
-
-            write_color ">> Verification de Docker Desktop..." YELLOW
-            if ! docker info >/dev/null 2>&1; then
-                write_color "X Docker Desktop ne semble pas fonctionner correctement." RED
-                write_color ">> Assurez-vous que Docker Desktop est lance et que le partage de fichiers est actif." YELLOW
-                write_color ">> Assurez-vous que le moteur Docker soit actif et fonctionnel puisque sans le Desktop les conteneurs ne pourront pas etre demarres si ce n'est pas prévu." YELLOW
-                sleep 10
-                #exit 1
-            else
-                write_color "Docker Desktop detecte !" GREEN
-            fi
-
-            write_color "..."
-            sleep 5
-
-            # Docker submenu
-            while true; do
-                clear
-                write_color "=== Gestion de MMI-VisioConf ==="
-                write_color "0. Retour"
-                write_color "1. Demarrer l'application" YELLOW
-                write_color "2. Redemarrer l'application" YELLOW
-                write_color "3. Arreter l'application" RED
-                read -p "Choix (0 - 3): " docker_choice
-
-                case $docker_choice in
-                    0)
-                        break
-                        ;;
-                    1)
-                        write_color ">> Arret des conteneurs existants..." YELLOW
-                        invoke_compose down || true
-
-                        write_color ">> Construction et demarrage des conteneurs..." YELLOW
-                        invoke_compose up -d --build
-                        if [ $? -eq 0 ]; then
-                            write_color ">> Attente du demarrage des services..." YELLOW
-                            sleep 15
-                            write_color "** Application lancee avec succes !" GREEN
-                            write_color "** Frontend: http://localhost:3000" CYAN
-                            write_color "** Backend: http://localhost:3220" CYAN
-                            write_color "** Connexion suggeree: dev@visioconf.com | d3vV1s10C0nf" YELLOW
-                        else
-                            write_color "X Erreur au demarrage avec Docker." RED
-                        fi
-                        ;;
-                    2)
-                        write_color ">> Redemarrage des conteneurs..." YELLOW
-                        invoke_compose restart
-                        sleep 15
-                        ;;
-                    3)
-                        write_color ">> Arret des conteneurs ..." YELLOW
-                        invoke_compose down
-                        sleep 15
-                        ;;
-                    *)
-                        echo "Choix invalide (0-3 seulement)" >&2
-                        sleep 2
-                        ;;
-                esac
-            done
+            source "$WIZARD_DIR/legacy/entry.sh"
+            legacy_manager
             ;;
         2)
-            clear
-            write_color ">> Mode installation locale selectionne" CYAN
-            # Check Node.js
-            if ! command -v node >/dev/null 2>&1; then
-                write_color "X Node.js non detecte. Telechargez-le sur https://nodejs.org/" RED
-                exit 1
-            fi
-
-            # Check MongoDB shell
-            mongo_available=false
-            if command -v mongosh >/dev/null 2>&1 && mongosh --eval 'db.stats()' --quiet >/dev/null 2>&1; then
-                mongo_available=true
-                write_color "V MongoDB et mongosh detectes." GREEN
-            elif command -v mongo >/dev/null 2>&1 && mongo --eval 'db.stats()' --quiet >/dev/null 2>&1; then
-                mongo_available=true
-                write_color "V MongoDB detecte (mongo)." GREEN
-            fi
-
-            if [ "$mongo_available" = false ]; then
-                write_color "X MongoDB Shell (mongosh) non detecte." RED
-                write_color "Pour l'installation locale, vous devez installer :" YELLOW
-                write_color "  1. MongoDB Community Server : https://www.mongodb.com/try/download/community" YELLOW
-                write_color "  2. MongoDB Shell (mongosh) : https://www.mongodb.com/try/download/shell" YELLOW
-                write_color "  3. Demarrer le service MongoDB" YELLOW
-                write_color "  4. Ajouter mongosh au PATH" YELLOW
-                write_color "" WHITE
-                write_color "Alternative : Utilisez Docker (option 1) pour eviter cette configuration." CYAN
-                exit 1
-            fi
-
-            # Backend
-            write_color ">> Installation des dependances du backend..." YELLOW
-            cd BACKEND || exit 1
-            generate_env .env.template .env.local "Backend"
-            npm install
-
-            # Frontend
-            write_color ">> Installation des dependances du frontend..." YELLOW
-            cd ../FRONTENDV2 || exit 1
-            generate_env .env.template .env.local "Frontend"
-            npm install
-
-            # Back to root
-            cd ../ || exit 1
-
-            # Launch services in background new terminals (using gnome-terminal or similar; adjust for your terminal) [web:5][web:16]
-            script_dir=$(pwd)
-            gnome-terminal -- bash -c "cd '$script_dir/BACKEND'; echo 'Demarrage du backend...'; npm start; exec bash" &
-            sleep 8
-
-            gnome-terminal -- bash -c "cd '$script_dir/FRONTENDV2'; echo 'Demarrage du frontend...'; npm run dev; exec bash" &
-            write_color "** Application en cours de lancement..." GREEN
-            write_color "** Frontend: http://localhost:3000" CYAN
-            write_color "** Backend: http://localhost:3220" CYAN
-            write_color "** Connexion suggeree: dev@visioconf.com | d3vV1s10C0nf" YELLOW
+            run_generate_env
             ;;
         3)
-            clear
-            write_color ">> Configuration des fichiers .env.local" CYAN
-
-            script_dir=$(pwd)
-            cd BACKEND || exit 1
-            generate_env .env.template .env.local "Backend"
-            cd "$script_dir/FRONTENDV2" || exit 1
-            generate_env .env.template .env.local "Frontend"
-            cd "$script_dir" || exit 1
-
-            write_color "** Fichiers .env.local generes avec succes !" GREEN
-            read -p "Appuyez sur Entree pour continuer..."
-            ;;
-        4)
-            write_color ">> Fermeture du gestionnaire..." CYAN
+            write_color "  Au revoir !" CYAN
             exit 0
-            ;;
-        *)
-            clear
-            echo "Choix invalide (1-4 seulement)" >&2
-            sleep 2
             ;;
     esac
 done

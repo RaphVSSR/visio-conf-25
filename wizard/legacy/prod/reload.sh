@@ -1,0 +1,31 @@
+#!/bin/bash
+
+legacy_prod_reload() {
+    clear
+    write_color "── Reload (Prod) ──" CYAN
+    echo ""
+
+    if ! locate_project; then
+        read -p "  Appuyez sur Entrée..." dummy
+        return
+    fi
+
+    if ! _prod_services_running; then
+        write_color "  Aucun service en cours d'exécution trouvé." YELLOW
+        read -p "  Appuyez sur Entrée..." dummy
+        return
+    fi
+
+    write_color "  Rechargement pm2..." YELLOW
+    pm2 reload visioconf-backend 2>&1
+
+    write_color "  Rechargement nginx..." YELLOW
+    nginx -s reload 2>&1
+
+    sleep 3
+
+    echo ""
+    prod_health_report
+
+    read -p "  Appuyez sur Entrée..." dummy
+}
