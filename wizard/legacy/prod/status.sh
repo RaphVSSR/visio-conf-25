@@ -12,17 +12,19 @@ legacy_prod_status() {
 
     while true; do
         clear
-        prod_health_report_live
+        write_color "  rafraîchissement : 3s — Ctrl+C pour quitter" WHITE
+        echo ""
+        prod_health_report
         sleep 3
     done
 }
 
-prod_health_report_live() {
+prod_health_report() {
     local back_port mongo_port
     back_port=$(_extract_env_port "BACKEND/.env" "PORT" 3220)
     mongo_port=27017
 
-    write_color "── Status (Prod) ── rafraîchissement : 3s ────────" CYAN
+    write_color "── Status (Prod) ──────────────────────────" CYAN
     echo ""
 
     write_color "  Services" WHITE
@@ -34,6 +36,12 @@ prod_health_report_live() {
         mongo_status="✓ local prêt"; mongo_color="GREEN"
     elif [[ "$mongo_state" == "stopped" ]]; then
         mongo_status="✗ service arrêté"; mongo_color="RED"
+    else
+        mongo_status="✗ non installé"; mongo_color="RED"
+    fi
+    write_color "  ├─ MongoDB     ${!mongo_color}$mongo_status${NC}" WHITE
+    if [[ "$mongo_color" == "RED" ]]; then
+        write_color "  │  → Relancez Installation pour démarrer MongoDB" YELLOW
     fi
 
     local pm2_status="✗ offline" pm2_color="RED"
@@ -51,6 +59,10 @@ prod_health_report_live() {
         pm2_restarts=$(echo "$pm2_json" | grep -o '"restart_time":[0-9]*' | head -1 | cut -d: -f2)
         [[ -n "$pm2_mem" && "$pm2_mem" != "0" ]] && pm2_mem="$((pm2_mem / 1048576))MB" || pm2_mem="—"
     fi
+    write_color "  ├─ pm2         ${!pm2_color}$pm2_status${NC}   cpu: ${pm2_cpu:-—}% | mem: ${pm2_mem} | restarts: ${pm2_restarts:-—}" WHITE
+    if [[ "$pm2_color" == "RED" ]]; then
+        write_color "  │  → Relancez Installation si nécessaire" YELLOW
+    fi
 
     local nginx_status="✗ inactive" nginx_color="RED"
     case "$WIZARD_OS" in
@@ -58,22 +70,19 @@ prod_health_report_live() {
         windows) tasklist 2>/dev/null | grep -qi "nginx" && { nginx_status="✓ active"; nginx_color="GREEN"; } ;;
         macos)   brew services list 2>/dev/null | grep nginx | grep -q started && { nginx_status="✓ active"; nginx_color="GREEN"; } ;;
     esac
-
-    write_color "  ├─ nginx           ${!nginx_color}$nginx_status${NC}" WHITE
-    write_color "  ├─ pm2 backend     ${!pm2_color}$pm2_status${NC}   cpu: ${pm2_cpu:-—}% | mem: ${pm2_mem} | restarts: ${pm2_restarts:-—}" WHITE
-    write_color "  └─ MongoDB ($mongo_port) ${!mongo_color}$mongo_status${NC}" WHITE
+    write_color "  └─ nginx       ${!nginx_color}$nginx_status${NC}" WHITE
+    if [[ "$nginx_color" == "RED" ]]; then
+        write_color "     → Relancez Installation si nécessaire" YELLOW
+    fi
 
     echo ""
     write_color "  Ports" WHITE
-    for port in 80 443 "$back_port" "$mongo_port"; do
-        local label=""
-        case "$port" in
-            80)  label="HTTP" ;;
-            443) label="HTTPS" ;;
-            "$back_port") label="Backend" ;;
-            "$mongo_port") label="MongoDB" ;;
-        esac
-        if curl -s -o /dev/null --connect-timeout 2 "http://localhost:$port" 2>/dev/null; then
+    for port_info in "80:HTTP" "443:HTTPS" "$back_port:Backend" "$mongo_port:MongoDB"; do
+        local port="${port_info%%:*}"
+        local label="${port_info#*:}"
+        local proto="http"
+        [[ "$port" == "443" ]] && proto="https"
+        if curl -sk -o /dev/null --connect-timeout 2 "${proto}://localhost:$port" 2>/dev/null; then
             write_color "  ├─ :$port $label  ● responding" GREEN
         else
             write_color "  ├─ :$port $label  ● not responding" RED
@@ -96,12 +105,10 @@ prod_health_report_live() {
     write_color "  └─ .env:     backend $env_back  frontend $env_front" WHITE
 
     echo ""
-    write_color "  Logs (5 dernières lignes — pm2)" WHITE
+    write_color "  Logs (dernières lignes — pm2)" WHITE
     pm2 logs visioconf-backend --nostream --lines 5 2>/dev/null | tail -5 | while IFS= read -r logline; do
-        write_color "  ├─ $logline" WHITE
+        write_color "  │ $logline" WHITE
     done
 
-    echo ""
-    write_color "  Ctrl+C pour quitter" YELLOW
-    write_color "────────────────────────────────────────" CYAN
+    write_color "──────────────────────────────────────────" CYAN
 }

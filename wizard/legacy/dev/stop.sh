@@ -33,7 +33,7 @@ _dev_services_running() {
             lsof -i :"$back_port" > /dev/null 2>&1 || lsof -i :"$front_port" > /dev/null 2>&1
             ;;
         windows)
-            netstat -ano 2>/dev/null | grep -q ":$back_port " || netstat -ano 2>/dev/null | grep -q ":$front_port "
+            netstat -ano 2>/dev/null | grep "LISTENING" | grep -q ":$back_port " || netstat -ano 2>/dev/null | grep "LISTENING" | grep -q ":$front_port "
             ;;
     esac
 }
@@ -52,11 +52,7 @@ _dev_kill_processes() {
             done
             ;;
         windows)
-            for port in "$back_port" "$front_port"; do
-                local pid
-                pid=$(netstat -ano 2>/dev/null | grep ":$port " | awk '{print $5}' | head -1)
-                [[ -n "$pid" ]] && taskkill //PID "$pid" //F > /dev/null 2>&1
-            done
+            powershell.exe -Command "Get-CimInstance Win32_Process -Filter \"name='powershell.exe'\" | Where-Object { \$_.CommandLine -match 'visio-conf-25' -and \$_.CommandLine -match '-NoExit' -and \$_.ProcessId -ne \$PID } | ForEach-Object { taskkill /PID \$_.ProcessId /F /T 2>\$null }" 2>/dev/null
             ;;
     esac
 }

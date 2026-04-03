@@ -20,7 +20,10 @@ legacy_prod_reload() {
     pm2 reload visioconf-backend 2>&1
 
     write_color "  Rechargement nginx..." YELLOW
-    nginx -s reload 2>&1
+    case "$WIZARD_OS" in
+        linux) sudo nginx -s reload 2>&1 ;;
+        *)     nginx -s reload 2>&1 ;;
+    esac
 
     sleep 3
 

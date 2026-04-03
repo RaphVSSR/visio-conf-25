@@ -243,8 +243,10 @@ _install_mongodb() {
 
 resolve_project() {
     local input_path="$1"
+    local real_name
+    real_name="$(cd "$input_path" 2>/dev/null && basename "$(pwd)")"
 
-    if [[ "$(basename "$input_path")" == "visio-conf-25" ]]; then
+    if [[ "$real_name" == "visio-conf-25" ]]; then
         PROJECT_DIR="$input_path"
     elif [[ -d "$input_path/visio-conf-25" ]]; then
         PROJECT_DIR="$input_path/visio-conf-25"

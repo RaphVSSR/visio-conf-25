@@ -203,16 +203,21 @@ dev_ssl_mkcert() {
 
     local cert_dir=".certs"
     mkdir -p "$cert_dir"
-    mkcert -install 2>&1
-    mkcert -cert-file "$cert_dir/localhost.pem" -key-file "$cert_dir/localhost-key.pem" localhost 127.0.0.1 ::1 2>&1
 
-    if [[ ! -f "$cert_dir/localhost.pem" ]]; then
-        write_color "  [✗] Échec de la génération des certificats" RED
-        write_color "  → Poursuite en HTTP" YELLOW
-        return
+    if [[ -f "$cert_dir/localhost.pem" ]] && [[ -f "$cert_dir/localhost-key.pem" ]] \
+       && openssl x509 -checkend 0 -noout -in "$cert_dir/localhost.pem" 2>/dev/null; then
+        write_color "  [✓] Certificats valides dans $cert_dir/" GREEN
+    else
+        mkcert -install 2>&1
+        mkcert -cert-file "$cert_dir/localhost.pem" -key-file "$cert_dir/localhost-key.pem" localhost 127.0.0.1 ::1 2>&1
+
+        if [[ ! -f "$cert_dir/localhost.pem" ]]; then
+            write_color "  [✗] Échec de la génération des certificats" RED
+            write_color "  → Poursuite en HTTP" YELLOW
+            return
+        fi
+        write_color "  [✓] Certificats générés dans $cert_dir/" GREEN
     fi
-
-    write_color "  [✓] Certificats générés dans $cert_dir/" GREEN
 
     local cert_abs
     cert_abs="$(cd "$cert_dir" && pwd)"

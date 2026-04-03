@@ -169,8 +169,9 @@ generate_nginx_config() {
     local back_port="$2"
     local proj_dir
     proj_dir="$(cd "${PROJECT_DIR:-.}" && pwd)"
-    local nginx_conf=""
+    [[ "$WIZARD_OS" == "windows" ]] && proj_dir="$(cygpath -m "$proj_dir")"
 
+    local nginx_conf=""
     case "$WIZARD_OS" in
         linux)
             nginx_conf="/etc/nginx/sites-available/$domain"
@@ -189,12 +190,18 @@ generate_nginx_config() {
             ;;
     esac
 
+    local cert_path=""
+    case "$WIZARD_OS" in
+        linux|macos) cert_path="/etc/letsencrypt/live/$domain" ;;
+        windows)     cert_path="C:/Certbot/live/$domain" ;;
+    esac
+
     local ssl_block=""
     local listen_block="    listen 80;\n    listen [::]:80;"
 
-    if [[ -d "/etc/letsencrypt/live/$domain" ]] || [[ -d "C:/Certbot/live/$domain" ]]; then
+    if [[ -d "$cert_path" ]]; then
         listen_block="    listen 443 ssl;\n    listen [::]:443 ssl;"
-        ssl_block="    ssl_certificate /etc/letsencrypt/live/$domain/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/$domain/privkey.pem;\n"
+        ssl_block="    ssl_certificate $cert_path/fullchain.pem;\n    ssl_certificate_key $cert_path/privkey.pem;\n"
     fi
 
     local config_content
@@ -203,14 +210,15 @@ generate_nginx_config() {
     if [[ "$WIZARD_OS" == "linux" ]]; then
         echo -e "$config_content" | sudo tee "$nginx_conf" > /dev/null
         sudo ln -sf "$nginx_conf" "/etc/nginx/sites-enabled/$domain" 2>/dev/null
+        sudo nginx -t 2>&1
     else
         echo -e "$config_content" > "$nginx_conf" 2>/dev/null
+        nginx -t 2>&1
     fi
 
-    if nginx -t 2>&1; then
+    if [[ $? -eq 0 ]]; then
         write_color "  [✓] Configuration nginx générée : $nginx_conf" GREEN
     else
         write_color "  [✗] Erreur dans la configuration nginx" RED
-        write_color "  → Vérifiez : $nginx_conf" YELLOW
     fi
 }
