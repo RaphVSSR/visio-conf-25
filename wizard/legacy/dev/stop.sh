@@ -6,26 +6,31 @@ legacy_dev_stop() {
     echo ""
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     if ! _dev_are_services_running; then
         write_color "  Aucun service en cours d'exécution trouvé." YELLOW
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     write_color "  Arrêt des services..." YELLOW
     _dev_kill_processes
 
-    write_color "  [✓] Services arrêtés" GREEN
-    read -p "  Appuyez sur Entrée..." dummy
+    sleep 1
+    if _dev_are_services_running; then
+        write_color "  [!] Certains processus n'ont pas été arrêtés" YELLOW
+    else
+        write_color "  [✓] Services arrêtés" GREEN
+    fi
+    wait_enter
 }
 
 _dev_are_services_running() {
     local back_port front_port
-    back_port=$(extract_env_port "BACKEND/.env" "PORT" 3220)
+    back_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
     front_port=3000
 
     case "$WIZARD_OS" in
@@ -40,15 +45,15 @@ _dev_are_services_running() {
 
 _dev_kill_processes() {
     local back_port front_port
-    back_port=$(extract_env_port "BACKEND/.env" "PORT" 3220)
+    back_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
     front_port=3000
 
     case "$WIZARD_OS" in
         linux|macos)
             local pids
             pids=$(lsof -ti :"$back_port" 2>/dev/null; lsof -ti :"$front_port" 2>/dev/null)
-            for pid in $pids; do
-                kill "$pid" 2>/dev/null
+            for proc_id in $pids; do
+                kill "$proc_id" 2>/dev/null
             done
             ;;
         windows)

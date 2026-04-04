@@ -6,13 +6,13 @@ legacy_prod_stop() {
     echo ""
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     if ! _prod_are_services_running; then
         write_color "  Aucun service en cours d'exécution trouvé." YELLOW
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
@@ -32,6 +32,10 @@ legacy_prod_stop() {
             windows)
                 local nginx_dir
                 nginx_dir=$(_win_nginx_dir)
+                if [[ -z "$nginx_dir" ]]; then
+                    write_color "  [✗] nginx introuvable" RED
+                    return 1
+                fi
                 (cd "$nginx_dir" && "./nginx.exe" -s stop 2>&1)
                 ;;
             macos)
@@ -43,21 +47,13 @@ legacy_prod_stop() {
         write_color "  → nginx laissé en fonctionnement" CYAN
     fi
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }
 
 _prod_are_services_running() {
-    if pm2 describe visioconf-backend > /dev/null 2>&1; then
-        local pm2_state
-        pm2_state=$(pm2 jlist 2>/dev/null | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
-        [[ "$pm2_state" == "online" ]] && return 0
-    fi
+    [[ "$(pm2_get_status)" == "online" ]] && return 0
 
-    case "$WIZARD_OS" in
-        linux)   systemctl is-active nginx > /dev/null 2>&1 && return 0 ;;
-        windows) tasklist 2>/dev/null | grep -qi "nginx" && return 0 ;;
-        macos)   brew services list 2>/dev/null | grep nginx | grep -q started && return 0 ;;
-    esac
+    nginx_is_active && return 0
 
     return 1
 }

@@ -48,7 +48,7 @@ prod_ssl_setup() {
         case "$WIZARD_OS" in
             linux)   sudo apt install -y certbot python3-certbot-nginx 2>&1 ;;
             windows) _win_install "EFF.Certbot" "certbot" ;;
-            macos)   brew install certbot 2>&1 ;;
+            macos)   brew install certbot 2>&1 && brew install certbot-nginx 2>&1 ;;
         esac
     fi
 
@@ -66,10 +66,10 @@ prod_ssl_setup() {
             powershell.exe -Command "Start-Process certbot -ArgumentList 'certonly','--standalone','-d','$domain' -Verb RunAs -Wait" 2>&1
             ;;
         linux)
-            certbot --nginx -d "$domain" 2>&1
+            sudo certbot --nginx -d "$domain" 2>&1
             ;;
         macos)
-            certbot --nginx -d "$domain" 2>&1
+            sudo certbot --nginx -d "$domain" 2>&1
             ;;
     esac
 
@@ -93,14 +93,14 @@ _prod_ssl_apply() {
         key_file=$(cygpath -m "$key_file" 2>/dev/null || echo "$key_file")
     }
 
-    sed -i "s|^SSL_CRT_FILE=.*|SSL_CRT_FILE=${cert_file}|" BACKEND/.env 2>/dev/null
-    sed -i "s|^SSL_KEY_FILE=.*|SSL_KEY_FILE=${key_file}|" BACKEND/.env 2>/dev/null
+    for env_file in BACKEND/.env FRONTENDV2/.env; do
+        set_env_line "$env_file" "SSL_CRT_FILE" "$cert_file"
+        set_env_line "$env_file" "SSL_KEY_FILE" "$key_file"
+    done
+
     sed -i "s|^FRONTEND_URL=http://|FRONTEND_URL=https://|" BACKEND/.env 2>/dev/null
     sed -i "s|^FILE_STORAGE_URL=http://|FILE_STORAGE_URL=https://|" BACKEND/.env 2>/dev/null
     sed -i "s|^PROFILE_PICTURES_URL=http://|PROFILE_PICTURES_URL=https://|" BACKEND/.env 2>/dev/null
-
-    sed -i "s|^SSL_CRT_FILE=.*|SSL_CRT_FILE=${cert_file}|" FRONTENDV2/.env 2>/dev/null
-    sed -i "s|^SSL_KEY_FILE=.*|SSL_KEY_FILE=${key_file}|" FRONTENDV2/.env 2>/dev/null
     sed -i "s|^REACT_APP_BACKEND_API_URL=http://|REACT_APP_BACKEND_API_URL=https://|" FRONTENDV2/.env 2>/dev/null
     sed -i "s|^REACT_APP_BACKEND_FILE_STORAGE_URL=http://|REACT_APP_BACKEND_FILE_STORAGE_URL=https://|" FRONTENDV2/.env 2>/dev/null
     sed -i "s|^REACT_APP_BACKEND_PROFILE_PICTURES_URL=http://|REACT_APP_BACKEND_PROFILE_PICTURES_URL=https://|" FRONTENDV2/.env 2>/dev/null

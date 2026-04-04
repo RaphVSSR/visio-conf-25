@@ -1,5 +1,9 @@
 #!/bin/bash
 
+docker_has_containers() {
+    docker compose ps --quiet 2>/dev/null | grep -q .
+}
+
 docker_manager() {
     while true; do
         cd "$SCRIPT_DIR"
@@ -21,6 +25,15 @@ docker_manager() {
 }
 
 docker_install() {
+    if [[ -z "$WIZARD_OS" ]]; then
+        case "$(uname -s)" in
+            Linux*)          WIZARD_OS="linux" ;;
+            MINGW*|MSYS*|CYGWIN*) WIZARD_OS="windows" ;;
+            Darwin*)         WIZARD_OS="macos" ;;
+            *) write_color "  [✗] Système non reconnu" RED; return 1 ;;
+        esac
+    fi
+
     clear
     write_color "── Installation (Docker) ──" CYAN
     echo ""
@@ -31,7 +44,7 @@ docker_install() {
 
     if ! resolve_project "$install_path"; then
         if ! clone_project "$PROJECT_DIR"; then
-            read -p "  Appuyez sur Entrée..." dummy
+            wait_enter
             return 1
         fi
     fi
@@ -39,29 +52,21 @@ docker_install() {
 
     echo ""
     if ! verify_clone "docker"; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
     echo ""
     write_color "  Vérification des dépendances..." YELLOW
-    if ! check_dep "docker"; then
-        write_color "  Installation de Docker..." YELLOW
-        case "$(uname -s)" in
-            Linux*)  sudo apt update -qq 2>&1 && sudo apt install -y docker.io docker-compose-plugin 2>&1 && sudo systemctl start docker 2>&1 ;;
-            MINGW*|MSYS*|CYGWIN*) _win_install "Docker.DockerDesktop" "docker-desktop" ;;
-            Darwin*) brew install --cask docker 2>&1 ;;
-        esac
-        if ! check_dep "docker"; then
-            read -p "  Appuyez sur Entrée..." dummy
-            return 1
-        fi
+    if ! ensure_dep "docker"; then
+        wait_enter
+        return 1
     fi
 
     if ! docker compose version > /dev/null 2>&1; then
         write_color "  [✗] Docker Compose introuvable" RED
         write_color "  Docker Compose est inclus avec Docker Desktop" YELLOW
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
     write_color "  [✓] Docker Compose détecté" GREEN
@@ -100,7 +105,7 @@ docker_install() {
 
     if [[ "$config_ok" == false ]]; then
         write_color "  [!] Configuration incomplète — corrigez les .env" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
@@ -108,7 +113,7 @@ docker_install() {
     write_color "  Construction et démarrage..." YELLOW
     if ! docker compose up --build -d 2>&1; then
         write_color "  [✗] Échec de docker compose" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
@@ -117,7 +122,7 @@ docker_install() {
     sleep 10
     docker_health_report
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }
 
 docker_launch() {
@@ -126,13 +131,13 @@ docker_launch() {
     echo ""
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
-    if ! docker compose ps --quiet 2>/dev/null | grep -q .; then
+    if ! docker_has_containers; then
         write_color "  Aucun conteneur trouvé. Lancez d'abord Installation." YELLOW
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
@@ -143,7 +148,7 @@ docker_launch() {
     sleep 5
     docker_health_report
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }
 
 docker_stop() {
@@ -152,38 +157,38 @@ docker_stop() {
     echo ""
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
-    if ! docker compose ps --quiet 2>/dev/null | grep -q .; then
+    if ! docker_has_containers; then
         write_color "  Aucun conteneur en cours d'exécution." YELLOW
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     docker compose down 2>&1
     write_color "  [✓] Conteneurs arrêtés" GREEN
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }
 
 docker_status() {
     clear
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     docker_health_report
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }
 
 docker_health_report() {
     write_color "── Status (Docker) ──────────────────────" CYAN
     echo ""
 
-    if ! docker compose ps --quiet 2>/dev/null | grep -q .; then
+    if ! docker_has_containers; then
         write_color "  Aucun conteneur trouvé. Lancez d'abord Installation." YELLOW
         return
     fi
@@ -198,7 +203,7 @@ docker_health_report() {
         if [[ "$status" == *"Up"* || "$status" == *"running"* ]]; then
             icon="●"; color="GREEN"
         fi
-        write_color "  ├─ $name  ${!color}$icon${NC} $status" WHITE
+        printf "  ├─ %s  ${!color}%s${RESET} %s\n" "$name" "$icon" "$status"
     done <<< "$containers"
 
     echo ""
@@ -208,7 +213,7 @@ docker_health_report() {
     if docker compose exec -T mongodb mongosh --eval 'db.runCommand({ping:1})' --quiet > /dev/null 2>&1; then
         mongo_status="✓ connected"; mongo_color="GREEN"
     fi
-    write_color "  ├─ MongoDB     ${!mongo_color}$mongo_status${NC}" WHITE
+    printf "  ├─ MongoDB     ${!mongo_color}%s${RESET}\n" "$mongo_status"
     if [[ "$mongo_color" == "RED" ]]; then
         write_color "  │  → Le conteneur MongoDB n'a peut-être pas fini de démarrer" YELLOW
     fi
@@ -219,7 +224,7 @@ docker_health_report() {
     if curl -s -o /dev/null --connect-timeout 3 "http://localhost:$back_port" 2>/dev/null; then
         back_status="✓ responding :$back_port"; back_color="GREEN"
     fi
-    write_color "  ├─ Backend     ${!back_color}$back_status${NC}" WHITE
+    printf "  ├─ Backend     ${!back_color}%s${RESET}\n" "$back_status"
     if [[ "$back_color" == "RED" ]]; then
         write_color "  │  → Le backend nécessite MongoDB pour démarrer" YELLOW
     fi
@@ -230,7 +235,7 @@ docker_health_report() {
     if curl -s -o /dev/null --connect-timeout 3 "http://localhost:$front_port" 2>/dev/null; then
         front_status="✓ responding :$front_port"; front_color="GREEN"
     fi
-    write_color "  └─ Frontend    ${!front_color}$front_status${NC}" WHITE
+    printf "  └─ Frontend    ${!front_color}%s${RESET}\n" "$front_status"
     if [[ "$front_color" == "RED" ]]; then
         write_color "     → Le frontend peut prendre ~30s à compiler" YELLOW
     fi

@@ -5,12 +5,7 @@ generate_env() {
     local output="$2"
     local label="$3"
     shift 3
-
-    declare -A overrides
-    while [[ $# -gt 0 ]]; do
-        overrides["${1%%=*}"]="${1#*=}"
-        shift
-    done
+    local overrides=("$@")
 
     if [[ ! -f "$template" ]]; then
         write_color "  [✗] Template introuvable : $template" RED
@@ -36,7 +31,7 @@ generate_env() {
         [[ -z "$line" || "$line" =~ ^# ]] && continue
         [[ "$line" != *=* ]] && continue
 
-        local key="${line%%=*}"
+        local field="${line%%=*}"
         local raw_value="${line#*=}"
 
         local default_value="$raw_value"
@@ -46,17 +41,22 @@ generate_env() {
             hint="${raw_value#*#}"
         fi
 
-        if [[ -n "${overrides[$key]+set}" ]]; then
-            default_value="${overrides[$key]}"
-        fi
+        for override_entry in "${overrides[@]}"; do
+            local override_key="${override_entry%%=*}"
+            local override_val="${override_entry#*=}"
+            if [[ "$override_key" == "$field" ]]; then
+                default_value="$override_val"
+                break
+            fi
+        done
 
-        printf "  %b[%s]%b %b%s%b [%b%s%b]" "$BLUE" "$label" "$NC" "$CYAN" "$key" "$NC" "$YELLOW" "$default_value" "$NC"
-        [[ -n "$hint" ]] && printf " (%b%s%b)" "$GREEN" "$hint" "$NC"
+        printf "  %b[%s]%b %b%s%b [%b%s%b]" "$BLUE" "$label" "$RESET" "$CYAN" "$field" "$RESET" "$YELLOW" "$default_value" "$RESET"
+        [[ -n "$hint" ]] && printf " (%b%s%b)" "$GREEN" "$hint" "$RESET"
         printf ": "
         read user_value
         [[ -z "$user_value" ]] && user_value="$default_value"
 
-        echo "${key}=${user_value}" >> "$output"
+        echo "${field}=${user_value}" >> "$output"
     done 3< "$template"
 
     write_color "  [✓] $label configuré → $output" GREEN
@@ -68,7 +68,7 @@ run_generate_env() {
     echo ""
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
@@ -77,5 +77,5 @@ run_generate_env() {
     generate_env "FRONTENDV2/.env.template" "FRONTENDV2/.env" "Frontend"
     echo ""
     write_color "  [✓] Génération terminée" GREEN
-    read -p "  Appuyez sur Entrée pour continuer..." dummy
+    wait_enter
 }

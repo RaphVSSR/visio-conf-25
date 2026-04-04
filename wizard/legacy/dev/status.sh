@@ -4,11 +4,11 @@ legacy_dev_status() {
     clear
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     dev_health_report
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }

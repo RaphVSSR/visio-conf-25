@@ -6,18 +6,18 @@ legacy_dev_reload() {
     echo ""
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     if ! _dev_are_services_running; then
         write_color "  Aucun service en cours d'exécution trouvé." YELLOW
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     if ! verify_node_deps; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
@@ -32,5 +32,5 @@ legacy_dev_reload() {
     echo ""
     dev_health_report
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }

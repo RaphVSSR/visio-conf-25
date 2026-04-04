@@ -11,7 +11,7 @@ legacy_prod_install() {
 
     if ! resolve_project "$install_path"; then
         if ! clone_project "$PROJECT_DIR"; then
-            read -p "  Appuyez sur Entrée..." dummy
+            wait_enter
             return 1
         fi
     fi
@@ -19,7 +19,7 @@ legacy_prod_install() {
 
     echo ""
     if ! verify_clone "legacy"; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
@@ -27,23 +27,23 @@ legacy_prod_install() {
     write_color "  Vérification des dépendances..." YELLOW
 
     if ! ensure_dep "node"; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
     write_color "  Vérification de MongoDB (local requis en prod)..." YELLOW
     if ! _mongo_setup; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
     if ! ensure_dep "pm2"; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
     if ! ensure_dep "nginx" "-v"; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
@@ -84,7 +84,7 @@ legacy_prod_install() {
 
     if [[ "$config_ok" == false ]]; then
         write_color "  [!] Configuration incomplète — corrigez le .env" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
@@ -92,7 +92,7 @@ legacy_prod_install() {
     write_color "  Installation des dépendances backend..." YELLOW
     (cd BACKEND && npm install) || {
         write_color "  [✗] Échec npm install backend" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     }
     write_color "  [✓] Backend node_modules installé" GREEN
@@ -100,7 +100,7 @@ legacy_prod_install() {
     write_color "  Installation des dépendances frontend..." YELLOW
     (cd FRONTENDV2 && npm install) || {
         write_color "  [✗] Échec npm install frontend" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     }
     write_color "  [✓] Frontend node_modules installé" GREEN
@@ -111,7 +111,7 @@ legacy_prod_install() {
         write_color "  Exécution des tests..." YELLOW
         if ! eval "$test_cmd" 2>&1; then
             write_color "  [✗] Tests échoués" RED
-            read -p "  Appuyez sur Entrée..." dummy
+            wait_enter
             return 1
         fi
         write_color "  [✓] Tests passés" GREEN
@@ -121,7 +121,7 @@ legacy_prod_install() {
     write_color "  Build backend..." YELLOW
     (cd BACKEND && npm run build) || {
         write_color "  [✗] Échec build backend" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     }
     write_color "  [✓] Backend build OK" GREEN
@@ -129,14 +129,13 @@ legacy_prod_install() {
     write_color "  Build frontend..." YELLOW
     (cd FRONTENDV2 && npm run build) || {
         write_color "  [✗] Échec build frontend" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     }
     write_color "  [✓] Frontend build OK" GREEN
 
     echo ""
     read -p "  Nom de domaine (ex. visioconf.example.com) : " DOMAIN_NAME
-    PROD_DOMAIN="$DOMAIN_NAME"
 
     prod_ssl_setup "$DOMAIN_NAME"
 
@@ -154,14 +153,14 @@ legacy_prod_install() {
 
     echo ""
     write_color "  Démarrage pm2 + nginx..." YELLOW
-    _prod_start_services
+    _prod_start_services || write_color "  [!] Certains services n'ont pas démarré" YELLOW
     pm2 save 2>&1
     sleep 5
 
     echo ""
     prod_health_report
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }
 
 prod_nginx_generate() {
@@ -174,7 +173,14 @@ prod_nginx_generate() {
     local nginx_conf=""
     case "$WIZARD_OS" in
         linux)
-            nginx_conf="/etc/nginx/sites-available/$domain"
+            if [[ -d "/etc/nginx/sites-available" ]]; then
+                nginx_conf="/etc/nginx/sites-available/$domain"
+            elif [[ -d "/etc/nginx/conf.d" ]]; then
+                nginx_conf="/etc/nginx/conf.d/$domain.conf"
+            else
+                nginx_conf="/etc/nginx/conf.d/$domain.conf"
+                sudo mkdir -p /etc/nginx/conf.d 2>/dev/null
+            fi
             ;;
         windows)
             local nginx_dir
@@ -209,7 +215,9 @@ prod_nginx_generate() {
 
     if [[ "$WIZARD_OS" == "linux" ]]; then
         echo -e "$config_content" | sudo tee "$nginx_conf" > /dev/null
-        sudo ln -sf "$nginx_conf" "/etc/nginx/sites-enabled/$domain" 2>/dev/null
+        if [[ "$nginx_conf" == *"sites-available"* ]]; then
+            sudo ln -sf "$nginx_conf" "/etc/nginx/sites-enabled/$domain" 2>/dev/null
+        fi
         sudo nginx -t 2>&1
     elif [[ "$WIZARD_OS" == "windows" ]]; then
         local nginx_dir

@@ -73,18 +73,18 @@ _dev_ssl_apply() {
     local cert_path="${cert_abspath}/localhost.pem"
     local key_path="${cert_abspath}/localhost-key.pem"
 
-    sed -i "s|^SSL_CRT_FILE=.*|SSL_CRT_FILE=${cert_path}|" FRONTENDV2/.env
-    sed -i "s|^SSL_KEY_FILE=.*|SSL_KEY_FILE=${key_path}|" FRONTENDV2/.env
+    for env_file in BACKEND/.env FRONTENDV2/.env; do
+        set_env_line "$env_file" "SSL_CRT_FILE" "$cert_path"
+        set_env_line "$env_file" "SSL_KEY_FILE" "$key_path"
+    done
 
-    sed -i "s|^SSL_CRT_FILE=.*|SSL_CRT_FILE=${cert_path}|" BACKEND/.env
-    sed -i "s|^SSL_KEY_FILE=.*|SSL_KEY_FILE=${key_path}|" BACKEND/.env
-    sed -i "s|^FRONTEND_URL=http://localhost|FRONTEND_URL=https://localhost|" BACKEND/.env
-    sed -i "s|^FILE_STORAGE_URL=http://localhost|FILE_STORAGE_URL=https://localhost|" BACKEND/.env
-    sed -i "s|^PROFILE_PICTURES_URL=http://localhost|PROFILE_PICTURES_URL=https://localhost|" BACKEND/.env
+    sed -i "s|^FRONTEND_URL=http://|FRONTEND_URL=https://|" BACKEND/.env
+    sed -i "s|^FILE_STORAGE_URL=http://|FILE_STORAGE_URL=https://|" BACKEND/.env
+    sed -i "s|^PROFILE_PICTURES_URL=http://|PROFILE_PICTURES_URL=https://|" BACKEND/.env
 
-    sed -i "s|^REACT_APP_BACKEND_API_URL=http://localhost|REACT_APP_BACKEND_API_URL=https://localhost|" FRONTENDV2/.env
-    sed -i "s|^REACT_APP_BACKEND_FILE_STORAGE_URL=http://localhost|REACT_APP_BACKEND_FILE_STORAGE_URL=https://localhost|" FRONTENDV2/.env
-    sed -i "s|^REACT_APP_BACKEND_PROFILE_PICTURES_URL=http://localhost|REACT_APP_BACKEND_PROFILE_PICTURES_URL=https://localhost|" FRONTENDV2/.env
+    sed -i "s|^REACT_APP_BACKEND_API_URL=http://|REACT_APP_BACKEND_API_URL=https://|" FRONTENDV2/.env
+    sed -i "s|^REACT_APP_BACKEND_FILE_STORAGE_URL=http://|REACT_APP_BACKEND_FILE_STORAGE_URL=https://|" FRONTENDV2/.env
+    sed -i "s|^REACT_APP_BACKEND_PROFILE_PICTURES_URL=http://|REACT_APP_BACKEND_PROFILE_PICTURES_URL=https://|" FRONTENDV2/.env
 
     write_color "  [✓] HTTPS configuré (backend + frontend)" GREEN
 }

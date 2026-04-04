@@ -4,7 +4,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 
 SCRIPT_DIR="$(pwd)"
-WIZARD_DIR="./wizard"
+WIZARD_DIR="$SCRIPT_DIR/wizard"
 REPO_URL="https://github.com/RaphVSSR/visio-conf-25.git"
 PROJECT_DIR=""
 

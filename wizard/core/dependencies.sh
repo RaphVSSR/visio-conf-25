@@ -1,5 +1,9 @@
 #!/bin/bash
 
+wait_enter() {
+    read -p "  Appuyez sur Entrée..." _discard
+}
+
 check_dep() {
     local name="$1"
     local version_flag="${2:---version}"
@@ -168,9 +172,19 @@ ensure_dep() {
             ;;
         docker)
             case "$WIZARD_OS" in
-                linux)   sudo apt update -qq 2>&1 && sudo apt install -y docker.io docker-compose-plugin 2>&1 && sudo systemctl start docker 2>&1 ;;
+                linux)
+                    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg 2>&1
+                    echo "deb [signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs 2>/dev/null || echo jammy) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                    sudo apt update -qq 2>&1 && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin 2>&1 && sudo systemctl start docker 2>&1
+                    ;;
                 windows) _win_install "Docker.DockerDesktop" "docker-desktop" ;;
-                macos)   brew install --cask docker 2>&1 ;;
+                macos)
+                    brew install --cask docker 2>&1
+                    write_color "  Lancement de Docker Desktop..." YELLOW
+                    open -a Docker 2>&1
+                    sleep 5
+                    write_color "  Docker Desktop peut prendre du temps à démarrer" YELLOW
+                    ;;
             esac
             ;;
         node)
@@ -230,7 +244,7 @@ _mongo_start() {
     write_color "  Démarrage du service MongoDB..." YELLOW
     case "$WIZARD_OS" in
         linux)   sudo systemctl start mongod 2>&1 ;;
-        windows) net start MongoDB 2>&1 || sc.exe start MongoDB 2>&1 || true ;;
+        windows) powershell.exe -Command "Start-Process cmd -ArgumentList '/c','net','start','MongoDB' -Verb RunAs -Wait" 2>&1 ;;
         macos)   brew services start mongodb-community 2>&1 ;;
     esac
     sleep 2
@@ -241,13 +255,15 @@ _mongo_install() {
     write_color "  Installation de MongoDB..." YELLOW
     case "$WIZARD_OS" in
         linux)
+            curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-8.0.gpg 2>&1
+            echo "deb [signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs 2>/dev/null || echo jammy)/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list > /dev/null
             sudo apt update -qq 2>&1 && sudo apt install -y mongodb-org 2>&1
             ;;
         windows)
             if command -v winget > /dev/null 2>&1; then
-                winget install -e --id MongoDB.Server --accept-package-agreements --accept-source-agreements 2>&1
+                winget install -e --id MongoDB.Server --accept-package-agreements --accept-source-agreements 2>&1 && _win_refresh_path
             elif command -v choco > /dev/null 2>&1; then
-                choco install mongodb -y 2>&1
+                choco install mongodb -y 2>&1 && _win_refresh_path
             else
                 write_color "  [✗] Aucun gestionnaire de paquets (winget/choco)" RED
                 return 1
@@ -371,24 +387,41 @@ verify_prod_build() {
     return 0
 }
 
+set_env_line() {
+    local file="$1" field="$2" value="$3"
+    if grep -q "^${field}=" "$file" 2>/dev/null; then
+        sed -i "s|^${field}=.*|${field}=${value}|" "$file"
+    else
+        echo "${field}=${value}" >> "$file"
+    fi
+}
+
 extract_env_val() {
-    local file="$1" key="$2" default="$3"
+    local file="$1" field="$2" default="$3"
     if [[ -f "$file" ]]; then
-        local val
-        val=$(grep "^${key}=" "$file" 2>/dev/null | head -1 | cut -d= -f2-)
-        echo "${val:-$default}"
+        local value
+        value=$(grep "^${field}=" "$file" 2>/dev/null | head -1 | cut -d= -f2-)
+        echo "${value:-$default}"
     else
         echo "$default"
     fi
 }
 
-extract_env_port() {
-    local file="$1" key="$2" default="$3"
-    if [[ -f "$file" ]]; then
-        local val
-        val=$(grep "^${key}=" "$file" 2>/dev/null | head -1 | cut -d= -f2)
-        echo "${val:-$default}"
-    else
-        echo "$default"
+nginx_is_active() {
+    case "$WIZARD_OS" in
+        linux)   systemctl is-active nginx > /dev/null 2>&1 ;;
+        windows) tasklist 2>/dev/null | grep -qi "nginx.exe" ;;
+        macos)   brew services list 2>/dev/null | grep nginx | grep -q started ;;
+    esac
+}
+
+pm2_get_status() {
+    local proc_name="${1:-visioconf-backend}"
+    if ! pm2 describe "$proc_name" > /dev/null 2>&1; then
+        echo "missing"
+        return
     fi
+    local json_data
+    json_data=$(pm2 jlist 2>/dev/null)
+    echo "$json_data" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4
 }

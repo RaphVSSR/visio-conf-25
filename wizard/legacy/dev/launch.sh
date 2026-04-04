@@ -6,18 +6,18 @@ legacy_dev_launch() {
     echo ""
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     if ! verify_node_deps; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     if [[ ! -f "BACKEND/.env" ]] || [[ ! -f "FRONTENDV2/.env" ]]; then
         write_color "  [✗] Fichiers .env manquants. Lancez d'abord Installation." YELLOW
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
@@ -27,7 +27,7 @@ legacy_dev_launch() {
     echo ""
     dev_health_report
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }
 
 _dev_launch_terminals() {
@@ -36,9 +36,27 @@ _dev_launch_terminals() {
 
     case "$WIZARD_OS" in
         linux)
-            gnome-terminal -- bash -c "cd '$proj_dir/BACKEND'; npm run dev; exec bash" < /dev/null > /dev/null 2>&1 &
+            local term_emulator="" term_flag="--"
+            if command -v x-terminal-emulator > /dev/null 2>&1; then
+                term_emulator="x-terminal-emulator"
+            elif command -v gnome-terminal > /dev/null 2>&1; then
+                term_emulator="gnome-terminal"
+            elif command -v konsole > /dev/null 2>&1; then
+                term_emulator="konsole"; term_flag="-e"
+            elif command -v xfce4-terminal > /dev/null 2>&1; then
+                term_emulator="xfce4-terminal"; term_flag="-e"
+            elif command -v xterm > /dev/null 2>&1; then
+                term_emulator="xterm"; term_flag="-e"
+            fi
+
+            if [[ -z "$term_emulator" ]]; then
+                write_color "  [✗] Aucun émulateur de terminal détecté" RED
+                return 1
+            fi
+
+            $term_emulator $term_flag bash -c "cd '$proj_dir/BACKEND'; npm run dev; exec bash" < /dev/null > /dev/null 2>&1 &
             sleep 3
-            gnome-terminal -- bash -c "cd '$proj_dir/FRONTENDV2'; npm start; exec bash" < /dev/null > /dev/null 2>&1 &
+            $term_emulator $term_flag bash -c "cd '$proj_dir/FRONTENDV2'; npm start; exec bash" < /dev/null > /dev/null 2>&1 &
             ;;
         windows)
             local win_back win_front
@@ -58,7 +76,7 @@ _dev_launch_terminals() {
 
 dev_health_report() {
     local back_port front_port proto
-    back_port=$(extract_env_port "BACKEND/.env" "PORT" 3220)
+    back_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
     front_port=3000
     proto="http"
     local ssl_cert
@@ -87,7 +105,7 @@ dev_health_report() {
             mongo_status="✗ non installé"; mongo_color="RED"
         fi
     fi
-    write_color "  ├─ MongoDB     ${!mongo_color}$mongo_status${NC}" WHITE
+    printf "  ├─ MongoDB     ${!mongo_color}%s${RESET}\n" "$mongo_status"
     if [[ "$mongo_color" != "GREEN" && "$mongo_uri" != *"mongodb+srv"* ]]; then
         write_color "  │  → Relancez Installation pour démarrer MongoDB" YELLOW
     fi
@@ -100,7 +118,7 @@ dev_health_report() {
     if curl -sk -o /dev/null --connect-timeout 3 "${proto}://localhost:$back_port" 2>/dev/null; then
         back_status="✓ responding :$back_port"; back_color="GREEN"
     fi
-    write_color "  ├─ Backend     ${!back_color}$back_status${NC}  pid: ${back_pid:-—}" WHITE
+    printf "  ├─ Backend     ${!back_color}%s${RESET}  pid: %s\n" "$back_status" "${back_pid:-—}"
     if [[ "$back_color" == "RED" ]]; then
         write_color "  │  → Vérifiez le terminal backend, MongoDB doit être accessible" YELLOW
     fi
@@ -113,7 +131,7 @@ dev_health_report() {
     if curl -sk -o /dev/null --connect-timeout 3 "${proto}://localhost:$front_port" 2>/dev/null; then
         front_status="✓ responding :$front_port"; front_color="GREEN"
     fi
-    write_color "  └─ Frontend    ${!front_color}$front_status${NC}  pid: ${front_pid:-—}" WHITE
+    printf "  └─ Frontend    ${!front_color}%s${RESET}  pid: %s\n" "$front_status" "${front_pid:-—}"
     if [[ "$front_color" == "RED" ]]; then
         write_color "     → Vérifiez le terminal frontend, peut prendre ~15s à compiler" YELLOW
     fi

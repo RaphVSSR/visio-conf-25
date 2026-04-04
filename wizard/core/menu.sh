@@ -19,14 +19,14 @@ show_header() {
   ██║ ╚═╝ ██║██║ ╚═╝ ██║██║
   ╚═╝     ╚═╝╚═╝     ╚═╝╚═╝ VisioConf
 HEADER
-    printf '%b' "${NC}"
+    printf '%b' "${RESET}"
 }
 
 show_submenu_header() {
     local title="$1"
-    printf '\n  %b╔══════════════════════════════════════╗%b\n' "${WHITE}" "${NC}"
-    printf '  %b║       %-31s║%b\n' "${WHITE}" "$title" "${NC}"
-    printf '  %b╚══════════════════════════════════════╝%b\n\n' "${WHITE}" "${NC}"
+    printf '\n  %b╔══════════════════════════════════════╗%b\n' "${WHITE}" "${RESET}"
+    printf '  %b║       %-31s║%b\n' "${WHITE}" "$title" "${RESET}"
+    printf '  %b╚══════════════════════════════════════╝%b\n\n' "${WHITE}" "${RESET}"
 }
 
 arrow_menu() {
@@ -57,31 +57,31 @@ arrow_menu() {
 
             if [[ "$style" == "boxes" ]]; then
                 if [[ $iter -eq $selected ]]; then
-                    buff+="\n  ${active_color}┌────────────────────────────────────────┐${NC}\n"
-                    buff+="  ${active_color}│                                        │${NC}\n"
-                    printf -v formatted "  ${active_color}│  ▶ %-36s│${NC}" "${items[$iter]}"
+                    buff+="\n  ${active_color}┌────────────────────────────────────────┐${RESET}\n"
+                    buff+="  ${active_color}│                                        │${RESET}\n"
+                    printf -v formatted "  ${active_color}│  ▶ %-36s│${RESET}" "${items[$iter]}"
                     buff+="${formatted}\n"
-                    buff+="  ${active_color}│                                        │${NC}\n"
-                    buff+="  ${active_color}└────────────────────────────────────────┘${NC}"
+                    buff+="  ${active_color}│                                        │${RESET}\n"
+                    buff+="  ${active_color}└────────────────────────────────────────┘${RESET}"
                 else
-                    buff+="\n  ${WHITE}┌────────────────────────────────────────┐${NC}\n"
-                    buff+="  ${WHITE}│                                        │${NC}\n"
-                    printf -v formatted "  ${WHITE}│    %-36s│${NC}" "${items[$iter]}"
+                    buff+="\n  ${WHITE}┌────────────────────────────────────────┐${RESET}\n"
+                    buff+="  ${WHITE}│                                        │${RESET}\n"
+                    printf -v formatted "  ${WHITE}│    %-36s│${RESET}" "${items[$iter]}"
                     buff+="${formatted}\n"
-                    buff+="  ${WHITE}│                                        │${NC}\n"
-                    buff+="  ${WHITE}└────────────────────────────────────────┘${NC}"
+                    buff+="  ${WHITE}│                                        │${RESET}\n"
+                    buff+="  ${WHITE}└────────────────────────────────────────┘${RESET}"
                 fi
             else
                 if [[ $iter -eq $selected ]]; then
-                    buff+="  ${active_color}  ▶ ${items[$iter]}${NC}\n"
+                    buff+="  ${active_color}  ▶ ${items[$iter]}${RESET}\n"
                 else
-                    buff+="  ${WHITE}    ${items[$iter]}${NC}\n"
+                    buff+="  ${WHITE}    ${items[$iter]}${RESET}\n"
                 fi
                 buff+="\n"
             fi
         done
 
-        buff+="\n  ${WHITE}↑/↓ Naviguer  ⏎ Sélectionner${NC}"
+        buff+="\n  ${WHITE}↑/↓ Naviguer  ⏎ Sélectionner${RESET}"
         printf '%b' "$buff"
     }
 

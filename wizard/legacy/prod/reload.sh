@@ -6,13 +6,13 @@ legacy_prod_reload() {
     echo ""
 
     if ! locate_project; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
     if ! _prod_are_services_running; then
         write_color "  Aucun service en cours d'exécution trouvé." YELLOW
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return
     fi
 
@@ -25,9 +25,13 @@ legacy_prod_reload() {
         windows)
             local nginx_dir
             nginx_dir=$(_win_nginx_dir)
+            if [[ -z "$nginx_dir" ]]; then
+                write_color "  [✗] nginx introuvable" RED
+                return 1
+            fi
             (cd "$nginx_dir" && "./nginx.exe" -s reload 2>&1)
             ;;
-        *)     nginx -s reload 2>&1 ;;
+        macos) nginx -s reload 2>&1 ;;
     esac
 
     sleep 3
@@ -35,5 +39,5 @@ legacy_prod_reload() {
     echo ""
     prod_health_report
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }

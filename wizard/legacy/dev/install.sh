@@ -11,7 +11,7 @@ legacy_dev_install() {
 
     if ! resolve_project "$install_path"; then
         if ! clone_project "$PROJECT_DIR"; then
-            read -p "  Appuyez sur Entrée..." dummy
+            wait_enter
             return 1
         fi
     fi
@@ -19,14 +19,14 @@ legacy_dev_install() {
 
     echo ""
     if ! verify_clone "legacy"; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
     echo ""
     write_color "  Vérification des dépendances..." YELLOW
     if ! ensure_dep "node"; then
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
@@ -44,7 +44,7 @@ legacy_dev_install() {
         if _mongo_setup; then
             mongo_mode="local"
         else
-            read -p "  Appuyez sur Entrée..." dummy
+            wait_enter
             return 1
         fi
     else
@@ -61,7 +61,7 @@ legacy_dev_install() {
         case $MENU_RESULT in
             0)
                 if ! _mongo_setup; then
-                    read -p "  Appuyez sur Entrée..." dummy
+                    wait_enter
                     return 1
                 fi
                 mongo_mode="local"
@@ -74,7 +74,7 @@ legacy_dev_install() {
                 read -p "  MONGO_URI : " mongo_uri_override
                 if [[ -z "$mongo_uri_override" ]]; then
                     write_color "  [✗] URI vide, installation annulée" RED
-                    read -p "  Appuyez sur Entrée..." dummy
+                    wait_enter
                     return 1
                 fi
                 write_color "  [✓] Atlas configuré" GREEN
@@ -134,7 +134,7 @@ legacy_dev_install() {
     if [[ "$config_ok" == false ]]; then
         write_color "" WHITE
         write_color "  [!] Configuration incomplète — corrigez les .env avant de continuer" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
@@ -142,7 +142,7 @@ legacy_dev_install() {
     write_color "  Installation des dépendances backend..." YELLOW
     (cd BACKEND && npm install) || {
         write_color "  [✗] Échec npm install backend" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     }
     write_color "  [✓] Backend node_modules installé" GREEN
@@ -150,14 +150,14 @@ legacy_dev_install() {
     write_color "  Installation des dépendances frontend..." YELLOW
     (cd FRONTENDV2 && npm install) || {
         write_color "  [✗] Échec npm install frontend" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     }
     write_color "  [✓] Frontend node_modules installé" GREEN
 
     if ! verify_node_deps; then
         write_color "  [✗] Installation des dépendances incomplète" RED
-        read -p "  Appuyez sur Entrée..." dummy
+        wait_enter
         return 1
     fi
 
@@ -172,5 +172,5 @@ legacy_dev_install() {
     echo ""
     dev_health_report
 
-    read -p "  Appuyez sur Entrée..." dummy
+    wait_enter
 }
