@@ -32,7 +32,7 @@ legacy_prod_install() {
     fi
 
     write_color "  Vérification de MongoDB (local requis en prod)..." YELLOW
-    if ! _install_mongodb; then
+    if ! _mongo_setup; then
         read -p "  Appuyez sur Entrée..." dummy
         return 1
     fi
@@ -57,7 +57,7 @@ legacy_prod_install() {
     local config_ok=true
 
     local mongo_uri
-    mongo_uri=$(_extract_env_val "BACKEND/.env" "MONGO_URI" "")
+    mongo_uri=$(extract_env_val "BACKEND/.env" "MONGO_URI" "")
     if [[ -z "$mongo_uri" ]]; then
         write_color "  [✗] MONGO_URI manquant dans BACKEND/.env" RED
         config_ok=false
@@ -66,7 +66,7 @@ legacy_prod_install() {
     fi
 
     local back_port
-    back_port=$(_extract_env_val "BACKEND/.env" "PORT" "")
+    back_port=$(extract_env_val "BACKEND/.env" "PORT" "")
     if [[ -z "$back_port" ]]; then
         write_color "  [✗] PORT manquant dans BACKEND/.env" RED
         config_ok=false
@@ -75,7 +75,7 @@ legacy_prod_install() {
     fi
 
     local front_url
-    front_url=$(_extract_env_val "BACKEND/.env" "FRONTEND_URL" "")
+    front_url=$(extract_env_val "BACKEND/.env" "FRONTEND_URL" "")
     if [[ -z "$front_url" ]]; then
         write_color "  [!] FRONTEND_URL manquant — CORS pourrait échouer" YELLOW
     else
@@ -138,17 +138,17 @@ legacy_prod_install() {
     read -p "  Nom de domaine (ex. visioconf.example.com) : " DOMAIN_NAME
     PROD_DOMAIN="$DOMAIN_NAME"
 
-    ssl_setup "$DOMAIN_NAME"
+    prod_ssl_setup "$DOMAIN_NAME"
 
     echo ""
     write_color "  Génération de la configuration nginx..." YELLOW
-    generate_nginx_config "$DOMAIN_NAME" "${back_port:-3220}"
+    prod_nginx_generate "$DOMAIN_NAME" "${back_port:-3220}"
 
     echo ""
     write_color "  Configuration pm2 startup..." YELLOW
     case "$WIZARD_OS" in
         linux)   pm2 startup systemd 2>&1 ;;
-        windows) npm install -g pm2-startup 2>&1 && pm2-startup install 2>&1 || write_color "  → Installez manuellement : npm install -g pm2-startup && pm2-startup install" YELLOW ;;
+        windows) npm install -g pm2-windows-startup 2>&1 && pm2-windows-startup install 2>&1 || write_color "  → pm2 auto-startup non disponible sur Windows" YELLOW ;;
         macos)   pm2 startup launchd 2>&1 ;;
     esac
 
@@ -164,7 +164,7 @@ legacy_prod_install() {
     read -p "  Appuyez sur Entrée..." dummy
 }
 
-generate_nginx_config() {
+prod_nginx_generate() {
     local domain="$1"
     local back_port="$2"
     local proj_dir
@@ -177,9 +177,9 @@ generate_nginx_config() {
             nginx_conf="/etc/nginx/sites-available/$domain"
             ;;
         windows)
-            local nginx_path
-            nginx_path=$(command -v nginx 2>/dev/null | sed 's|/nginx.*||')
-            nginx_conf="${nginx_path:-/c/nginx}/conf/$domain.conf"
+            local nginx_dir
+            nginx_dir=$(_win_nginx_dir)
+            nginx_conf="${nginx_dir}/conf/servers/${domain}.conf"
             ;;
         macos)
             if [[ -d "/opt/homebrew/etc/nginx" ]]; then
@@ -211,6 +211,16 @@ generate_nginx_config() {
         echo -e "$config_content" | sudo tee "$nginx_conf" > /dev/null
         sudo ln -sf "$nginx_conf" "/etc/nginx/sites-enabled/$domain" 2>/dev/null
         sudo nginx -t 2>&1
+    elif [[ "$WIZARD_OS" == "windows" ]]; then
+        local nginx_dir
+        nginx_dir=$(_win_nginx_dir)
+        mkdir -p "${nginx_dir}/conf/servers" 2>/dev/null
+        echo -e "$config_content" > "$nginx_conf" 2>/dev/null
+        local main_conf="${nginx_dir}/conf/nginx.conf"
+        if ! grep -q 'include servers/' "$main_conf" 2>/dev/null; then
+            sed -i '/http\s*{/a\    include servers/*.conf;' "$main_conf" 2>/dev/null
+        fi
+        "$(_win_nginx_exe)" -p "$nginx_dir" -t 2>&1
     else
         echo -e "$config_content" > "$nginx_conf" 2>/dev/null
         nginx -t 2>&1

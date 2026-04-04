@@ -10,7 +10,7 @@ legacy_dev_reload() {
         return
     fi
 
-    if ! _dev_services_running; then
+    if ! _dev_are_services_running; then
         write_color "  Aucun service en cours d'exécution trouvé." YELLOW
         read -p "  Appuyez sur Entrée..." dummy
         return

@@ -10,6 +10,7 @@ legacy_manager() {
 
     if [[ "$selected_env" == "dev" ]]; then
         source "$WIZARD_DIR/legacy/dev/install.sh"
+        source "$WIZARD_DIR/legacy/dev/ssl.sh"
         source "$WIZARD_DIR/legacy/dev/launch.sh"
         source "$WIZARD_DIR/legacy/dev/reload.sh"
         source "$WIZARD_DIR/legacy/dev/stop.sh"

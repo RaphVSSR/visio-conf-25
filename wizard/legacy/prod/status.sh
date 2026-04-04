@@ -21,7 +21,7 @@ legacy_prod_status() {
 
 prod_health_report() {
     local back_port mongo_port
-    back_port=$(_extract_env_port "BACKEND/.env" "PORT" 3220)
+    back_port=$(extract_env_port "BACKEND/.env" "PORT" 3220)
     mongo_port=27017
 
     write_color "── Status (Prod) ──────────────────────────" CYAN
@@ -76,13 +76,52 @@ prod_health_report() {
     fi
 
     echo ""
+    write_color "  SSL" WHITE
+    local ssl_cert ssl_type="none"
+    ssl_cert=$(extract_env_val "BACKEND/.env" "SSL_CRT_FILE" "")
+    if [[ -n "$ssl_cert" && -f "$ssl_cert" ]]; then
+        local issuer
+        issuer=$(openssl x509 -issuer -noout -in "$ssl_cert" 2>/dev/null)
+        if echo "$issuer" | grep -qi "mkcert"; then
+            ssl_type="mkcert"
+            write_color "  ├─ Type:  mkcert (dev self-signed)" YELLOW
+        elif echo "$issuer" | grep -qi "Let's Encrypt\|certbot"; then
+            ssl_type="certbot"
+            write_color "  ├─ Type:  Let's Encrypt (prod)" GREEN
+        else
+            ssl_type="custom"
+            write_color "  ├─ Type:  custom certificate" CYAN
+        fi
+        if openssl x509 -checkend 0 -noout -in "$ssl_cert" 2>/dev/null; then
+            local expiry
+            expiry=$(openssl x509 -enddate -noout -in "$ssl_cert" 2>/dev/null | cut -d= -f2)
+            write_color "  └─ Valid: ✓ expires $expiry" GREEN
+        else
+            write_color "  └─ Valid: ✗ expired" RED
+        fi
+    else
+        write_color "  └─ aucun certificat configuré" RED
+    fi
+
+    local back_proto="http"
+    [[ "$ssl_type" != "none" ]] && back_proto="https"
+
+    echo ""
     write_color "  Ports" WHITE
-    for port_info in "80:HTTP" "443:HTTPS" "$back_port:Backend" "$mongo_port:MongoDB"; do
+    for port_info in "80:HTTP:http" "443:HTTPS:https" "$back_port:Backend:$back_proto" "$mongo_port:MongoDB:tcp"; do
         local port="${port_info%%:*}"
-        local label="${port_info#*:}"
-        local proto="http"
-        [[ "$port" == "443" ]] && proto="https"
-        if curl -sk -o /dev/null --connect-timeout 2 "${proto}://localhost:$port" 2>/dev/null; then
+        local rest="${port_info#*:}"
+        local label="${rest%%:*}"
+        local proto="${rest#*:}"
+        local alive=false
+
+        if [[ "$proto" == "tcp" ]]; then
+            (echo > /dev/tcp/localhost/$port) 2>/dev/null && alive=true
+        else
+            curl -sk -o /dev/null --connect-timeout 2 "${proto}://localhost:$port" 2>/dev/null && alive=true
+        fi
+
+        if [[ "$alive" == true ]]; then
             write_color "  ├─ :$port $label  ● responding" GREEN
         else
             write_color "  ├─ :$port $label  ● not responding" RED
@@ -96,7 +135,11 @@ prod_health_report() {
     local node_ver pm2_ver nginx_ver
     node_ver=$(node --version 2>/dev/null || echo "N/A")
     pm2_ver=$(pm2 --version 2>/dev/null || echo "N/A")
-    nginx_ver=$(nginx -v 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "N/A")
+    if [[ "$WIZARD_OS" == "windows" ]]; then
+        nginx_ver=$("$(_win_nginx_exe)" -v 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "N/A")
+    else
+        nginx_ver=$(nginx -v 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "N/A")
+    fi
     write_color "  ├─ Node:     $node_ver" WHITE
     write_color "  ├─ pm2:      $pm2_ver" WHITE
     write_color "  ├─ nginx:    $nginx_ver" WHITE

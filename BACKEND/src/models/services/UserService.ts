@@ -43,7 +43,7 @@ export default class UserService {
 		return SessionManager.getUserId(socketId)
 	}
 
-	private handleUserQuery = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleUserQuery = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			list: () => this.getUsersList(socketId),
@@ -54,7 +54,7 @@ export default class UserService {
 		dispatchers[payload.type]?.()
 	}
 
-	private handleUserUpdate = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleUserUpdate = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			profile: () => this.updateUser(socketId, payload),

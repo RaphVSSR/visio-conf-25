@@ -10,7 +10,7 @@ legacy_prod_stop() {
         return
     fi
 
-    if ! _prod_services_running; then
+    if ! _prod_are_services_running; then
         write_color "  Aucun service en cours d'exécution trouvé." YELLOW
         read -p "  Appuyez sur Entrée..." dummy
         return
@@ -30,7 +30,9 @@ legacy_prod_stop() {
                 sudo systemctl stop nginx 2>&1
                 ;;
             windows)
-                nginx -s stop 2>&1
+                local nginx_dir
+                nginx_dir=$(_win_nginx_dir)
+                (cd "$nginx_dir" && "./nginx.exe" -s stop 2>&1)
                 ;;
             macos)
                 brew services stop nginx 2>&1
@@ -44,7 +46,7 @@ legacy_prod_stop() {
     read -p "  Appuyez sur Entrée..." dummy
 }
 
-_prod_services_running() {
+_prod_are_services_running() {
     if pm2 describe visioconf-backend > /dev/null 2>&1; then
         local pm2_state
         pm2_state=$(pm2 jlist 2>/dev/null | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)

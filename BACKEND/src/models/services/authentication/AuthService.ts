@@ -79,7 +79,7 @@ export default class AuthService {
 
 		try {
 			const newUser = new User({
-				firstname, lastname, email, phone,
+				firstname, lastname, email, phone, desc: "",
 				password: AuthService.hashPassword(password),
 				roles: ["user"],
 			})

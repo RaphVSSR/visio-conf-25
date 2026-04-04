@@ -130,6 +130,7 @@ export class Folder extends Collection {
 
 export type FileType = {
 
+    id?: string,
     _id?: Types.ObjectId,
     name: string,
     type: "file",
@@ -138,8 +139,8 @@ export type FileType = {
     extension: string,
     createdAt: Date,
     updatedAt: Date,
-    parentId: Types.ObjectId | null,
-    ownerId: Types.ObjectId,
+    parentId: string | null,
+    ownerId: string,
     shared?: boolean,
     sharedWith?: string,
     sharedWithTeams?: string,
@@ -355,7 +356,7 @@ export default class FileSystem {
 		
 		return multer.diskStorage({
 
-			destination: (req, file, integrityStatus) => {
+			destination: (req: any, file: any, integrityStatus: any) => {
 
 				const userId = req.user.uuid;
 				const fileId = req.body.fileId || crypto.randomUUID();
@@ -365,7 +366,7 @@ export default class FileSystem {
 		
 				integrityStatus(null, fileDir);
 			},
-			filename: function (req, file, integrityStatus) {
+			filename: function (req: any, file: any, integrityStatus: any) {
 
 				integrityStatus(null, file.originalname)
 			},
@@ -375,7 +376,7 @@ export default class FileSystem {
 
 	private static defFilter(){
 
-		return (req, file, integrityStatus) => {
+		return (req: any, file: any, integrityStatus: any) => {
 
 			const allowedMimes = [
 				"image/jpeg",

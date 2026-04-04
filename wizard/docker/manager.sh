@@ -45,14 +45,14 @@ docker_install() {
 
     echo ""
     write_color "  Vérification des dépendances..." YELLOW
-    if ! check_dependency "docker"; then
+    if ! check_dep "docker"; then
         write_color "  Installation de Docker..." YELLOW
         case "$(uname -s)" in
             Linux*)  sudo apt update -qq 2>&1 && sudo apt install -y docker.io docker-compose-plugin 2>&1 && sudo systemctl start docker 2>&1 ;;
             MINGW*|MSYS*|CYGWIN*) _win_install "Docker.DockerDesktop" "docker-desktop" ;;
             Darwin*) brew install --cask docker 2>&1 ;;
         esac
-        if ! check_dependency "docker"; then
+        if ! check_dep "docker"; then
             read -p "  Appuyez sur Entrée..." dummy
             return 1
         fi
@@ -75,7 +75,7 @@ docker_install() {
     local config_ok=true
 
     local mongo_uri
-    mongo_uri=$(_extract_env_val "BACKEND/.env" "MONGO_URI" "")
+    mongo_uri=$(extract_env_val "BACKEND/.env" "MONGO_URI" "")
     if [[ -z "$mongo_uri" ]]; then
         write_color "  [✗] MONGO_URI manquant dans BACKEND/.env" RED
         config_ok=false
@@ -84,13 +84,13 @@ docker_install() {
     fi
 
     local back_port
-    back_port=$(_extract_env_val "BACKEND/.env" "PORT" "")
+    back_port=$(extract_env_val "BACKEND/.env" "PORT" "")
     if [[ -n "$back_port" ]]; then
         write_color "  [✓] PORT backend : $back_port" GREEN
     fi
 
     local back_api
-    back_api=$(_extract_env_val "FRONTENDV2/.env" "REACT_APP_BACKEND_API_URL" "")
+    back_api=$(extract_env_val "FRONTENDV2/.env" "REACT_APP_BACKEND_API_URL" "")
     if [[ -z "$back_api" ]]; then
         write_color "  [✗] REACT_APP_BACKEND_API_URL manquant" RED
         config_ok=false

@@ -68,7 +68,7 @@ export default class ChannelService {
 		return socketIds
 	}
 
-	private handleChannelQuery = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleChannelQuery = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			list: () => this.getChannels(socketId, payload),
@@ -78,7 +78,7 @@ export default class ChannelService {
 		dispatchers[payload.type]?.()
 	}
 
-	private handleChannelAction = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleChannelAction = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			create: () => this.createChannel(socketId, payload),
@@ -89,7 +89,7 @@ export default class ChannelService {
 		dispatchers[payload.type]?.()
 	}
 
-	private handleChannelMember = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleChannelMember = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			list: () => this.getChannelMembers(socketId, payload),
@@ -101,7 +101,7 @@ export default class ChannelService {
 		dispatchers[payload.type]?.()
 	}
 
-	private handleChannelPost = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleChannelPost = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			list: () => this.getChannelPosts(socketId, payload),

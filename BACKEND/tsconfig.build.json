@@ -2,6 +2,9 @@
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
 
+		"allowJs": true,
+		"allowImportingTsExtensions": false,
+		"rewriteRelativeImportExtensions": true,
 		"moduleResolution": "nodenext",
 		"module": "nodenext",
 		"noEmit": false,

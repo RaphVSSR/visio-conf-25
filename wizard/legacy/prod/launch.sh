@@ -35,7 +35,7 @@ _prod_start_services() {
     proj_dir="$(cd "${PROJECT_DIR:-.}" && pwd)"
     [[ "$WIZARD_OS" == "windows" ]] && proj_dir="$(cygpath -m "$proj_dir")"
 
-    pm2 start "$proj_dir/BACKEND/dist/index.js" --name visioconf-backend 2>&1
+    pm2 start "$proj_dir/BACKEND/dist/index.js" --name visioconf-backend --cwd "$proj_dir/BACKEND" 2>&1
     write_color "  [✓] pm2: visioconf-backend démarré" GREEN
 
     case "$WIZARD_OS" in
@@ -43,7 +43,9 @@ _prod_start_services() {
             sudo systemctl start nginx 2>&1
             ;;
         windows)
-            nginx 2>&1 &
+            local nginx_dir
+            nginx_dir=$(_win_nginx_dir)
+            (cd "$nginx_dir" && "./nginx.exe" < /dev/null > /dev/null 2>&1 &)
             ;;
         macos)
             brew services start nginx 2>&1

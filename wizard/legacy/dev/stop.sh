@@ -10,7 +10,7 @@ legacy_dev_stop() {
         return
     fi
 
-    if ! _dev_services_running; then
+    if ! _dev_are_services_running; then
         write_color "  Aucun service en cours d'exécution trouvé." YELLOW
         read -p "  Appuyez sur Entrée..." dummy
         return
@@ -23,9 +23,9 @@ legacy_dev_stop() {
     read -p "  Appuyez sur Entrée..." dummy
 }
 
-_dev_services_running() {
+_dev_are_services_running() {
     local back_port front_port
-    back_port=$(_extract_env_port "BACKEND/.env" "PORT" 3220)
+    back_port=$(extract_env_port "BACKEND/.env" "PORT" 3220)
     front_port=3000
 
     case "$WIZARD_OS" in
@@ -40,7 +40,7 @@ _dev_services_running() {
 
 _dev_kill_processes() {
     local back_port front_port
-    back_port=$(_extract_env_port "BACKEND/.env" "PORT" 3220)
+    back_port=$(extract_env_port "BACKEND/.env" "PORT" 3220)
     front_port=3000
 
     case "$WIZARD_OS" in

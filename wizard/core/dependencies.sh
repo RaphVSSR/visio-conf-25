@@ -1,6 +1,6 @@
 #!/bin/bash
 
-check_dependency() {
+check_dep() {
     local name="$1"
     local version_flag="${2:---version}"
 
@@ -117,11 +117,48 @@ _win_install() {
     return 1
 }
 
+_win_nginx_dir() {
+    local search_path
+    local local_appdata="${LOCALAPPDATA:-}"
+    [[ -z "$local_appdata" ]] && local_appdata=$(powershell.exe -Command 'echo $env:LOCALAPPDATA' 2>/dev/null | tr -d '\r')
+
+    if command -v cygpath > /dev/null 2>&1; then
+        local_appdata=$(cygpath -u "$local_appdata")
+    else
+        local_appdata=$(echo "$local_appdata" | sed 's|\\|/|g; s|^\([A-Za-z]\):|/\L\1|')
+    fi
+
+    for search_path in \
+        "$local_appdata/Microsoft/WinGet/Packages/nginxinc.nginx_"*/nginx-*/ \
+        "C:/tools/nginx"*/ \
+        "C:/ProgramData/chocolatey/lib/nginx/tools/nginx-"*/ \
+        "/c/tools/nginx"*/ \
+        "/c/ProgramData/chocolatey/lib/nginx/tools/nginx-"*/ \
+        "C:/nginx" \
+        "/c/nginx"; do
+        if [[ -f "${search_path}/nginx.exe" ]]; then
+            local real_path="${search_path%/}"
+            if command -v cygpath > /dev/null 2>&1; then
+                real_path=$(cygpath -u "$real_path")
+            fi
+            echo "$real_path"
+            return 0
+        fi
+    done
+    return 1
+}
+
+_win_nginx_exe() {
+    local nginx_dir
+    nginx_dir=$(_win_nginx_dir) || return 1
+    echo "${nginx_dir}/nginx.exe"
+}
+
 ensure_dep() {
     local name="$1"
     local flag="${2:---version}"
 
-    if check_dependency "$name" "$flag"; then return 0; fi
+    if check_dep "$name" "$flag"; then return 0; fi
 
     write_color "  Installation de $name..." YELLOW
 
@@ -146,13 +183,25 @@ ensure_dep() {
         nginx)
             case "$WIZARD_OS" in
                 linux)   sudo apt update -qq 2>&1 && sudo apt install -y nginx 2>&1 ;;
-                windows) _win_install "" "nginx" ;;
+                windows) _win_install "nginxinc.nginx" "nginx" ;;
                 macos)   brew install nginx 2>&1 ;;
             esac
             ;;
     esac
 
-    if check_dependency "$name" "$flag"; then return 0; fi
+    if check_dep "$name" "$flag"; then return 0; fi
+
+    if [[ "$name" == "nginx" && "$WIZARD_OS" == "windows" ]]; then
+        local nginx_exec
+        nginx_exec=$(_win_nginx_exe)
+        if [[ -n "$nginx_exec" && -f "$nginx_exec" ]]; then
+            local nginx_version
+            nginx_version=$("$nginx_exec" -v 2>&1 | head -1)
+            write_color "  [✓] $name — $nginx_version (via $nginx_exec)" GREEN
+            return 0
+        fi
+    fi
+
     write_color "  [✗] Échec de l'installation de $name" RED
     return 1
 }
@@ -211,7 +260,7 @@ _mongo_install() {
     esac
 }
 
-_install_mongodb() {
+_mongo_setup() {
     local state
     state=$(_mongo_check)
 
@@ -322,7 +371,7 @@ verify_prod_build() {
     return 0
 }
 
-_extract_env_val() {
+extract_env_val() {
     local file="$1" key="$2" default="$3"
     if [[ -f "$file" ]]; then
         local val
@@ -333,7 +382,7 @@ _extract_env_val() {
     fi
 }
 
-_extract_env_port() {
+extract_env_port() {
     local file="$1" key="$2" default="$3"
     if [[ -f "$file" ]]; then
         local val

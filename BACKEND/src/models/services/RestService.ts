@@ -22,7 +22,7 @@ export default class RestService {
 
 	static async implement(){
 
-		if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL >= "2") console.group("⚙️ Implementing Express server..");
+		if (process.env.VERBOSE === "true" && (process.env.VERBOSE_LVL ?? "") >= "2") console.group("⚙️ Implementing Express server..");
 
 		this.server.use(express.json());
 		this.corsDef();
@@ -32,7 +32,7 @@ export default class RestService {
 
 		await this.routesDef();
 
-		if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL >= "2") {
+		if (process.env.VERBOSE === "true" && (process.env.VERBOSE_LVL ?? "") >= "2") {
 
 			console.log("✅ Success");
 			console.groupEnd();

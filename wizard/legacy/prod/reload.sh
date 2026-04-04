@@ -10,7 +10,7 @@ legacy_prod_reload() {
         return
     fi
 
-    if ! _prod_services_running; then
+    if ! _prod_are_services_running; then
         write_color "  Aucun service en cours d'exécution trouvé." YELLOW
         read -p "  Appuyez sur Entrée..." dummy
         return
@@ -22,6 +22,11 @@ legacy_prod_reload() {
     write_color "  Rechargement nginx..." YELLOW
     case "$WIZARD_OS" in
         linux) sudo nginx -s reload 2>&1 ;;
+        windows)
+            local nginx_dir
+            nginx_dir=$(_win_nginx_dir)
+            (cd "$nginx_dir" && "./nginx.exe" -s reload 2>&1)
+            ;;
         *)     nginx -s reload 2>&1 ;;
     esac
 

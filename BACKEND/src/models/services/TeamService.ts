@@ -48,7 +48,7 @@ export default class TeamService {
 		return SessionManager.getUserId(socketId)
 	}
 
-	private handleTeamQuery = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleTeamQuery = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			list: () => this.getTeamsList(socketId),
@@ -58,7 +58,7 @@ export default class TeamService {
 		dispatchers[payload.type]?.()
 	}
 
-	private handleTeamAction = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleTeamAction = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			create: () => this.createTeam(socketId, payload),
@@ -70,7 +70,7 @@ export default class TeamService {
 		dispatchers[payload.type]?.()
 	}
 
-	private handleTeamMember = (socketId: string, payload: { type: string, [key: string]: any }) => {
+	private handleTeamMember = (socketId: string, payload: any) => {
 
 		const dispatchers: Record<string, () => void> = {
 			list: () => this.getTeamMembers(socketId, payload),

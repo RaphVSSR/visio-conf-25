@@ -36,33 +36,33 @@ _dev_launch_terminals() {
 
     case "$WIZARD_OS" in
         linux)
-            gnome-terminal -- bash -c "cd '$proj_dir/BACKEND'; npm run dev; exec bash" &
+            gnome-terminal -- bash -c "cd '$proj_dir/BACKEND'; npm run dev; exec bash" < /dev/null > /dev/null 2>&1 &
             sleep 3
-            gnome-terminal -- bash -c "cd '$proj_dir/FRONTENDV2'; npm start; exec bash" &
+            gnome-terminal -- bash -c "cd '$proj_dir/FRONTENDV2'; npm start; exec bash" < /dev/null > /dev/null 2>&1 &
             ;;
         windows)
             local win_back win_front
             win_back="$(cygpath -w "$proj_dir/BACKEND")"
             win_front="$(cygpath -w "$proj_dir/FRONTENDV2")"
-            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$win_back\"; npm run dev'" &
+            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$win_back\"; npm run dev'" < /dev/null > /dev/null 2>&1 &
             sleep 3
-            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$win_front\"; npm start'" &
+            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$win_front\"; npm start'" < /dev/null > /dev/null 2>&1 &
             ;;
         macos)
-            osascript -e "tell app \"Terminal\" to do script \"cd '$proj_dir/BACKEND' && npm run dev\"" &
+            osascript -e "tell app \"Terminal\" to do script \"cd '$proj_dir/BACKEND' && npm run dev\"" < /dev/null > /dev/null 2>&1 &
             sleep 3
-            osascript -e "tell app \"Terminal\" to do script \"cd '$proj_dir/FRONTENDV2' && npm start\"" &
+            osascript -e "tell app \"Terminal\" to do script \"cd '$proj_dir/FRONTENDV2' && npm start\"" < /dev/null > /dev/null 2>&1 &
             ;;
     esac
 }
 
 dev_health_report() {
     local back_port front_port proto
-    back_port=$(_extract_env_port "BACKEND/.env" "PORT" 3220)
+    back_port=$(extract_env_port "BACKEND/.env" "PORT" 3220)
     front_port=3000
     proto="http"
     local ssl_cert
-    ssl_cert=$(_extract_env_val "BACKEND/.env" "SSL_CRT_FILE" "")
+    ssl_cert=$(extract_env_val "BACKEND/.env" "SSL_CRT_FILE" "")
     [[ -n "$ssl_cert" ]] && proto="https"
 
     write_color "── Status (Dev) ──────────────────────────" CYAN
@@ -72,7 +72,7 @@ dev_health_report() {
 
     local mongo_status="✗ unreachable" mongo_color="RED"
     local mongo_uri
-    mongo_uri=$(_extract_env_val "BACKEND/.env" "MONGO_URI" "mongodb://localhost:27017/visio-conf")
+    mongo_uri=$(extract_env_val "BACKEND/.env" "MONGO_URI" "mongodb://localhost:27017/visio-conf")
 
     if [[ "$mongo_uri" == *"mongodb+srv"* || "$mongo_uri" == *"mongodb.net"* ]]; then
         mongo_status="Atlas ($mongo_uri)"; mongo_color="YELLOW"
@@ -123,7 +123,7 @@ dev_health_report() {
     write_color "  ├─ Mode:     development" WHITE
     write_color "  ├─ Projet:   $PROJECT_DIR" WHITE
     local verbose_val
-    verbose_val=$(_extract_env_val "BACKEND/.env" "VERBOSE" "false")
+    verbose_val=$(extract_env_val "BACKEND/.env" "VERBOSE" "false")
     if [[ "$verbose_val" == "true" ]]; then
         write_color "  ├─ Verbose:  enabled" GREEN
     else
