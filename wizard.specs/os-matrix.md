@@ -1,8 +1,8 @@
 # Matrice de commandes par OS
 
-L'OS est sélectionné une seule fois à l'entrée du Legacy Manager. Toutes les commandes s'adaptent en conséquence.
+L'OS est sélectionné une seule fois à l'entrée du Legacy Manager.
 
-## Lancement de terminal (dev launch)
+## Lancement de terminal (dev)
 
 | OS | Commande |
 |---|---|
@@ -12,24 +12,23 @@ L'OS est sélectionné une seule fois à l'entrée du Legacy Manager. Toutes les
 
 ## Gestion des processus
 
-| Action | Linux | Windows | macOS |
-|---|---|---|---|
-| Tuer par PID | `kill <pid>` | `taskkill /PID <pid> /F` | `kill <pid>` |
-| Trouver par port | `lsof -i :<port>` | `netstat -ano \| findstr :<port>` | `lsof -i :<port>` |
-| Vérifier port ouvert | `curl -s -o /dev/null -w "%{http_code}" http://localhost:<port>` | `Invoke-WebRequest` | `curl` (idem Linux) |
+| Action | Linux/macOS | Windows |
+|---|---|---|
+| Trouver par port | `lsof -ti :<port>` | `netstat -ano \| findstr :<port>` |
+| Tuer par PID | `kill <pid>` | `taskkill /PID <pid> /F` |
 
-## Indications d'installation des dépendances
+## Installation des dépendances
 
-| Outil | Linux (apt) | Windows | macOS (brew) |
+| Outil | Linux (apt) | Windows (winget/choco) | macOS (brew) |
 |---|---|---|---|
-| Node.js | `apt install nodejs` | nodejs.org installer | `brew install node` |
-| MongoDB | `apt install mongod` | mongodb.com installer | `brew install mongodb-community` |
+| Node.js | `apt install nodejs` | nodejs.org | `brew install node` |
+| MongoDB | apt repo MongoDB 8.0 | mongodb.com | `brew install mongodb-community` |
 | pm2 | `npm install -g pm2` | `npm install -g pm2` | `npm install -g pm2` |
-| nginx | `apt install nginx` | nginx.org download | `brew install nginx` |
+| nginx | `apt install nginx` | `choco install nginx` | `brew install nginx` |
 | certbot | `apt install certbot` | `choco install certbot` | `brew install certbot` |
 | mkcert | `apt install mkcert` | `choco install mkcert` | `brew install mkcert` |
 
-## Chemins de configuration nginx
+## Chemins nginx
 
 | OS | Chemin de configuration |
 |---|---|
@@ -37,27 +36,25 @@ L'OS est sélectionné une seule fois à l'entrée du Legacy Manager. Toutes les
 | Windows | `<nginx-dir>/conf/` |
 | macOS | `/usr/local/etc/nginx/` ou `/opt/homebrew/etc/nginx/` |
 
-## Chemins des certificats SSL (certbot)
+## Certificats SSL (certbot)
 
 | OS | Chemin |
 |---|---|
-| Linux | `/etc/letsencrypt/live/<domain>/` |
+| Linux/macOS | `/etc/letsencrypt/live/<domain>/` |
 | Windows | `C:\Certbot\live\<domain>\` |
-| macOS | `/etc/letsencrypt/live/<domain>/` |
+
+## Services nginx
+
+| Action | Linux | Windows | macOS |
+|---|---|---|---|
+| Démarrer | `systemctl start nginx` | `nginx` (direct) | `brew services start nginx` |
+| Arrêter | `systemctl stop nginx` | `nginx -s stop` | `brew services stop nginx` |
+| Recharger | `nginx -s reload` | `nginx -s reload` | `nginx -s reload` |
 
 ## Démarrage pm2
 
 | OS | Commande |
 |---|---|
 | Linux | `pm2 startup systemd` |
-| Windows | `pm2-startup` (npm package) |
+| Windows | `pm2-startup` (package npm) |
 | macOS | `pm2 startup launchd` |
-
-## Gestion des services
-
-| Action | Linux | Windows | macOS |
-|---|---|---|---|
-| Démarrer nginx | `systemctl start nginx` | `nginx` (direct) | `brew services start nginx` |
-| Arrêter nginx | `systemctl stop nginx` | `nginx -s stop` | `brew services stop nginx` |
-| Recharger nginx | `nginx -s reload` | `nginx -s reload` | `nginx -s reload` |
-| Statut nginx | `systemctl status nginx` | `tasklist /FI "IMAGENAME eq nginx.exe"` | `brew services list` |
