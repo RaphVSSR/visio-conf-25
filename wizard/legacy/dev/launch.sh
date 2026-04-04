@@ -115,7 +115,7 @@ dev_health_report() {
         linux|macos) back_pid=$(lsof -ti :"$back_port" 2>/dev/null | head -1) ;;
         windows)     back_pid=$(netstat -ano 2>/dev/null | grep ":$back_port " | awk '{print $5}' | head -1) ;;
     esac
-    if curl -sk -o /dev/null --connect-timeout 3 "${proto}://localhost:$back_port" 2>/dev/null; then
+    if curl -4 -sk -o /dev/null --connect-timeout 3 "${proto}://localhost:$back_port" 2>/dev/null; then
         back_status="✓ responding :$back_port"; back_color="GREEN"
     fi
     printf "  ├─ Backend     ${!back_color}%s${RESET}  pid: %s\n" "$back_status" "${back_pid:-—}"
@@ -128,7 +128,7 @@ dev_health_report() {
         linux|macos) front_pid=$(lsof -ti :"$front_port" 2>/dev/null | head -1) ;;
         windows)     front_pid=$(netstat -ano 2>/dev/null | grep ":$front_port " | awk '{print $5}' | head -1) ;;
     esac
-    if curl -sk -o /dev/null --connect-timeout 3 "${proto}://localhost:$front_port" 2>/dev/null; then
+    if curl -4 -sk -o /dev/null --connect-timeout 3 "${proto}://localhost:$front_port" 2>/dev/null; then
         front_status="✓ responding :$front_port"; front_color="GREEN"
     fi
     printf "  └─ Frontend    ${!front_color}%s${RESET}  pid: %s\n" "$front_status" "${front_pid:-—}"

@@ -121,7 +121,7 @@ prod_health_report() {
                 (echo > /dev/tcp/localhost/$port) 2>/dev/null && alive=true
             fi
         else
-            curl -sk -o /dev/null --connect-timeout 2 "${proto}://localhost:$port" 2>/dev/null && alive=true
+            curl -4 -sk -o /dev/null --connect-timeout 2 "${proto}://localhost:$port" 2>/dev/null && alive=true
         fi
 
         if [[ "$alive" == true ]]; then

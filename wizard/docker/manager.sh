@@ -1,201 +1,35 @@
 #!/bin/bash
 
-docker_has_containers() {
-    docker compose ps --quiet 2>/dev/null | grep -q .
-}
-
-docker_manager() {
-    while true; do
-        cd "$SCRIPT_DIR"
-        clear
-        show_submenu_header "Docker Manager"
-
-        arrow_menu --style lines \
-            --colors "GREEN,GREEN,RED,CYAN,RED" \
-            "Installation" "Launch" "Stop" "Status" "Back"
-
-        case $MENU_RESULT in
-            0) docker_install ;;
-            1) docker_launch ;;
-            2) docker_stop ;;
-            3) docker_status ;;
-            4) return ;;
-        esac
-    done
-}
-
-docker_install() {
+docker_detect_os() {
     if [[ -z "$WIZARD_OS" ]]; then
         case "$(uname -s)" in
             Linux*)          WIZARD_OS="linux" ;;
             MINGW*|MSYS*|CYGWIN*) WIZARD_OS="windows" ;;
             Darwin*)         WIZARD_OS="macos" ;;
-            *) write_color "  [✗] Système non reconnu" RED; return 1 ;;
+            *) write_color "  [✗] Systeme non reconnu" RED; return 1 ;;
         esac
     fi
-
-    clear
-    write_color "── Installation (Docker) ──" CYAN
-    echo ""
-
-    read -p "  Répertoire d'installation [./] : " install_path
-    install_path="${install_path:-./}"
-    install_path="${install_path%/}"
-
-    if ! resolve_project "$install_path"; then
-        if ! clone_project "$PROJECT_DIR"; then
-            wait_enter
-            return 1
-        fi
-    fi
-    cd "$PROJECT_DIR" || return 1
-
-    echo ""
-    if ! verify_clone "docker"; then
-        wait_enter
-        return 1
-    fi
-
-    echo ""
-    write_color "  Vérification des dépendances..." YELLOW
-    if ! ensure_dep "docker"; then
-        wait_enter
-        return 1
-    fi
-
-    if ! docker compose version > /dev/null 2>&1; then
-        write_color "  [✗] Docker Compose introuvable" RED
-        write_color "  Docker Compose est inclus avec Docker Desktop" YELLOW
-        wait_enter
-        return 1
-    fi
-    write_color "  [✓] Docker Compose détecté" GREEN
-
-    echo ""
-    generate_env "BACKEND/.env.template" "BACKEND/.env" "Backend"
-    generate_env "FRONTENDV2/.env.template" "FRONTENDV2/.env" "Frontend"
-
-    echo ""
-    write_color "  Vérification de la configuration..." YELLOW
-    local config_ok=true
-
-    local mongo_uri
-    mongo_uri=$(extract_env_val "BACKEND/.env" "MONGO_URI" "")
-    if [[ -z "$mongo_uri" ]]; then
-        write_color "  [✗] MONGO_URI manquant dans BACKEND/.env" RED
-        config_ok=false
-    else
-        write_color "  [✓] MONGO_URI configuré" GREEN
-    fi
-
-    local back_port
-    back_port=$(extract_env_val "BACKEND/.env" "PORT" "")
-    if [[ -n "$back_port" ]]; then
-        write_color "  [✓] PORT backend : $back_port" GREEN
-    fi
-
-    local back_api
-    back_api=$(extract_env_val "FRONTENDV2/.env" "REACT_APP_BACKEND_API_URL" "")
-    if [[ -z "$back_api" ]]; then
-        write_color "  [✗] REACT_APP_BACKEND_API_URL manquant" RED
-        config_ok=false
-    else
-        write_color "  [✓] Frontend → Backend : $back_api" GREEN
-    fi
-
-    if [[ "$config_ok" == false ]]; then
-        write_color "  [!] Configuration incomplète — corrigez les .env" RED
-        wait_enter
-        return 1
-    fi
-
-    echo ""
-    write_color "  Construction et démarrage..." YELLOW
-    if ! docker compose up --build -d 2>&1; then
-        write_color "  [✗] Échec de docker compose" RED
-        wait_enter
-        return 1
-    fi
-
-    echo ""
-    write_color "  Attente du démarrage des services..." YELLOW
-    sleep 10
-    docker_health_report
-
-    wait_enter
 }
 
-docker_launch() {
-    clear
-    write_color "── Launch (Docker) ──" CYAN
-    echo ""
-
-    if ! locate_project; then
-        wait_enter
-        return
-    fi
-
-    if ! docker_has_containers; then
-        write_color "  Aucun conteneur trouvé. Lancez d'abord Installation." YELLOW
-        wait_enter
-        return
-    fi
-
-    docker compose up -d 2>&1
-
-    echo ""
-    write_color "  Attente du démarrage..." YELLOW
-    sleep 5
-    docker_health_report
-
-    wait_enter
-}
-
-docker_stop() {
-    clear
-    write_color "── Stop (Docker) ──" CYAN
-    echo ""
-
-    if ! locate_project; then
-        wait_enter
-        return
-    fi
-
-    if ! docker_has_containers; then
-        write_color "  Aucun conteneur en cours d'exécution." YELLOW
-        wait_enter
-        return
-    fi
-
-    docker compose down 2>&1
-    write_color "  [✓] Conteneurs arrêtés" GREEN
-    wait_enter
-}
-
-docker_status() {
-    clear
-
-    if ! locate_project; then
-        wait_enter
-        return
-    fi
-
-    docker_health_report
-    wait_enter
+docker_has_containers() {
+    local compose_file="${1:-compose.yaml}"
+    docker compose -f "$compose_file" ps --quiet 2>/dev/null | grep -q .
 }
 
 docker_health_report() {
+    local compose_file="${1:-compose.yaml}"
+
     write_color "── Status (Docker) ──────────────────────" CYAN
     echo ""
 
-    if ! docker_has_containers; then
-        write_color "  Aucun conteneur trouvé. Lancez d'abord Installation." YELLOW
+    if ! docker_has_containers "$compose_file"; then
+        write_color "  Aucun conteneur trouve. Lancez d'abord Installation." YELLOW
         return
     fi
 
     write_color "  Conteneurs" WHITE
     local containers
-    containers=$(docker compose ps --format "{{.Name}}|{{.Status}}|{{.Ports}}" 2>/dev/null)
+    containers=$(docker compose -f "$compose_file" ps --format "{{.Name}}|{{.Status}}|{{.Ports}}" 2>/dev/null)
 
     while IFS='|' read -r name status ports; do
         [[ -z "$name" ]] && continue
@@ -210,34 +44,48 @@ docker_health_report() {
     write_color "  Services" WHITE
 
     local mongo_status="✗ unreachable" mongo_color="RED"
-    if docker compose exec -T mongodb mongosh --eval 'db.runCommand({ping:1})' --quiet > /dev/null 2>&1; then
+    if docker compose -f "$compose_file" exec -T mongodb mongosh --eval 'db.runCommand({ping:1})' --quiet > /dev/null 2>&1; then
         mongo_status="✓ connected"; mongo_color="GREEN"
     fi
     printf "  ├─ MongoDB     ${!mongo_color}%s${RESET}\n" "$mongo_status"
     if [[ "$mongo_color" == "RED" ]]; then
-        write_color "  │  → Le conteneur MongoDB n'a peut-être pas fini de démarrer" YELLOW
+        write_color "  │  → Le conteneur MongoDB n'a peut-etre pas fini de demarrer" YELLOW
     fi
 
-    local back_port
-    back_port=$(docker compose port backend 3220 2>/dev/null | grep -oE '[0-9]+$' || echo "3220")
     local back_status="✗ not responding" back_color="RED"
-    if curl -s -o /dev/null --connect-timeout 3 "http://localhost:$back_port" 2>/dev/null; then
-        back_status="✓ responding :$back_port"; back_color="GREEN"
+    local front_status="✗ not responding" front_color="RED"
+
+    if [[ "$compose_file" == *"prod"* ]]; then
+        if curl -4 -s -o /dev/null --connect-timeout 3 "http://localhost/api" 2>/dev/null; then
+            back_status="✓ responding (via nginx)"; back_color="GREEN"
+        fi
+        if curl -4 -s -o /dev/null --connect-timeout 3 "http://localhost" 2>/dev/null; then
+            front_status="✓ responding :80"; front_color="GREEN"
+        fi
+    else
+        local back_port
+        back_port=$(docker compose -f "$compose_file" port backend 3220 2>/dev/null | grep -oE '[0-9]+$' || echo "3220")
+        local back_proto="http"
+        local ssl_cert
+        ssl_cert=$(extract_env_val "BACKEND/.env" "SSL_CRT_FILE" "")
+        [[ -n "$ssl_cert" ]] && back_proto="https"
+        if curl -4 -sk -o /dev/null --connect-timeout 3 "${back_proto}://localhost:$back_port" 2>/dev/null; then
+            back_status="✓ responding :$back_port"; back_color="GREEN"
+        fi
+        local front_port
+        front_port=$(docker compose -f "$compose_file" port frontendv2 3000 2>/dev/null | grep -oE '[0-9]+$' || echo "3000")
+        if curl -4 -sk -o /dev/null --connect-timeout 3 "http://localhost:$front_port" 2>/dev/null; then
+            front_status="✓ responding :$front_port"; front_color="GREEN"
+        fi
     fi
+
     printf "  ├─ Backend     ${!back_color}%s${RESET}\n" "$back_status"
     if [[ "$back_color" == "RED" ]]; then
-        write_color "  │  → Le backend nécessite MongoDB pour démarrer" YELLOW
-    fi
-
-    local front_port
-    front_port=$(docker compose port frontendv2 3000 2>/dev/null | grep -oE '[0-9]+$' || echo "3000")
-    local front_status="✗ not responding" front_color="RED"
-    if curl -s -o /dev/null --connect-timeout 3 "http://localhost:$front_port" 2>/dev/null; then
-        front_status="✓ responding :$front_port"; front_color="GREEN"
+        write_color "  │  → Le backend necessite MongoDB pour demarrer" YELLOW
     fi
     printf "  └─ Frontend    ${!front_color}%s${RESET}\n" "$front_status"
     if [[ "$front_color" == "RED" ]]; then
-        write_color "     → Le frontend peut prendre ~30s à compiler" YELLOW
+        write_color "     → Le frontend peut prendre ~30s a compiler" YELLOW
     fi
 
     echo ""
@@ -248,10 +96,36 @@ docker_health_report() {
     write_color "  └─ .env:  backend $env_back  frontend $env_front" WHITE
 
     echo ""
-    write_color "  Logs (dernières lignes — backend)" WHITE
-    docker compose logs --tail 5 backend 2>/dev/null | while IFS= read -r line; do
+    write_color "  Logs (dernieres lignes — backend)" WHITE
+    docker compose -f "$compose_file" logs --tail 5 backend 2>/dev/null | while IFS= read -r line; do
         write_color "  │ $line" WHITE
     done
 
     write_color "─────────────────────────────────────────" CYAN
+}
+
+docker_manager() {
+    docker_detect_os
+
+    clear
+    show_submenu_header "Docker Manager"
+    write_color "  Selectionnez votre environnement :" WHITE
+    echo ""
+
+    arrow_menu --style lines \
+        --colors "GREEN,YELLOW,RED" \
+        "Development" "Production" "Back"
+
+    case $MENU_RESULT in
+        0)
+            source "$WIZARD_DIR/legacy/dev/ssl.sh"
+            source "$WIZARD_DIR/docker/dev.sh"
+            docker_dev_menu
+            ;;
+        1)
+            source "$WIZARD_DIR/docker/prod.sh"
+            docker_prod_menu
+            ;;
+        2) return ;;
+    esac
 }
