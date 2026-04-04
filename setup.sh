@@ -33,7 +33,7 @@ while true; do
             docker_manager
             ;;
         1)
-            source "$WIZARD_DIR/legacy/entry.sh"
+            source "$WIZARD_DIR/legacy/manager.sh"
             legacy_manager
             ;;
         2)
