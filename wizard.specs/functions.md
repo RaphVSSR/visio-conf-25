@@ -4,9 +4,9 @@ Fonctions réutilisées dans toutes les sections du wizard.
 
 ---
 
-## arrow_menu
+## pick_menu
 
-Menu navigable par flèches.
+Menu à saisie numérotée `[1-N]`.
 
 | Param | Type | Description |
 |---|---|---|
@@ -14,7 +14,7 @@ Menu navigable par flèches.
 | --style | boxes/lines | Boîtes bordées (menu principal) ou lignes colorées (sous-menus) |
 | --colors | string | Couleurs par option, séparées par virgules |
 
-Comportement : marqueur `▶` + couleur sur l'option active, ↑/↓ pour naviguer (boucle), Entrée pour sélectionner. Retourne l'index dans `$MENU_RESULT`.
+Comportement : affiche les options numérotées `[1] [2] ... [N]`, l'utilisateur saisit le numéro puis Entrée. Retourne l'index dans `$MENU_RESULT`.
 
 ---
 

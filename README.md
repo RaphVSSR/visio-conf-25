@@ -18,7 +18,8 @@ Utilisateurs Windows : lancer depuis **Git Bash**.
 - **Générateur d'environnement** — Création interactive de fichiers `.env` pour le backend et le frontend
 - **Gestion SSL** — mkcert pour le dev, certbot (Let's Encrypt) pour la prod
 - **Support multi-OS** — Linux (apt), macOS (brew), Windows (winget/choco)
-- **Navigation par flèches** — Aucune saisie numérique, tous les menus utilisent la sélection par curseur
+- **Saisie numérotée** — Tous les menus utilisent la sélection `[1-N]`
+- **POSIX sh strict** — Tourne nativement sous dash, ash, bash. Suite de tests sous `wizard/tests/` (`./wizard/tests/run.sh`)
 
 ## Structure
 
@@ -27,7 +28,7 @@ setup.sh                  ← point d'entrée
 wizard/
   core/
     colors.sh             ← helpers d'affichage ANSI
-    menu.sh               ← rendu arrow_menu + gestion input
+    menu.sh               ← rendu pick_menu + gestion input
     dependencies.sh       ← vérification des dépendances, installeurs, utilitaires partagés
   shared/
     generate-env.sh       ← générateur interactif de .env

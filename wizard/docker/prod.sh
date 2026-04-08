@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 PROD_COMPOSE="compose.prod.yaml"
 
@@ -8,7 +8,7 @@ docker_prod_menu() {
         clear
         show_submenu_header "Docker — Prod"
 
-        arrow_menu --style lines \
+        pick_menu --style lines \
             --colors "GREEN,GREEN,RED,CYAN,RED" \
             "Installation" "Launch" "Stop" "Status" "Back"
 
@@ -27,11 +27,12 @@ docker_prod_install() {
     write_color "── Installation (Docker Prod) ──" CYAN
     echo ""
 
-    read -p "  Repertoire d'installation [./] : " install_path
-    install_path="${install_path:-./}"
-    install_path="${install_path%/}"
+    printf '%s' "  Repertoire d'installation [./] : "
+    read -r install_folder
+    install_folder="${install_folder:-./}"
+    install_folder="${install_folder%/}"
 
-    if ! resolve_project "$install_path"; then
+    if ! resolve_project "$install_folder"; then
         if ! clone_project "$PROJECT_DIR"; then
             wait_enter
             return 1
@@ -67,27 +68,25 @@ docker_prod_install() {
 
     echo ""
     write_color "  Verification de la configuration..." YELLOW
-    local config_valid=true
+    config_ready=true
 
-    local mongo_uri
-    mongo_uri=$(extract_env_val "BACKEND/.env" "MONGO_URI" "")
-    if [[ -z "$mongo_uri" ]]; then
+    mongo_address=$(extract_env_val "BACKEND/.env" "MONGO_URI" "")
+    if [ -z "$mongo_address" ]; then
         write_color "  [✗] MONGO_URI manquant dans BACKEND/.env" RED
-        config_valid=false
+        config_ready=false
     else
         write_color "  [✓] MONGO_URI configure" GREEN
     fi
 
-    local back_port
-    back_port=$(extract_env_val "BACKEND/.env" "PORT" "")
-    if [[ -z "$back_port" ]]; then
+    backend_port=$(extract_env_val "BACKEND/.env" "PORT" "")
+    if [ -z "$backend_port" ]; then
         write_color "  [✗] PORT manquant dans BACKEND/.env" RED
-        config_valid=false
+        config_ready=false
     else
-        write_color "  [✓] PORT backend : $back_port" GREEN
+        write_color "  [✓] PORT backend : $backend_port" GREEN
     fi
 
-    if [[ "$config_valid" == false ]]; then
+    if [ "$config_ready" = "false" ]; then
         write_color "  [!] Configuration incomplete — corrigez les .env" RED
         wait_enter
         return 1
@@ -175,48 +174,47 @@ _prod_ssl_detect() {
     write_color "── Configuration SSL ──" CYAN
     echo ""
 
-    local dev_cert_found=false
-    if [[ -f ".certs/localhost.pem" ]]; then
-        local issuer
-        issuer=$(openssl x509 -issuer -noout -in ".certs/localhost.pem" 2>/dev/null)
-        if echo "$issuer" | grep -qi "mkcert"; then
+    dev_cert_found=false
+    if [ -f ".certs/localhost.pem" ]; then
+        cert_issuer=$(openssl x509 -issuer -noout -in ".certs/localhost.pem" 2>/dev/null)
+        if printf '%s' "$cert_issuer" | grep -qi "mkcert"; then
             write_color "  [!] Certificats mkcert (dev) detectes dans .certs/" YELLOW
             write_color "  → Utilisables pour tester, mais non valides en production" YELLOW
             dev_cert_found=true
         fi
     fi
 
-    local cert_path=""
+    cert_folder=""
     case "$WIZARD_OS" in
-        linux|macos) cert_path="/etc/letsencrypt" ;;
-        windows)     cert_path="C:/Certbot" ;;
+        linux|macos) cert_folder="/etc/letsencrypt" ;;
+        windows)     cert_folder="C:/Certbot" ;;
     esac
 
-    if [[ -d "$cert_path" ]]; then
-        local domain_dirs
-        domain_dirs=$(ls "$cert_path/live/" 2>/dev/null | head -5)
-        if [[ -n "$domain_dirs" ]]; then
+    if [ -d "$cert_folder" ]; then
+        domain_entries=$(ls "$cert_folder/live/" 2>/dev/null | head -5)
+        if [ -n "$domain_entries" ]; then
             write_color "  [✓] Certificats Let's Encrypt detectes :" GREEN
-            while IFS= read -r domain_entry; do
-                [[ -z "$domain_entry" ]] && continue
+            printf '%s\n' "$domain_entries" | while IFS= read -r domain_entry; do
+                [ -z "$domain_entry" ] && continue
                 write_color "  ├─ $domain_entry" WHITE
-            done <<< "$domain_dirs"
+            done
             echo ""
             write_color "  Les certificats seront montes via compose.prod.yaml" CYAN
             return 0
         fi
     fi
 
-    if [[ "$dev_cert_found" == true ]]; then
+    if [ "$dev_cert_found" = "true" ]; then
         write_color "  → Aucun certificat prod trouve, les certs dev seront utilises" YELLOW
         return 0
     fi
 
     write_color "  [!] Aucun certificat SSL detecte" YELLOW
     echo ""
-    read -p "  Nom de domaine pour generer un certificat (Entree pour passer) : " domain_name
+    printf '%s' "  Nom de domaine pour generer un certificat (Entree pour passer) : "
+    read -r domain_name
 
-    if [[ -z "$domain_name" ]]; then
+    if [ -z "$domain_name" ]; then
         write_color "  → SSL ignore, le service demarrera sans HTTPS" YELLOW
         return 0
     fi
@@ -225,18 +223,18 @@ _prod_ssl_detect() {
 }
 
 _prod_ssl_generate() {
-    local domain_name="$1"
+    domain_name="$1"
 
-    local cert_path=""
+    cert_folder=""
     case "$WIZARD_OS" in
-        linux|macos) cert_path="/etc/letsencrypt/live/$domain_name" ;;
-        windows)     cert_path="C:/Certbot/live/$domain_name" ;;
+        linux|macos) cert_folder="/etc/letsencrypt/live/$domain_name" ;;
+        windows)     cert_folder="C:/Certbot/live/$domain_name" ;;
     esac
 
-    if [[ -f "$cert_path/fullchain.pem" ]] \
-       && openssl x509 -checkend 0 -noout -in "$cert_path/fullchain.pem" 2>/dev/null; then
+    if [ -f "$cert_folder/fullchain.pem" ] \
+       && openssl x509 -checkend 0 -noout -in "$cert_folder/fullchain.pem" 2>/dev/null; then
         write_color "  [✓] Certificat Let's Encrypt valide pour $domain_name" GREEN
-        _prod_ssl_apply_env "$cert_path/fullchain.pem" "$cert_path/privkey.pem"
+        _prod_ssl_apply_env "$cert_folder/fullchain.pem" "$cert_folder/privkey.pem"
         return 0
     fi
 
@@ -265,10 +263,10 @@ _prod_ssl_generate() {
             ;;
     esac
 
-    if [[ -f "$cert_path/fullchain.pem" ]] \
-       && openssl x509 -checkend 0 -noout -in "$cert_path/fullchain.pem" 2>/dev/null; then
+    if [ -f "$cert_folder/fullchain.pem" ] \
+       && openssl x509 -checkend 0 -noout -in "$cert_folder/fullchain.pem" 2>/dev/null; then
         write_color "  [✓] Certificat SSL genere pour $domain_name" GREEN
-        _prod_ssl_apply_env "$cert_path/fullchain.pem" "$cert_path/privkey.pem"
+        _prod_ssl_apply_env "$cert_folder/fullchain.pem" "$cert_folder/privkey.pem"
         return 0
     fi
 
@@ -277,16 +275,16 @@ _prod_ssl_generate() {
 }
 
 _prod_ssl_apply_env() {
-    local cert_file="$1"
-    local key_file="$2"
+    cert_file="$1"
+    key_file="$2"
 
-    [[ "$WIZARD_OS" == "windows" ]] && {
+    if [ "$WIZARD_OS" = "windows" ]; then
         cert_file=$(cygpath -m "$cert_file" 2>/dev/null || echo "$cert_file")
         key_file=$(cygpath -m "$key_file" 2>/dev/null || echo "$key_file")
-    }
+    fi
 
     for env_file in BACKEND/.env FRONTENDV2/.env; do
-        [[ -f "$env_file" ]] || continue
+        [ -f "$env_file" ] || continue
         set_env_line "$env_file" "SSL_CRT_FILE" "$cert_file"
         set_env_line "$env_file" "SSL_KEY_FILE" "$key_file"
     done

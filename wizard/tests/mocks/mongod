@@ -1,0 +1,6 @@
+#!/bin/sh
+echo "$@" >> "${MOCK_LOG:-/tmp}/mongod.log"
+case "$1" in
+    --version|-v|version) echo "mongod mock 0.0.0" ;;
+esac
+exit 0

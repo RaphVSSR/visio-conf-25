@@ -1,60 +1,80 @@
-#!/bin/bash
+#!/bin/sh
 
 generate_env() {
-    local template="$1"
-    local output="$2"
-    local label="$3"
+    template="$1"
+    output="$2"
+    label="$3"
     shift 3
-    local overrides=("$@")
+    overrides_list=""
+    for entry in "$@"; do
+        overrides_list="${overrides_list}${entry}
+"
+    done
 
-    if [[ ! -f "$template" ]]; then
+    if [ ! -f "$template" ]; then
         write_color "  [✗] Template introuvable : $template" RED
         return 1
     fi
 
-    if [[ -f "$output" ]]; then
+    if [ -f "$output" ]; then
         write_color "  Le fichier $output existe déjà." YELLOW
-        local answer=""
-        read -p "  Écraser ? (o/N) : " answer
-        if [[ "${answer,,}" != "o" && "${answer,,}" != "oui" ]]; then
+        answer=""
+        printf "  Écraser ? (o/N) : "
+        read -r answer
+        answer_lower=$(printf '%s' "$answer" | tr 'A-Z' 'a-z')
+        if [ "$answer_lower" != "o" ] && [ "$answer_lower" != "oui" ]; then
             write_color "  → Conservation du fichier existant" CYAN
             return 0
         fi
     fi
 
     write_color "  ── Configuration $label ──" CYAN
-    > "$output"
+    : > "$output"
 
-    while IFS= read -r line <&3 || [[ -n "$line" ]]; do
-        line="${line//$'\r'/}"
+    while IFS= read -r line <&3 || [ -n "$line" ]; do
+        line=$(printf '%s' "$line" | tr -d '\r')
 
-        [[ -z "$line" || "$line" =~ ^# ]] && continue
-        [[ "$line" != *=* ]] && continue
+        [ -z "$line" ] && continue
+        case "$line" in
+            \#*) continue ;;
+        esac
+        case "$line" in
+            *=*) ;;
+            *) continue ;;
+        esac
 
-        local field="${line%%=*}"
-        local raw_value="${line#*=}"
+        field="${line%%=*}"
+        raw_value="${line#*=}"
 
-        local default_value="$raw_value"
-        local hint=""
-        if [[ "$raw_value" == *" #"* ]]; then
-            default_value="${raw_value%% #*}"
-            hint="${raw_value#*#}"
+        default_value="$raw_value"
+        hint=""
+        case "$raw_value" in
+            *" #"*)
+                default_value="${raw_value%% #*}"
+                hint="${raw_value#*#}"
+                ;;
+        esac
+
+        if [ -n "$overrides_list" ]; then
+            old_ifs="$IFS"
+            IFS='
+'
+            for override_entry in $overrides_list; do
+                override_key="${override_entry%%=*}"
+                override_val="${override_entry#*=}"
+                if [ "$override_key" = "$field" ]; then
+                    default_value="$override_val"
+                    break
+                fi
+            done
+            IFS="$old_ifs"
         fi
 
-        for override_entry in "${overrides[@]}"; do
-            local override_key="${override_entry%%=*}"
-            local override_val="${override_entry#*=}"
-            if [[ "$override_key" == "$field" ]]; then
-                default_value="$override_val"
-                break
-            fi
-        done
-
         printf "  %b[%s]%b %b%s%b [%b%s%b]" "$BLUE" "$label" "$RESET" "$CYAN" "$field" "$RESET" "$YELLOW" "$default_value" "$RESET"
-        [[ -n "$hint" ]] && printf " (%b%s%b)" "$GREEN" "$hint" "$RESET"
+        [ -n "$hint" ] && printf " (%b%s%b)" "$GREEN" "$hint" "$RESET"
         printf ": "
-        read user_value
-        [[ -z "$user_value" ]] && user_value="$default_value"
+        read -r user_value
+        [ -z "$user_value" ] && user_value="$default_value"
 
         echo "${field}=${user_value}" >> "$output"
     done 3< "$template"

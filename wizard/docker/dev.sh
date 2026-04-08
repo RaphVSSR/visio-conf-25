@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 DEV_COMPOSE="compose.yaml"
 
@@ -8,7 +8,7 @@ docker_dev_menu() {
         clear
         show_submenu_header "Docker — Dev"
 
-        arrow_menu --style lines \
+        pick_menu --style lines \
             --colors "GREEN,GREEN,RED,CYAN,RED" \
             "Installation" "Launch" "Stop" "Status" "Back"
 
@@ -27,11 +27,12 @@ docker_dev_install() {
     write_color "── Installation (Docker Dev) ──" CYAN
     echo ""
 
-    read -p "  Repertoire d'installation [./] : " install_path
-    install_path="${install_path:-./}"
-    install_path="${install_path%/}"
+    printf '%s' "  Repertoire d'installation [./] : "
+    read -r install_folder
+    install_folder="${install_folder:-./}"
+    install_folder="${install_folder%/}"
 
-    if ! resolve_project "$install_path"; then
+    if ! resolve_project "$install_folder"; then
         if ! clone_project "$PROJECT_DIR"; then
             wait_enter
             return 1
@@ -66,33 +67,30 @@ docker_dev_install() {
 
     echo ""
     write_color "  Verification de la configuration..." YELLOW
-    local config_valid=true
+    config_ready=true
 
-    local mongo_uri
-    mongo_uri=$(extract_env_val "BACKEND/.env" "MONGO_URI" "")
-    if [[ -z "$mongo_uri" ]]; then
+    mongo_address=$(extract_env_val "BACKEND/.env" "MONGO_URI" "")
+    if [ -z "$mongo_address" ]; then
         write_color "  [✗] MONGO_URI manquant dans BACKEND/.env" RED
-        config_valid=false
+        config_ready=false
     else
         write_color "  [✓] MONGO_URI configure" GREEN
     fi
 
-    local back_port
-    back_port=$(extract_env_val "BACKEND/.env" "PORT" "")
-    if [[ -n "$back_port" ]]; then
-        write_color "  [✓] PORT backend : $back_port" GREEN
+    backend_port=$(extract_env_val "BACKEND/.env" "PORT" "")
+    if [ -n "$backend_port" ]; then
+        write_color "  [✓] PORT backend : $backend_port" GREEN
     fi
 
-    local back_api
-    back_api=$(extract_env_val "FRONTENDV2/.env" "REACT_APP_BACKEND_API_URL" "")
-    if [[ -z "$back_api" ]]; then
+    backend_api=$(extract_env_val "FRONTENDV2/.env" "REACT_APP_BACKEND_API_URL" "")
+    if [ -z "$backend_api" ]; then
         write_color "  [✗] REACT_APP_BACKEND_API_URL manquant" RED
-        config_valid=false
+        config_ready=false
     else
-        write_color "  [✓] Frontend → Backend : $back_api" GREEN
+        write_color "  [✓] Frontend → Backend : $backend_api" GREEN
     fi
 
-    if [[ "$config_valid" == false ]]; then
+    if [ "$config_ready" = "false" ]; then
         write_color "  [!] Configuration incomplete — corrigez les .env" RED
         wait_enter
         return 1

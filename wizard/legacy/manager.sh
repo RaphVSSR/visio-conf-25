@@ -1,28 +1,28 @@
-#!/bin/bash
+#!/bin/sh
 
 legacy_manager() {
     legacy_select_os
-    [[ -z "$WIZARD_OS" ]] && return
+    [ -z "$WIZARD_OS" ] && return
 
     legacy_select_env
-    local selected_env="$MENU_ENV_RESULT"
-    [[ -z "$selected_env" ]] && return
+    selected_environment="$MENU_ENV_RESULT"
+    [ -z "$selected_environment" ] && return
 
-    if [[ "$selected_env" == "dev" ]]; then
-        source "$WIZARD_DIR/legacy/dev/install.sh"
-        source "$WIZARD_DIR/legacy/dev/ssl.sh"
-        source "$WIZARD_DIR/legacy/dev/launch.sh"
-        source "$WIZARD_DIR/legacy/dev/reload.sh"
-        source "$WIZARD_DIR/legacy/dev/stop.sh"
-        source "$WIZARD_DIR/legacy/dev/status.sh"
+    if [ "$selected_environment" = "dev" ]; then
+        . "$WIZARD_DIR/legacy/dev/install.sh"
+        . "$WIZARD_DIR/legacy/dev/ssl.sh"
+        . "$WIZARD_DIR/legacy/dev/launch.sh"
+        . "$WIZARD_DIR/legacy/dev/reload.sh"
+        . "$WIZARD_DIR/legacy/dev/stop.sh"
+        . "$WIZARD_DIR/legacy/dev/status.sh"
         legacy_dev_menu
-    elif [[ "$selected_env" == "prod" ]]; then
-        source "$WIZARD_DIR/legacy/prod/install.sh"
-        source "$WIZARD_DIR/legacy/prod/launch.sh"
-        source "$WIZARD_DIR/legacy/prod/reload.sh"
-        source "$WIZARD_DIR/legacy/prod/stop.sh"
-        source "$WIZARD_DIR/legacy/prod/status.sh"
-        source "$WIZARD_DIR/legacy/prod/ssl.sh"
+    elif [ "$selected_environment" = "prod" ]; then
+        . "$WIZARD_DIR/legacy/prod/install.sh"
+        . "$WIZARD_DIR/legacy/prod/launch.sh"
+        . "$WIZARD_DIR/legacy/prod/reload.sh"
+        . "$WIZARD_DIR/legacy/prod/stop.sh"
+        . "$WIZARD_DIR/legacy/prod/status.sh"
+        . "$WIZARD_DIR/legacy/prod/ssl.sh"
         legacy_prod_menu
     fi
 }
@@ -33,12 +33,16 @@ legacy_select_os() {
     write_color "  Sélectionnez votre plateforme :" WHITE
     echo ""
 
-    arrow_menu --style lines \
+    pick_menu --style lines \
         --colors "CYAN,CYAN,CYAN,RED" \
         "Linux" "Windows" "macOS" "Back"
 
-    local platforms=("linux" "windows" "macos" "")
-    WIZARD_OS="${platforms[$MENU_RESULT]}"
+    case $MENU_RESULT in
+        0) WIZARD_OS="linux" ;;
+        1) WIZARD_OS="windows" ;;
+        2) WIZARD_OS="macos" ;;
+        *) WIZARD_OS="" ;;
+    esac
 }
 
 legacy_select_env() {
@@ -47,21 +51,24 @@ legacy_select_env() {
     write_color "  Sélectionnez votre environnement :" WHITE
     echo ""
 
-    arrow_menu --style lines \
+    pick_menu --style lines \
         --colors "GREEN,YELLOW,RED" \
         "Development" "Production" "Back"
 
-    local envs=("dev" "prod" "")
-    MENU_ENV_RESULT="${envs[$MENU_RESULT]}"
+    case $MENU_RESULT in
+        0) MENU_ENV_RESULT="dev" ;;
+        1) MENU_ENV_RESULT="prod" ;;
+        *) MENU_ENV_RESULT="" ;;
+    esac
 }
 
 legacy_dev_menu() {
     while true; do
-        cd "$SCRIPT_DIR"
+        cd "$SCRIPT_DIR" || return
         clear
         show_submenu_header "Legacy Manager — Dev"
 
-        arrow_menu --style lines \
+        pick_menu --style lines \
             --colors "GREEN,GREEN,YELLOW,RED,CYAN,RED" \
             "Installation" "Launch" "Reload" "Stop" "Status" "Back"
 
@@ -78,11 +85,11 @@ legacy_dev_menu() {
 
 legacy_prod_menu() {
     while true; do
-        cd "$SCRIPT_DIR"
+        cd "$SCRIPT_DIR" || return
         clear
         show_submenu_header "Legacy Manager — Prod"
 
-        arrow_menu --style lines \
+        pick_menu --style lines \
             --colors "GREEN,GREEN,YELLOW,RED,CYAN,RED" \
             "Installation" "Launch" "Reload" "Stop" "Status" "Back"
 

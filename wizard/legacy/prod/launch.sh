@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 legacy_prod_launch() {
     clear
@@ -15,7 +15,7 @@ legacy_prod_launch() {
         return
     fi
 
-    if [[ ! -f "BACKEND/.env" ]] || [[ ! -f "FRONTENDV2/.env" ]]; then
+    if [ ! -f "BACKEND/.env" ] || [ ! -f "FRONTENDV2/.env" ]; then
         write_color "  [✗] Fichiers .env manquants. Lancez d'abord Installation." YELLOW
         wait_enter
         return
@@ -31,35 +31,32 @@ legacy_prod_launch() {
 }
 
 _prod_start_services() {
-    local proj_dir
-    proj_dir="$(cd "${PROJECT_DIR:-.}" && pwd)"
-    [[ "$WIZARD_OS" == "windows" ]] && proj_dir="$(cygpath -m "$proj_dir")"
+    project_folder="$(cd "${PROJECT_DIR:-.}" && pwd)"
+    [ "$WIZARD_OS" = "windows" ] && project_folder="$(cygpath -m "$project_folder")"
 
-    pm2 start "$proj_dir/BACKEND/dist/index.js" --name visioconf-backend --cwd "$proj_dir/BACKEND" 2>&1
+    pm2 start "$project_folder/BACKEND/dist/index.js" --name visioconf-backend --cwd "$project_folder/BACKEND" 2>&1
     write_color "  [✓] pm2: visioconf-backend démarré" GREEN
 
-    local nginx_result=0
+    nginx_result=0
     case "$WIZARD_OS" in
         linux)
             sudo systemctl start nginx 2>&1 || nginx_result=1
             ;;
         windows)
-            local nginx_dir
-            nginx_dir=$(_win_nginx_dir)
-            if [[ -z "$nginx_dir" ]]; then
+            nginx_folder=$(_win_nginx_dir)
+            if [ -z "$nginx_folder" ]; then
                 write_color "  [✗] nginx introuvable" RED
                 return 1
             fi
-            (cd "$nginx_dir" && "./nginx.exe" < /dev/null > /dev/null 2>&1 &)
+            (cd "$nginx_folder" && "./nginx.exe" < /dev/null > /dev/null 2>&1 &)
             ;;
         macos)
             brew services start nginx 2>&1 || nginx_result=1
             ;;
     esac
-    if [[ "$nginx_result" -eq 0 ]]; then
+    if [ "$nginx_result" -eq 0 ]; then
         write_color "  [✓] nginx démarré" GREEN
     else
         write_color "  [✗] Échec démarrage nginx" RED
     fi
 }
-

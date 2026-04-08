@@ -1,0 +1,6 @@
+#!/bin/sh
+echo "$@" >> "${MOCK_LOG:-/tmp}/winget.log"
+case "$1" in
+    --version|-v|version) echo "winget mock 0.0.0" ;;
+esac
+exit 0

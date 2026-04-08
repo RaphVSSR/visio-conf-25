@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 legacy_dev_status() {
     clear

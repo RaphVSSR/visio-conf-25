@@ -1,17 +1,17 @@
-#!/bin/bash
+#!/bin/sh
 
 wait_enter() {
-    read -p "  Appuyez sur Entrée..." _discard
+    printf '%s' "  Appuyez sur Entrée..."
+    read -r ignored
 }
 
 check_dep() {
-    local name="$1"
-    local version_flag="${2:---version}"
+    name="$1"
+    version_flag="${2:---version}"
 
     if command -v "$name" > /dev/null 2>&1; then
-        local version
-        version=$("$name" $version_flag 2>&1 | head -1)
-        write_color "  [✓] $name — $version" GREEN
+        version_text=$("$name" $version_flag 2>&1 | head -1)
+        write_color "  [✓] $name — $version_text" GREEN
         return 0
     else
         write_color "  [✗] $name introuvable" RED
@@ -20,101 +20,81 @@ check_dep() {
 }
 
 verify_clone() {
-    local flow="$1"
-    local failed=false
-
+    flow="$1"
+    failure_flag=0
     write_color "  Vérification de la structure..." YELLOW
-
-    local base_checks=(
-        ".git:Dépôt Git"
-        "BACKEND:Dossier Backend"
-        "FRONTENDV2:Dossier Frontend"
-        "BACKEND/package.json:Manifeste Backend"
-        "FRONTENDV2/package.json:Manifeste Frontend"
-    )
-
-    for entry in "${base_checks[@]}"; do
-        local path="${entry%%:*}"
-        local label="${entry#*:}"
-        if [[ -e "$path" ]]; then
-            write_color "  [✓] $label" GREEN
-        else
-            write_color "  [✗] Manquant : $path" RED
-            failed=true
-        fi
-    done
-
-    local flow_checks=()
-    if [[ "$flow" == "docker" ]]; then
-        flow_checks=(
-            "compose.yaml:Fichier Compose"
-            "BACKEND/Dockerfile:Dockerfile Backend"
-            "FRONTENDV2/Dockerfile:Dockerfile Frontend"
-        )
-    elif [[ "$flow" == "legacy" ]]; then
-        flow_checks=(
-            "BACKEND/src/index.ts:Entrée Backend"
-            "FRONTENDV2/src/index.tsx:Entrée Frontend"
-            "BACKEND/tsconfig.json:Config TS Backend"
-            "FRONTENDV2/tsconfig.json:Config TS Frontend"
-        )
+    base_checks='.git:Dépôt Git
+BACKEND:Dossier Backend
+FRONTENDV2:Dossier Frontend
+BACKEND/package.json:Manifeste Backend
+FRONTENDV2/package.json:Manifeste Frontend'
+    flow_checks=""
+    if [ "$flow" = "docker" ]; then
+        flow_checks='compose.yaml:Fichier Compose
+BACKEND/Dockerfile:Dockerfile Backend
+FRONTENDV2/Dockerfile:Dockerfile Frontend'
+    elif [ "$flow" = "legacy" ]; then
+        flow_checks='BACKEND/src/index.ts:Entrée Backend
+FRONTENDV2/src/index.tsx:Entrée Frontend
+BACKEND/tsconfig.json:Config TS Backend
+FRONTENDV2/tsconfig.json:Config TS Frontend'
     fi
-
-    for entry in "${flow_checks[@]}"; do
-        local path="${entry%%:*}"
-        local label="${entry#*:}"
-        if [[ -e "$path" ]]; then
-            write_color "  [✓] $label" GREEN
+    all_checks="$base_checks${flow_checks:+
+$flow_checks}"
+    printf '%s\n' "$all_checks" | while IFS= read -r entry; do
+        [ -z "$entry" ] && continue
+        target_path="${entry%%:*}"
+        description="${entry#*:}"
+        if [ -e "$target_path" ]; then
+            write_color "  [✓] $description" GREEN
         else
-            write_color "  [✗] Manquant : $path" RED
-            failed=true
+            write_color "  [✗] Manquant : $target_path" RED
+            exit 1
         fi
-    done
-
-    if [[ "$failed" == true ]]; then
-        echo ""
+    done || failure_flag=1
+    if [ "$failure_flag" = 1 ]; then
+        printf '\n'
         write_color "  → Vérifiez que le dépôt a été cloné correctement" RED
         return 1
     fi
-
     return 0
 }
 
 locate_project() {
-    if [[ -n "$PROJECT_DIR" ]] && [[ -d "$PROJECT_DIR/BACKEND" ]]; then
+    if [ -n "$PROJECT_DIR" ] && [ -d "$PROJECT_DIR/BACKEND" ]; then
         cd "$PROJECT_DIR" 2>/dev/null && return 0
     fi
 
     write_color "  Chemin du projet non défini ou introuvable." YELLOW
-    read -p "  Chemin vers visio-conf-25 [./] : " proj_path
-    proj_path="${proj_path:-./}"
-    proj_path="${proj_path%/}"
+    printf '%s' "  Chemin vers visio-conf-25 [./] : "
+    read -r project_path
+    project_path="${project_path:-./}"
+    project_path="${project_path%/}"
 
-    if resolve_project "$proj_path" && [[ -d "$PROJECT_DIR/BACKEND" ]]; then
+    if resolve_project "$project_path" && [ -d "$PROJECT_DIR/BACKEND" ]; then
         cd "$PROJECT_DIR" && return 0
     fi
 
-    write_color "  [✗] Projet introuvable dans $proj_path" RED
+    write_color "  [✗] Projet introuvable dans $project_path" RED
     write_color "  → Lancez d'abord Installation" YELLOW
     return 1
 }
 
 _win_refresh_path() {
-    local win_path
     win_path=$(powershell.exe -Command "[Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')" 2>/dev/null | tr -d '\r')
-    if [[ -n "$win_path" ]]; then
-        local converted
+    if [ -n "$win_path" ]; then
         converted=$(echo "$win_path" | tr ';' '\n' | tr '\\' '/' | sed 's|^\([A-Za-z]\):|/\L\1|' | tr '\n' ':')
         export PATH="$PATH:$converted"
     fi
 }
 
 _win_install() {
-    local winget_id="$1" choco_name="$2"
-    if [[ -n "$winget_id" ]] && command -v winget > /dev/null 2>&1; then
+    winget_id="$1"
+    choco_name="$2"
+    if [ -n "$winget_id" ] && command -v winget > /dev/null 2>&1; then
         winget install -e --id "$winget_id" --accept-package-agreements --accept-source-agreements 2>&1 && { _win_refresh_path; return 0; }
     fi
-    if [[ -n "$choco_name" ]] && command -v choco > /dev/null 2>&1; then
+    if [ -n "$choco_name" ] && command -v choco > /dev/null 2>&1; then
         choco install "$choco_name" -y 2>&1 && { _win_refresh_path; return 0; }
     fi
     write_color "  [✗] Aucun gestionnaire de paquets disponible" RED
@@ -122,9 +102,8 @@ _win_install() {
 }
 
 _win_nginx_dir() {
-    local search_path
-    local local_appdata="${LOCALAPPDATA:-}"
-    [[ -z "$local_appdata" ]] && local_appdata=$(powershell.exe -Command 'echo $env:LOCALAPPDATA' 2>/dev/null | tr -d '\r')
+    local_appdata="${LOCALAPPDATA:-}"
+    [ -z "$local_appdata" ] && local_appdata=$(powershell.exe -Command 'echo $env:LOCALAPPDATA' 2>/dev/null | tr -d '\r')
 
     if command -v cygpath > /dev/null 2>&1; then
         local_appdata=$(cygpath -u "$local_appdata")
@@ -140,8 +119,8 @@ _win_nginx_dir() {
         "/c/ProgramData/chocolatey/lib/nginx/tools/nginx-"*/ \
         "C:/nginx" \
         "/c/nginx"; do
-        if [[ -f "${search_path}/nginx.exe" ]]; then
-            local real_path="${search_path%/}"
+        if [ -f "${search_path}/nginx.exe" ]; then
+            real_path="${search_path%/}"
             if command -v cygpath > /dev/null 2>&1; then
                 real_path=$(cygpath -u "$real_path")
             fi
@@ -153,14 +132,13 @@ _win_nginx_dir() {
 }
 
 _win_nginx_exe() {
-    local nginx_dir
-    nginx_dir=$(_win_nginx_dir) || return 1
-    echo "${nginx_dir}/nginx.exe"
+    nginx_folder=$(_win_nginx_dir) || return 1
+    echo "${nginx_folder}/nginx.exe"
 }
 
 ensure_dep() {
-    local name="$1"
-    local flag="${2:---version}"
+    name="$1"
+    flag="${2:---version}"
 
     if check_dep "$name" "$flag"; then return 0; fi
 
@@ -205,11 +183,9 @@ ensure_dep() {
 
     if check_dep "$name" "$flag"; then return 0; fi
 
-    if [[ "$name" == "nginx" && "$WIZARD_OS" == "windows" ]]; then
-        local nginx_exec
+    if [ "$name" = "nginx" ] && [ "$WIZARD_OS" = "windows" ]; then
         nginx_exec=$(_win_nginx_exe)
-        if [[ -n "$nginx_exec" && -f "$nginx_exec" ]]; then
-            local nginx_version
+        if [ -n "$nginx_exec" ] && [ -f "$nginx_exec" ]; then
             nginx_version=$("$nginx_exec" -v 2>&1 | head -1)
             write_color "  [✓] $name — $nginx_version (via $nginx_exec)" GREEN
             return 0
@@ -248,7 +224,7 @@ _mongo_start() {
         macos)   brew services start mongodb-community 2>&1 ;;
     esac
     sleep 2
-    [[ "$(_mongo_check)" == "running" ]]
+    [ "$(_mongo_check)" = "running" ]
 }
 
 _mongo_install() {
@@ -277,7 +253,6 @@ _mongo_install() {
 }
 
 _mongo_setup() {
-    local state
     state=$(_mongo_check)
 
     case "$state" in
@@ -307,23 +282,22 @@ _mongo_setup() {
 }
 
 resolve_project() {
-    local input_path="$1"
-    local real_name
+    input_path="$1"
     real_name="$(cd "$input_path" 2>/dev/null && basename "$(pwd)")"
 
-    if [[ "$real_name" == "visio-conf-25" ]]; then
+    if [ "$real_name" = "visio-conf-25" ]; then
         PROJECT_DIR="$input_path"
-    elif [[ -d "$input_path/visio-conf-25" ]]; then
+    elif [ -d "$input_path/visio-conf-25" ]; then
         PROJECT_DIR="$input_path/visio-conf-25"
     else
         PROJECT_DIR="$input_path/visio-conf-25"
         return 1
     fi
 
-    if [[ -d "$PROJECT_DIR/.git" ]]; then
+    if [ -d "$PROJECT_DIR/.git" ]; then
         write_color "  [✓] Projet détecté dans $PROJECT_DIR" GREEN
         return 0
-    elif [[ -d "$PROJECT_DIR" ]]; then
+    elif [ -d "$PROJECT_DIR" ]; then
         write_color "  [!] Dossier $PROJECT_DIR existe mais sans dépôt Git" YELLOW
         return 1
     fi
@@ -332,11 +306,11 @@ resolve_project() {
 }
 
 clone_project() {
-    local dest="$1"
+    target="$1"
 
     write_color "  Clonage du dépôt..." YELLOW
-    if git clone "$REPO_URL" "$dest" 2>&1; then
-        write_color "  [✓] Dépôt cloné dans $dest" GREEN
+    if git clone "$REPO_URL" "$target" 2>&1; then
+        write_color "  [✓] Dépôt cloné dans $target" GREEN
         return 0
     fi
 
@@ -345,50 +319,52 @@ clone_project() {
 }
 
 verify_node_deps() {
-    local proj_dir="${1:-.}"
-    local failed=false
+    project_folder="${1:-.}"
+    failure_flag=0
 
-    if [[ ! -d "$proj_dir/BACKEND/node_modules/.bin" ]] || \
-       [[ -z "$(ls "$proj_dir/BACKEND/node_modules/.bin/" 2>/dev/null)" ]]; then
+    if [ ! -d "$project_folder/BACKEND/node_modules/.bin" ] || \
+       [ -z "$(ls "$project_folder/BACKEND/node_modules/.bin/" 2>/dev/null)" ]; then
         write_color "  [✗] Dépendances backend manquantes ou corrompues" RED
         write_color "  → Lancez d'abord Installation" YELLOW
-        failed=true
+        failure_flag=1
     fi
 
-    if [[ ! -d "$proj_dir/FRONTENDV2/node_modules/.bin" ]] || \
-       [[ -z "$(ls "$proj_dir/FRONTENDV2/node_modules/.bin/" 2>/dev/null)" ]]; then
+    if [ ! -d "$project_folder/FRONTENDV2/node_modules/.bin" ] || \
+       [ -z "$(ls "$project_folder/FRONTENDV2/node_modules/.bin/" 2>/dev/null)" ]; then
         write_color "  [✗] Dépendances frontend manquantes ou corrompues" RED
         write_color "  → Lancez d'abord Installation" YELLOW
-        failed=true
+        failure_flag=1
     fi
 
-    [[ "$failed" == true ]] && return 1
+    [ "$failure_flag" = 1 ] && return 1
     return 0
 }
 
 verify_prod_build() {
-    local proj_dir="${1:-.}"
-    local failed=false
+    project_folder="${1:-.}"
+    failure_flag=0
 
-    if [[ ! -f "$proj_dir/BACKEND/dist/index.js" ]]; then
+    if [ ! -f "$project_folder/BACKEND/dist/index.js" ]; then
         write_color "  [✗] Build backend manquant (dist/index.js introuvable)" RED
         write_color "  → Lancez d'abord Installation" YELLOW
-        failed=true
+        failure_flag=1
     fi
 
-    if [[ ! -d "$proj_dir/FRONTENDV2/build" ]] || \
-       [[ ! -f "$proj_dir/FRONTENDV2/build/index.html" ]]; then
+    if [ ! -d "$project_folder/FRONTENDV2/build" ] || \
+       [ ! -f "$project_folder/FRONTENDV2/build/index.html" ]; then
         write_color "  [✗] Build frontend manquant (build/index.html introuvable)" RED
         write_color "  → Lancez d'abord Installation" YELLOW
-        failed=true
+        failure_flag=1
     fi
 
-    [[ "$failed" == true ]] && return 1
+    [ "$failure_flag" = 1 ] && return 1
     return 0
 }
 
 set_env_line() {
-    local file="$1" field="$2" value="$3"
+    file="$1"
+    field="$2"
+    value="$3"
     if grep -q "^${field}=" "$file" 2>/dev/null; then
         sed -i "s|^${field}=.*|${field}=${value}|" "$file"
     else
@@ -397,9 +373,10 @@ set_env_line() {
 }
 
 extract_env_val() {
-    local file="$1" field="$2" default="$3"
-    if [[ -f "$file" ]]; then
-        local value
+    file="$1"
+    field="$2"
+    default="$3"
+    if [ -f "$file" ]; then
         value=$(grep "^${field}=" "$file" 2>/dev/null | head -1 | cut -d= -f2-)
         echo "${value:-$default}"
     else
@@ -416,12 +393,11 @@ nginx_is_active() {
 }
 
 pm2_get_status() {
-    local proc_name="${1:-visioconf-backend}"
-    if ! pm2 describe "$proc_name" > /dev/null 2>&1; then
+    process_name="${1:-visioconf-backend}"
+    if ! pm2 describe "$process_name" > /dev/null 2>&1; then
         echo "missing"
         return
     fi
-    local json_data
     json_data=$(pm2 jlist 2>/dev/null)
     echo "$json_data" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4
 }

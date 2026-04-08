@@ -1,21 +1,23 @@
-#!/bin/bash
+#!/bin/sh
 
 prod_ssl_setup() {
-    local domain="$1"
+    domain="$1"
 
     write_color "── Configuration SSL ──" CYAN
     echo ""
 
-    if [[ -z "$domain" ]]; then
+    if [ -z "$domain" ]; then
         write_color "  [✗] Domaine requis pour le certificat SSL" RED
         return 1
     fi
 
-    local dev_cert
     dev_cert=$(extract_env_val "BACKEND/.env" "SSL_CRT_FILE" "")
-    [[ -z "$dev_cert" || ! -f "$dev_cert" ]] && [[ -f ".certs/localhost.pem" ]] && dev_cert=".certs/localhost.pem"
-    if [[ -n "$dev_cert" && -f "$dev_cert" ]]; then
-        local issuer
+    if [ -z "$dev_cert" ] || [ ! -f "$dev_cert" ]; then
+        if [ -f ".certs/localhost.pem" ]; then
+            dev_cert=".certs/localhost.pem"
+        fi
+    fi
+    if [ -n "$dev_cert" ] && [ -f "$dev_cert" ]; then
         issuer=$(openssl x509 -issuer -noout -in "$dev_cert" 2>/dev/null)
         if echo "$issuer" | grep -qi "mkcert"; then
             write_color "  [!] Certificat mkcert (dev) détecté" YELLOW
@@ -24,20 +26,20 @@ prod_ssl_setup() {
         fi
     fi
 
-    local cert_path=""
+    cert_path=""
     case "$WIZARD_OS" in
         linux|macos) cert_path="/etc/letsencrypt/live/$domain" ;;
         windows)     cert_path="C:/Certbot/live/$domain" ;;
     esac
 
-    if [[ -f "$cert_path/fullchain.pem" ]] \
+    if [ -f "$cert_path/fullchain.pem" ] \
        && openssl x509 -checkend 0 -noout -in "$cert_path/fullchain.pem" 2>/dev/null; then
         write_color "  [✓] Certificat Let's Encrypt valide pour $domain" GREEN
         _prod_ssl_apply "$cert_path/fullchain.pem" "$cert_path/privkey.pem"
         return 0
     fi
 
-    if [[ -d "$cert_path" ]]; then
+    if [ -d "$cert_path" ]; then
         write_color "  [!] Certificat expiré pour $domain — renouvellement..." YELLOW
     else
         write_color "  Aucun certificat Let's Encrypt pour $domain" YELLOW
@@ -73,7 +75,7 @@ prod_ssl_setup() {
             ;;
     esac
 
-    if [[ -f "$cert_path/fullchain.pem" ]] \
+    if [ -f "$cert_path/fullchain.pem" ] \
        && openssl x509 -checkend 0 -noout -in "$cert_path/fullchain.pem" 2>/dev/null; then
         write_color "  [✓] Certificat SSL généré pour $domain" GREEN
         _prod_ssl_apply "$cert_path/fullchain.pem" "$cert_path/privkey.pem"
@@ -85,13 +87,13 @@ prod_ssl_setup() {
 }
 
 _prod_ssl_apply() {
-    local cert_file="$1"
-    local key_file="$2"
+    cert_file="$1"
+    key_file="$2"
 
-    [[ "$WIZARD_OS" == "windows" ]] && {
+    if [ "$WIZARD_OS" = "windows" ]; then
         cert_file=$(cygpath -m "$cert_file" 2>/dev/null || echo "$cert_file")
         key_file=$(cygpath -m "$key_file" 2>/dev/null || echo "$key_file")
-    }
+    fi
 
     for env_file in BACKEND/.env FRONTENDV2/.env; do
         set_env_line "$env_file" "SSL_CRT_FILE" "$cert_file"

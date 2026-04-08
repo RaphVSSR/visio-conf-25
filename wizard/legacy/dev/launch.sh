@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 legacy_dev_launch() {
     clear
@@ -15,7 +15,7 @@ legacy_dev_launch() {
         return
     fi
 
-    if [[ ! -f "BACKEND/.env" ]] || [[ ! -f "FRONTENDV2/.env" ]]; then
+    if [ ! -f "BACKEND/.env" ] || [ ! -f "FRONTENDV2/.env" ]; then
         write_color "  [✗] Fichiers .env manquants. Lancez d'abord Installation." YELLOW
         wait_enter
         return
@@ -31,108 +31,135 @@ legacy_dev_launch() {
 }
 
 _dev_launch_terminals() {
-    local proj_dir
-    proj_dir="$(cd "${PROJECT_DIR:-.}" && pwd)"
+    project_folder="$(cd "${PROJECT_DIR:-.}" && pwd)"
 
     case "$WIZARD_OS" in
         linux)
-            local term_emulator="" term_flag="--"
+            terminal_program=""
+            terminal_flag="--"
             if command -v x-terminal-emulator > /dev/null 2>&1; then
-                term_emulator="x-terminal-emulator"
+                terminal_program="x-terminal-emulator"
             elif command -v gnome-terminal > /dev/null 2>&1; then
-                term_emulator="gnome-terminal"
+                terminal_program="gnome-terminal"
             elif command -v konsole > /dev/null 2>&1; then
-                term_emulator="konsole"; term_flag="-e"
+                terminal_program="konsole"; terminal_flag="-e"
             elif command -v xfce4-terminal > /dev/null 2>&1; then
-                term_emulator="xfce4-terminal"; term_flag="-e"
+                terminal_program="xfce4-terminal"; terminal_flag="-e"
             elif command -v xterm > /dev/null 2>&1; then
-                term_emulator="xterm"; term_flag="-e"
+                terminal_program="xterm"; terminal_flag="-e"
             fi
 
-            if [[ -z "$term_emulator" ]]; then
+            if [ -z "$terminal_program" ]; then
                 write_color "  [✗] Aucun émulateur de terminal détecté" RED
                 return 1
             fi
 
-            $term_emulator $term_flag bash -c "cd '$proj_dir/BACKEND'; npm run dev; exec bash" < /dev/null > /dev/null 2>&1 &
+            $terminal_program $terminal_flag bash -c "cd '$project_folder/BACKEND'; npm run dev; exec bash" < /dev/null > /dev/null 2>&1 &
             sleep 3
-            $term_emulator $term_flag bash -c "cd '$proj_dir/FRONTENDV2'; npm start; exec bash" < /dev/null > /dev/null 2>&1 &
+            $terminal_program $terminal_flag bash -c "cd '$project_folder/FRONTENDV2'; npm start; exec bash" < /dev/null > /dev/null 2>&1 &
             ;;
         windows)
-            local win_back win_front
-            win_back="$(cygpath -w "$proj_dir/BACKEND")"
-            win_front="$(cygpath -w "$proj_dir/FRONTENDV2")"
-            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$win_back\"; npm run dev'" < /dev/null > /dev/null 2>&1 &
+            windows_backend="$(cygpath -w "$project_folder/BACKEND")"
+            windows_frontend="$(cygpath -w "$project_folder/FRONTENDV2")"
+            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$windows_backend\"; npm run dev'" < /dev/null > /dev/null 2>&1 &
             sleep 3
-            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$win_front\"; npm start'" < /dev/null > /dev/null 2>&1 &
+            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$windows_frontend\"; npm start'" < /dev/null > /dev/null 2>&1 &
             ;;
         macos)
-            osascript -e "tell app \"Terminal\" to do script \"cd '$proj_dir/BACKEND' && npm run dev\"" < /dev/null > /dev/null 2>&1 &
+            osascript -e "tell app \"Terminal\" to do script \"cd '$project_folder/BACKEND' && npm run dev\"" < /dev/null > /dev/null 2>&1 &
             sleep 3
-            osascript -e "tell app \"Terminal\" to do script \"cd '$proj_dir/FRONTENDV2' && npm start\"" < /dev/null > /dev/null 2>&1 &
+            osascript -e "tell app \"Terminal\" to do script \"cd '$project_folder/FRONTENDV2' && npm start\"" < /dev/null > /dev/null 2>&1 &
             ;;
     esac
 }
 
+_dev_resolve_color() {
+    case "$1" in
+        RED)    printf '%s' "$RED" ;;
+        GREEN)  printf '%s' "$GREEN" ;;
+        YELLOW) printf '%s' "$YELLOW" ;;
+        BLUE)   printf '%s' "$BLUE" ;;
+        CYAN)   printf '%s' "$CYAN" ;;
+        MAGENTA) printf '%s' "$MAGENTA" ;;
+        WHITE)  printf '%s' "$WHITE" ;;
+        *)      printf '%s' "$WHITE" ;;
+    esac
+}
+
 dev_health_report() {
-    local back_port front_port proto
-    back_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
-    front_port=3000
-    proto="http"
-    local ssl_cert
-    ssl_cert=$(extract_env_val "BACKEND/.env" "SSL_CRT_FILE" "")
-    [[ -n "$ssl_cert" ]] && proto="https"
+    backend_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
+    frontend_port=3000
+    protocol="http"
+    ssl_certificate=$(extract_env_val "BACKEND/.env" "SSL_CRT_FILE" "")
+    [ -n "$ssl_certificate" ] && protocol="https"
 
     write_color "── Status (Dev) ──────────────────────────" CYAN
     echo ""
 
     write_color "  Services" WHITE
 
-    local mongo_status="✗ unreachable" mongo_color="RED"
-    local mongo_uri
-    mongo_uri=$(extract_env_val "BACKEND/.env" "MONGO_URI" "mongodb://localhost:27017/visio-conf")
+    mongo_status="✗ unreachable"
+    mongo_color="RED"
+    mongodb_uri=$(extract_env_val "BACKEND/.env" "MONGO_URI" "mongodb://localhost:27017/visio-conf")
 
-    if [[ "$mongo_uri" == *"mongodb+srv"* || "$mongo_uri" == *"mongodb.net"* ]]; then
-        mongo_status="Atlas ($mongo_uri)"; mongo_color="YELLOW"
-    else
-        local state
-        state=$(_mongo_check)
-        if [[ "$state" == "running" ]]; then
-            mongo_status="✓ local prêt"; mongo_color="GREEN"
-        elif [[ "$state" == "stopped" ]]; then
-            mongo_status="✗ service arrêté"; mongo_color="RED"
-        else
-            mongo_status="✗ non installé"; mongo_color="RED"
-        fi
-    fi
-    printf "  ├─ MongoDB     ${!mongo_color}%s${RESET}\n" "$mongo_status"
-    if [[ "$mongo_color" != "GREEN" && "$mongo_uri" != *"mongodb+srv"* ]]; then
-        write_color "  │  → Relancez Installation pour démarrer MongoDB" YELLOW
-    fi
-
-    local back_status="✗ not responding" back_color="RED" back_pid="—"
-    case "$WIZARD_OS" in
-        linux|macos) back_pid=$(lsof -ti :"$back_port" 2>/dev/null | head -1) ;;
-        windows)     back_pid=$(netstat -ano 2>/dev/null | grep ":$back_port " | awk '{print $5}' | head -1) ;;
+    case "$mongodb_uri" in
+        *mongodb+srv*|*mongodb.net*)
+            mongo_status="Atlas ($mongodb_uri)"
+            mongo_color="YELLOW"
+            ;;
+        *)
+            mongo_state=$(_mongo_check)
+            if [ "$mongo_state" = "running" ]; then
+                mongo_status="✓ local prêt"; mongo_color="GREEN"
+            elif [ "$mongo_state" = "stopped" ]; then
+                mongo_status="✗ service arrêté"; mongo_color="RED"
+            else
+                mongo_status="✗ non installé"; mongo_color="RED"
+            fi
+            ;;
     esac
-    if curl -4 -sk -o /dev/null --connect-timeout 3 "${proto}://localhost:$back_port" 2>/dev/null; then
-        back_status="✓ responding :$back_port"; back_color="GREEN"
+    mongo_color_code=$(_dev_resolve_color "$mongo_color")
+    printf "  ├─ MongoDB     %s%s%s\n" "$mongo_color_code" "$mongo_status" "$RESET"
+    case "$mongodb_uri" in
+        *mongodb+srv*) ;;
+        *)
+            if [ "$mongo_color" != "GREEN" ]; then
+                write_color "  │  → Relancez Installation pour démarrer MongoDB" YELLOW
+            fi
+            ;;
+    esac
+
+    backend_status="✗ not responding"
+    backend_color="RED"
+    backend_process="—"
+    case "$WIZARD_OS" in
+        linux|macos) backend_process=$(lsof -ti :"$backend_port" 2>/dev/null | head -1) ;;
+        windows)     backend_process=$(netstat -ano 2>/dev/null | grep ":$backend_port " | awk '{print $5}' | head -1) ;;
+    esac
+    if curl -4 -sk -o /dev/null --connect-timeout 3 "${protocol}://localhost:$backend_port" 2>/dev/null; then
+        backend_status="✓ responding :$backend_port"
+        backend_color="GREEN"
     fi
-    printf "  ├─ Backend     ${!back_color}%s${RESET}  pid: %s\n" "$back_status" "${back_pid:-—}"
-    if [[ "$back_color" == "RED" ]]; then
+    backend_color_code=$(_dev_resolve_color "$backend_color")
+    printf "  ├─ Backend     %s%s%s  pid: %s\n" "$backend_color_code" "$backend_status" "$RESET" "${backend_process:-—}"
+    if [ "$backend_color" = "RED" ]; then
         write_color "  │  → Vérifiez le terminal backend, MongoDB doit être accessible" YELLOW
     fi
 
-    local front_status="✗ not responding" front_color="RED" front_pid="—"
+    frontend_status="✗ not responding"
+    frontend_color="RED"
+    frontend_process="—"
     case "$WIZARD_OS" in
-        linux|macos) front_pid=$(lsof -ti :"$front_port" 2>/dev/null | head -1) ;;
-        windows)     front_pid=$(netstat -ano 2>/dev/null | grep ":$front_port " | awk '{print $5}' | head -1) ;;
+        linux|macos) frontend_process=$(lsof -ti :"$frontend_port" 2>/dev/null | head -1) ;;
+        windows)     frontend_process=$(netstat -ano 2>/dev/null | grep ":$frontend_port " | awk '{print $5}' | head -1) ;;
     esac
-    if curl -4 -sk -o /dev/null --connect-timeout 3 "${proto}://localhost:$front_port" 2>/dev/null; then
-        front_status="✓ responding :$front_port"; front_color="GREEN"
+    if curl -4 -sk -o /dev/null --connect-timeout 3 "${protocol}://localhost:$frontend_port" 2>/dev/null; then
+        frontend_status="✓ responding :$frontend_port"
+        frontend_color="GREEN"
     fi
-    printf "  └─ Frontend    ${!front_color}%s${RESET}  pid: %s\n" "$front_status" "${front_pid:-—}"
-    if [[ "$front_color" == "RED" ]]; then
+    frontend_color_code=$(_dev_resolve_color "$frontend_color")
+    printf "  └─ Frontend    %s%s%s  pid: %s\n" "$frontend_color_code" "$frontend_status" "$RESET" "${frontend_process:-—}"
+    if [ "$frontend_color" = "RED" ]; then
         write_color "     → Vérifiez le terminal frontend, peut prendre ~15s à compiler" YELLOW
     fi
 
@@ -140,21 +167,21 @@ dev_health_report() {
     write_color "  Environnement" WHITE
     write_color "  ├─ Mode:     development" WHITE
     write_color "  ├─ Projet:   $PROJECT_DIR" WHITE
-    local verbose_val
-    verbose_val=$(extract_env_val "BACKEND/.env" "VERBOSE" "false")
-    if [[ "$verbose_val" == "true" ]]; then
+    verbose_value=$(extract_env_val "BACKEND/.env" "VERBOSE" "false")
+    if [ "$verbose_value" = "true" ]; then
         write_color "  ├─ Verbose:  enabled" GREEN
     else
         write_color "  ├─ Verbose:  disabled" WHITE
     fi
-    local node_ver
-    node_ver=$(node --version 2>/dev/null || echo "N/A")
-    write_color "  ├─ Node:     $node_ver" WHITE
-    local env_back="✗"; [[ -f "BACKEND/.env" ]] && env_back="✓"
-    local env_front="✗"; [[ -f "FRONTENDV2/.env" ]] && env_front="✓"
-    write_color "  └─ .env:     backend $env_back  frontend $env_front" WHITE
+    node_version=$(node --version 2>/dev/null || echo "N/A")
+    write_color "  ├─ Node:     $node_version" WHITE
+    backend_env_mark="✗"
+    [ -f "BACKEND/.env" ] && backend_env_mark="✓"
+    frontend_env_mark="✗"
+    [ -f "FRONTENDV2/.env" ] && frontend_env_mark="✓"
+    write_color "  └─ .env:     backend $backend_env_mark  frontend $frontend_env_mark" WHITE
 
-    if [[ "$back_color" == "GREEN" && "$front_color" == "GREEN" ]]; then
+    if [ "$backend_color" = "GREEN" ] && [ "$frontend_color" = "GREEN" ]; then
         echo ""
         write_color "  Identifiants : dev@visioconf.com | d3vV1s10C0nf" YELLOW
     fi

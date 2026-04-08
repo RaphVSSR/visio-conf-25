@@ -2,6 +2,8 @@
 
 Assistant de configuration pour MMI-VisioConf. Script unique : `setup.sh` (Linux/macOS/Git Bash sous Windows).
 
+Le wizard est écrit en POSIX sh strict (+ `local` autorisé) et tourne nativement sous dash, ash, bash.
+
 ## Distribution
 
 ```sh
@@ -17,7 +19,7 @@ Nécessite Git Bash sous Windows. Natif sous Linux/macOS.
 
 ## Menu principal
 
-Navigation par flèches, Entrée pour sélectionner. En-tête ASCII art.
+Saisie numérotée `[1-N]` puis Entrée pour sélectionner. En-tête ASCII art.
 
 | Option | Description |
 |---|---|
@@ -33,7 +35,7 @@ setup.sh                  ← point d'entrée unique
 wizard/
   core/
     colors.sh             ← write_color, constantes ANSI
-    menu.sh               ← arrow_menu, rendu + gestion input
+    menu.sh               ← pick_menu, rendu + gestion input
     dependencies.sh       ← check_dep, installeurs, utilitaires partagés
   shared/
     generate-env.sh       ← generate_env
@@ -83,5 +85,5 @@ Tous les fichiers sourcés partagent la même session shell. Les utilitaires `co
 | Spec | Contenu |
 |---|---|
 | [pipelines.md](pipelines.md) | Flux Docker + Legacy (dev + prod) |
-| [functions.md](functions.md) | arrow_menu, generate_env, write_color, check_dep, verify_clone |
+| [functions.md](functions.md) | pick_menu, generate_env, write_color, check_dep, verify_clone |
 | [os-matrix.md](os-matrix.md) | Correspondance des commandes par OS |

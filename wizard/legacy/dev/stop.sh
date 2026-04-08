@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 legacy_dev_stop() {
     clear
@@ -29,31 +29,28 @@ legacy_dev_stop() {
 }
 
 _dev_are_services_running() {
-    local back_port front_port
-    back_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
-    front_port=3000
+    backend_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
+    frontend_port=3000
 
     case "$WIZARD_OS" in
         linux|macos)
-            lsof -i :"$back_port" > /dev/null 2>&1 || lsof -i :"$front_port" > /dev/null 2>&1
+            lsof -i :"$backend_port" > /dev/null 2>&1 || lsof -i :"$frontend_port" > /dev/null 2>&1
             ;;
         windows)
-            netstat -ano 2>/dev/null | grep "LISTENING" | grep -q ":$back_port " || netstat -ano 2>/dev/null | grep "LISTENING" | grep -q ":$front_port "
+            netstat -ano 2>/dev/null | grep "LISTENING" | grep -q ":$backend_port " || netstat -ano 2>/dev/null | grep "LISTENING" | grep -q ":$frontend_port "
             ;;
     esac
 }
 
 _dev_kill_processes() {
-    local back_port front_port
-    back_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
-    front_port=3000
+    backend_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
+    frontend_port=3000
 
     case "$WIZARD_OS" in
         linux|macos)
-            local pids
-            pids=$(lsof -ti :"$back_port" 2>/dev/null; lsof -ti :"$front_port" 2>/dev/null)
-            for proc_id in $pids; do
-                kill "$proc_id" 2>/dev/null
+            process_list=$(lsof -ti :"$backend_port" 2>/dev/null; lsof -ti :"$frontend_port" 2>/dev/null)
+            for process_identifier in $process_list; do
+                kill "$process_identifier" 2>/dev/null
             done
             ;;
         windows)
@@ -61,4 +58,3 @@ _dev_kill_processes() {
             ;;
     esac
 }
-

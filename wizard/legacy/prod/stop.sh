@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 legacy_prod_stop() {
     clear
@@ -22,21 +22,21 @@ legacy_prod_stop() {
 
     echo ""
     write_color "  Arrêter nginx aussi ? (o/N)" YELLOW
-    local answer
-    read -p "  " answer
-    if [[ "${answer,,}" == "o" || "${answer,,}" == "oui" ]]; then
+    printf '%s' "  "
+    read -r answer
+    answer_lower=$(echo "$answer" | tr 'A-Z' 'a-z')
+    if [ "$answer_lower" = "o" ] || [ "$answer_lower" = "oui" ]; then
         case "$WIZARD_OS" in
             linux)
                 sudo systemctl stop nginx 2>&1
                 ;;
             windows)
-                local nginx_dir
-                nginx_dir=$(_win_nginx_dir)
-                if [[ -z "$nginx_dir" ]]; then
+                nginx_folder=$(_win_nginx_dir)
+                if [ -z "$nginx_folder" ]; then
                     write_color "  [✗] nginx introuvable" RED
                     return 1
                 fi
-                (cd "$nginx_dir" && "./nginx.exe" -s stop 2>&1)
+                (cd "$nginx_folder" && "./nginx.exe" -s stop 2>&1)
                 ;;
             macos)
                 brew services stop nginx 2>&1
@@ -51,7 +51,7 @@ legacy_prod_stop() {
 }
 
 _prod_are_services_running() {
-    [[ "$(pm2_get_status)" == "online" ]] && return 0
+    [ "$(pm2_get_status)" = "online" ] && return 0
 
     nginx_is_active && return 0
 

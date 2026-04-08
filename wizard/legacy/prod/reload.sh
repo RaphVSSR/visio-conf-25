@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 legacy_prod_reload() {
     clear
@@ -23,13 +23,12 @@ legacy_prod_reload() {
     case "$WIZARD_OS" in
         linux) sudo nginx -s reload 2>&1 ;;
         windows)
-            local nginx_dir
-            nginx_dir=$(_win_nginx_dir)
-            if [[ -z "$nginx_dir" ]]; then
+            nginx_folder=$(_win_nginx_dir)
+            if [ -z "$nginx_folder" ]; then
                 write_color "  [✗] nginx introuvable" RED
                 return 1
             fi
-            (cd "$nginx_dir" && "./nginx.exe" -s reload 2>&1)
+            (cd "$nginx_folder" && "./nginx.exe" -s reload 2>&1)
             ;;
         macos) nginx -s reload 2>&1 ;;
     esac
