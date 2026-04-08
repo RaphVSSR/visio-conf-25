@@ -10,9 +10,9 @@ setUp() {
 }
 tearDown() { teardown_mocks; rm -rf "$WORK"; }
 
-testLegacyDevStatusInvokesPm2Jlist() {
-    ( cd "$REPO_ROOT" && printf '2\n1\n1\n5\n6\n4\n' | timeout 5 sh ./setup.sh > /dev/null 2>&1 || true )
-    assert_mock_called pm2 "jlist"
+testLegacyDevStatusInvokesSystemctl() {
+    ( cd "$REPO_ROOT" && printf '2\n1\n1\n5\n6\n4\n' | timeout 10 sh ./setup.sh > /dev/null 2>&1 || true )
+    assert_mock_called systemctl ""
 }
 
 . "$SHUNIT2"

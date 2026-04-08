@@ -5,7 +5,7 @@ export LANG=en_US.UTF-8
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WIZARD_DIR="$SCRIPT_DIR/wizard"
 REPO_URL="https://github.com/RaphVSSR/visio-conf-25.git"
-PROJECT_DIR=""
+PROJECT_DIR="${PROJECT_DIR:-}"
 
 . "$WIZARD_DIR/core/colors.sh"
 . "$WIZARD_DIR/core/menu.sh"

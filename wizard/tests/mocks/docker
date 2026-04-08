@@ -2,5 +2,12 @@
 echo "$@" >> "${MOCK_LOG:-/tmp}/docker.log"
 case "$1" in
     --version|-v|version) echo "docker mock 0.0.0" ;;
+    compose)
+        case " $* " in
+            *" ps "*" --quiet"*|*" --quiet"*" ps"*|*" ps --quiet"*) echo "fakecontainer" ;;
+            *" ps "*" --format"*) echo "fakecontainer|Up 1 minute|0.0.0.0:3220->3220/tcp" ;;
+            *" port "*) echo "0.0.0.0:3220" ;;
+        esac
+        ;;
 esac
 exit 0

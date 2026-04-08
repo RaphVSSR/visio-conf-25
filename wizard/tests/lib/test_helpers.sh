@@ -7,11 +7,29 @@ export SHUNIT2="$REPO_ROOT/wizard/tests/lib/shunit2"
 
 setup_mocks() {
     MOCK_LOG="$(mktemp -d)"
-    export MOCK_LOG
-    export PATH="$MOCK_BIN:$PATH"
+    MOCK_PATH_DIR="$(mktemp -d)"
+    export MOCK_LOG MOCK_PATH_DIR
+    for mock_file in "$MOCK_BIN"/*; do
+        [ -f "$mock_file" ] || continue
+        base_name=$(basename "$mock_file")
+        case "$base_name" in
+            _*) continue ;;
+        esac
+        cp "$mock_file" "$MOCK_PATH_DIR/$base_name"
+        chmod +x "$MOCK_PATH_DIR/$base_name" 2>/dev/null
+        case "$base_name" in
+            *.exe|*.cmd|*.bat) ;;
+            *)
+                cp "$mock_file" "$MOCK_PATH_DIR/$base_name.exe"
+                chmod +x "$MOCK_PATH_DIR/$base_name.exe" 2>/dev/null
+                ;;
+        esac
+    done
+    export PATH="$MOCK_PATH_DIR:$PATH"
 }
 teardown_mocks() {
     [ -n "$MOCK_LOG" ] && rm -rf "$MOCK_LOG"
+    [ -n "$MOCK_PATH_DIR" ] && rm -rf "$MOCK_PATH_DIR"
 }
 assert_mock_called() {
     mock_name="$1"
