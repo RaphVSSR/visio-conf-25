@@ -1,3 +1,6 @@
+# clones
+./visio-conf-25/
+
 # dependencies
 node_modules
 .pnp
@@ -47,3 +50,6 @@ yarn-error.log*
 # claude
 .claude/
 CLAUDE.md
+
+# Wizard E2E test runtime artifacts
+wizard/tests/e2e-logs/

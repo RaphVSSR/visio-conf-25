@@ -11,6 +11,12 @@ prod_ssl_setup() {
         return 1
     fi
 
+    if [ "$WIZARD_OS" = "linux" ] && [ -d /etc/nginx/sites-enabled ]; then
+        for enabled_entry in /etc/nginx/sites-enabled/*; do
+            [ -L "$enabled_entry" ] && [ -d "$enabled_entry" ] && sudo rm -f "$enabled_entry"
+        done
+    fi
+
     dev_cert=$(extract_env_val "BACKEND/.env" "SSL_CRT_FILE" "")
     if [ -z "$dev_cert" ] || [ ! -f "$dev_cert" ]; then
         if [ -f ".certs/localhost.pem" ]; then
@@ -100,10 +106,10 @@ _prod_ssl_apply() {
         set_env_line "$env_file" "SSL_KEY_FILE" "$key_file"
     done
 
-    sed -i "s|^FRONTEND_URL=http://|FRONTEND_URL=https://|" BACKEND/.env 2>/dev/null
-    sed -i "s|^FILE_STORAGE_URL=http://|FILE_STORAGE_URL=https://|" BACKEND/.env 2>/dev/null
-    sed -i "s|^PROFILE_PICTURES_URL=http://|PROFILE_PICTURES_URL=https://|" BACKEND/.env 2>/dev/null
-    sed -i "s|^REACT_APP_BACKEND_API_URL=http://|REACT_APP_BACKEND_API_URL=https://|" FRONTENDV2/.env 2>/dev/null
-    sed -i "s|^REACT_APP_BACKEND_FILE_STORAGE_URL=http://|REACT_APP_BACKEND_FILE_STORAGE_URL=https://|" FRONTENDV2/.env 2>/dev/null
-    sed -i "s|^REACT_APP_BACKEND_PROFILE_PICTURES_URL=http://|REACT_APP_BACKEND_PROFILE_PICTURES_URL=https://|" FRONTENDV2/.env 2>/dev/null
+    sed_inplace "s|^FRONTEND_URL=http://|FRONTEND_URL=https://|" BACKEND/.env 2>/dev/null
+    sed_inplace "s|^FILE_STORAGE_URL=http://|FILE_STORAGE_URL=https://|" BACKEND/.env 2>/dev/null
+    sed_inplace "s|^PROFILE_PICTURES_URL=http://|PROFILE_PICTURES_URL=https://|" BACKEND/.env 2>/dev/null
+    sed_inplace "s|^REACT_APP_BACKEND_API_URL=http://|REACT_APP_BACKEND_API_URL=https://|" FRONTENDV2/.env 2>/dev/null
+    sed_inplace "s|^REACT_APP_BACKEND_FILE_STORAGE_URL=http://|REACT_APP_BACKEND_FILE_STORAGE_URL=https://|" FRONTENDV2/.env 2>/dev/null
+    sed_inplace "s|^REACT_APP_BACKEND_PROFILE_PICTURES_URL=http://|REACT_APP_BACKEND_PROFILE_PICTURES_URL=https://|" FRONTENDV2/.env 2>/dev/null
 }

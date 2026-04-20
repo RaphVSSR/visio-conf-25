@@ -10,55 +10,78 @@ Tous les parcours utilisateur du menu principal jusqu'à l'application en foncti
 
 Sélection dev ou prod, puis : Installation, Launch, Stop, Status, Back.
 
+L'OS est détecté au boot du wizard (`setup_platform`), pas à l'entrée du Docker Manager.
+
 ### Installation
+
+Install ne démarre plus les conteneurs — elle ne fait que le build, puis propose `prompt_launch` qui enchaîne vers `docker_*_launch`. Les conteneurs sont donc toujours créés par la phase Launch (voir ci-dessous), jamais par Install.
 
 ```
 ┌────────────────────┐   ┌────────────────────┐   ┌────────────────────┐   ┌────────────────────┐
 │                    │   │                    │   │                    │   │                    │
-│  Chemin +          │──▶│  verify_clone      │──▶│  Vérif. deps      │──▶│  Générer .env      │
-│  git clone         │   │  ("docker")        │   │  docker + compose │   │  deux projets      │
-│                    │   │                    │   │                    │   │                    │
+│  clone si .git     │──▶│  verify_clone      │──▶│  ensure_dep docker │──▶│  generate_env      │
+│  absent            │   │  ("docker")        │   │  + compose version │   │  Backend + Front   │
+│                    │   │                    │   │  + docker access   │   │                    │
 └────────────────────┘   └────────────────────┘   └────────────────────┘   └─────────┬──────────┘
                                                                                      │
                                                                           ┌──────────▼─────────┐
-                                                                          │                    │
-                                                                          │  docker compose    │
-                                                                          │  up --build -d     │
-                                                                          │                    │
-                                                                          └──────────┬─────────┘
-                                                                                     │
-                                                                          ┌──────────▼─────────┐
-                                                                          │                    │
                                                                           │  Vérification      │
-                                                                          │  ports             │
-                                                                          │                    │
+                                                                          │  config .env       │
+                                                                          │  (dev: MONGO_URI   │
+                                                                          │   + REACT_APP_*)   │
+                                                                          │  (prod: MONGO_URI  │
+                                                                          │   + PORT)          │
+                                                                          └─────────┬──────────┘
+                                                                                    │
+                                                                          ┌─────────▼──────────┐
+                                                                          │  SSL setup         │
+                                                                          │  dev:  mkcert o/N  │
+                                                                          │  prod: Let's       │
+                                                                          │        Encrypt ou  │
+                                                                          │        skip        │
+                                                                          └─────────┬──────────┘
+                                                                                    │
+                                                                          ┌─────────▼──────────┐
+                                                                          │  docker compose    │
+                                                                          │  -f <file> build   │
+                                                                          │  (ne démarre pas)  │
+                                                                          └─────────┬──────────┘
+                                                                                    │
+                                                                          ┌─────────▼──────────┐
+                                                                          │  prompt_launch     │
+                                                                          │  → docker_*_launch │
+                                                                          │  si O, sinon       │
+                                                                          │  retour au menu    │
                                                                           └────────────────────┘
 ```
 
 | Étape | Action | Échec |
 |---|---|---|
-| Chemin | Demande du répertoire (défaut : ./) | — |
-| Clone | `git clone <repo>` | Abandon |
-| verify_clone | Vérification structure ("docker") | Abandon |
-| Dépendances | docker + docker compose | Abandon |
-| Générer .env | Deux projets | Abandon |
-| Build + démarrage | `docker compose up --build -d` | Abandon |
-| Vérification ports | HTTP/TCP sur les ports configurés | Avertissement |
+| Clone | `git clone <repo>` si `$PROJECT_DIR/.git` absent | Abandon |
+| verify_clone | `.git/`, `BACKEND/`, `FRONTENDV2/`, `compose.yaml` (dev) ou `compose.prod.yaml` (prod), Dockerfiles | Abandon |
+| Dépendances | `ensure_dep docker` + `docker compose version` + `ensure_docker_access` | Abandon |
+| Générer .env | `generate_env` Backend puis Frontend | — |
+| Vérif config | Champs critiques remplis | Abandon si incomplet |
+| SSL | `dev_ssl_setup` (dev) ou `_prod_ssl_detect` (prod, Let's Encrypt ou skip) | — |
+| Build | `docker compose build` uniquement (ne démarre pas les conteneurs) | Abandon |
+| Launch | `prompt_launch` enchaîne vers `docker_*_launch` si l'utilisateur répond O | — |
 
-**Dev** : `compose.yaml`, ports directs (3000, 3220, 27017)
-**Prod** : `compose.prod.yaml`, reverse proxy nginx sur 80/443
+**Dev** : `compose.yaml`, ports directs (3000, 3220, 27017).
+**Prod** : `compose.prod.yaml`, reverse proxy nginx dans le conteneur frontend (80/443). Exige également `BACKEND/Dockerfile.prod`, `FRONTENDV2/Dockerfile.prod`, `nginx/default.prod.conf` dans le clone.
 
 ### Launch
 
-Pré-vérification des conteneurs existants. `docker compose up -d`.
+Garde unique : `locate_project`. Puis `docker compose -f <compose> up -d` directement — la commande est idempotente (crée les conteneurs s'ils n'existent pas, les redémarre sinon), donc couvre autant le premier lancement après build qu'une relance après stop. Pas de pré-vérification de conteneurs existants : cette garde bloquait le premier lancement après install sur une machine vierge (bug historique corrigé).
+
+Ensuite `sleep 5` puis `docker_health_report`.
 
 ### Stop
 
-Pré-vérification des conteneurs actifs. `docker compose down`.
+`locate_project` + garde `docker_has_containers` (abandon si rien à arrêter) + `docker compose -f <compose> down`.
 
 ### Status
 
-Rapport ponctuel : état conteneurs, réponse services (MongoDB, Backend, Frontend), fichiers `.env`.
+`locate_project` + `docker_health_report` (un seul cliché, pas de boucle). Rapport : état conteneurs, ping MongoDB, réponse HTTP Backend/Frontend, fichiers `.env` présents, dernières lignes de logs backend.
 
 ---
 

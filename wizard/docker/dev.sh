@@ -27,16 +27,8 @@ docker_dev_install() {
     write_color "── Installation (Docker Dev) ──" CYAN
     echo ""
 
-    printf '%s' "  Repertoire d'installation [./] : "
-    read -r install_folder
-    install_folder="${install_folder:-./}"
-    install_folder="${install_folder%/}"
-
-    if ! resolve_project "$install_folder"; then
-        if ! clone_project "$PROJECT_DIR"; then
-            wait_enter
-            return 1
-        fi
+    if [ ! -d "$PROJECT_DIR/.git" ]; then
+        clone_project "$PROJECT_DIR" || { wait_enter; return 1; }
     fi
     cd "$PROJECT_DIR" || return 1
 
@@ -60,6 +52,11 @@ docker_dev_install() {
         return 1
     fi
     write_color "  [✓] Docker Compose detecte" GREEN
+
+    if ! ensure_docker_access; then
+        wait_enter
+        return 1
+    fi
 
     echo ""
     generate_env "BACKEND/.env.template" "BACKEND/.env" "Backend"
@@ -100,18 +97,14 @@ docker_dev_install() {
     dev_ssl_setup
 
     echo ""
-    write_color "  Construction et demarrage..." YELLOW
-    if ! docker compose -f "$DEV_COMPOSE" up --build -d 2>&1; then
-        write_color "  [✗] Echec de docker compose" RED
+    write_color "  Construction de l'image Docker..." YELLOW
+    if ! docker compose -f "$DEV_COMPOSE" build 2>&1; then
+        write_color "  [✗] Echec de docker compose build" RED
         wait_enter
         return 1
     fi
 
-    echo ""
-    write_color "  Attente du demarrage des services..." YELLOW
-    sleep 10
-    docker_health_report "$DEV_COMPOSE"
-
+    prompt_launch docker_dev_launch
     wait_enter
 }
 
@@ -121,12 +114,6 @@ docker_dev_launch() {
     echo ""
 
     if ! locate_project; then
-        wait_enter
-        return
-    fi
-
-    if ! docker_has_containers "$DEV_COMPOSE"; then
-        write_color "  Aucun conteneur trouve. Lancez d'abord Installation." YELLOW
         wait_enter
         return
     fi

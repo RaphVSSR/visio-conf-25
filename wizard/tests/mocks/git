@@ -1,6 +1,0 @@
-#!/bin/sh
-echo "$@" >> "${MOCK_LOG:-/tmp}/git.log"
-case "$1" in
-    --version|-v|version) echo "git mock 0.0.0" ;;
-esac
-exit 0

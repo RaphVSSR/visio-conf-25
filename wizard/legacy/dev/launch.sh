@@ -21,7 +21,7 @@ legacy_dev_launch() {
         return
     fi
 
-    _dev_launch_terminals
+    _dev_launch_bg
     sleep 8
 
     echo ""
@@ -30,57 +30,24 @@ legacy_dev_launch() {
     wait_enter
 }
 
-_dev_launch_terminals() {
-    project_folder="$(cd "${PROJECT_DIR:-.}" && pwd)"
+_dev_launch_bg() {
+    project_folder="$(cd "$PROJECT_DIR" && pwd)"
 
-    case "$WIZARD_OS" in
-        linux)
-            terminal_program=""
-            terminal_flag="--"
-            if command -v x-terminal-emulator > /dev/null 2>&1; then
-                terminal_program="x-terminal-emulator"
-            elif command -v gnome-terminal > /dev/null 2>&1; then
-                terminal_program="gnome-terminal"
-            elif command -v konsole > /dev/null 2>&1; then
-                terminal_program="konsole"; terminal_flag="-e"
-            elif command -v xfce4-terminal > /dev/null 2>&1; then
-                terminal_program="xfce4-terminal"; terminal_flag="-e"
-            elif command -v xterm > /dev/null 2>&1; then
-                terminal_program="xterm"; terminal_flag="-e"
-            fi
+    (cd "$project_folder/BACKEND"    && nohup npm run dev > "$WIZARD_LOG_DIR/backend.log"  2>&1 & echo $! > "$WIZARD_LOG_DIR/backend.pid")
+    sleep 3
+    (cd "$project_folder/FRONTENDV2" && nohup npm start   > "$WIZARD_LOG_DIR/frontend.log" 2>&1 & echo $! > "$WIZARD_LOG_DIR/frontend.pid")
 
-            if [ -z "$terminal_program" ]; then
-                write_color "  [✗] Aucun émulateur de terminal détecté" RED
-                return 1
-            fi
-
-            $terminal_program $terminal_flag bash -c "cd '$project_folder/BACKEND'; npm run dev; exec bash" < /dev/null > /dev/null 2>&1 &
-            sleep 3
-            $terminal_program $terminal_flag bash -c "cd '$project_folder/FRONTENDV2'; npm start; exec bash" < /dev/null > /dev/null 2>&1 &
-            ;;
-        windows)
-            windows_backend="$(cygpath -w "$project_folder/BACKEND")"
-            windows_frontend="$(cygpath -w "$project_folder/FRONTENDV2")"
-            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$windows_backend\"; npm run dev'" < /dev/null > /dev/null 2>&1 &
-            sleep 3
-            powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','cd \"$windows_frontend\"; npm start'" < /dev/null > /dev/null 2>&1 &
-            ;;
-        macos)
-            osascript -e "tell app \"Terminal\" to do script \"cd '$project_folder/BACKEND' && npm run dev\"" < /dev/null > /dev/null 2>&1 &
-            sleep 3
-            osascript -e "tell app \"Terminal\" to do script \"cd '$project_folder/FRONTENDV2' && npm start\"" < /dev/null > /dev/null 2>&1 &
-            ;;
-    esac
+    write_color "  Logs : $WIZARD_LOG_DIR/{backend,frontend}.log" CYAN
 }
 
 _dev_resolve_color() {
-    case "$1" in
+    color_name="$1"
+    case "$color_name" in
         RED)    printf '%s' "$RED" ;;
         GREEN)  printf '%s' "$GREEN" ;;
         YELLOW) printf '%s' "$YELLOW" ;;
         BLUE)   printf '%s' "$BLUE" ;;
         CYAN)   printf '%s' "$CYAN" ;;
-        MAGENTA) printf '%s' "$MAGENTA" ;;
         WHITE)  printf '%s' "$WHITE" ;;
         *)      printf '%s' "$WHITE" ;;
     esac
@@ -108,7 +75,7 @@ dev_health_report() {
             mongo_color="YELLOW"
             ;;
         *)
-            mongo_state=$(_mongo_check)
+            mongo_state=$(check_mongo)
             if [ "$mongo_state" = "running" ]; then
                 mongo_status="✓ local prêt"; mongo_color="GREEN"
             elif [ "$mongo_state" = "stopped" ]; then
@@ -133,7 +100,7 @@ dev_health_report() {
     backend_color="RED"
     backend_process="—"
     case "$WIZARD_OS" in
-        linux|macos) backend_process=$(lsof -ti :"$backend_port" 2>/dev/null | head -1) ;;
+        linux|macos) backend_process=$(find_port_pid "$backend_port") ;;
         windows)     backend_process=$(netstat -ano 2>/dev/null | grep ":$backend_port " | awk '{print $5}' | head -1) ;;
     esac
     if curl -4 -sk -o /dev/null --connect-timeout 3 "${protocol}://localhost:$backend_port" 2>/dev/null; then
@@ -150,7 +117,7 @@ dev_health_report() {
     frontend_color="RED"
     frontend_process="—"
     case "$WIZARD_OS" in
-        linux|macos) frontend_process=$(lsof -ti :"$frontend_port" 2>/dev/null | head -1) ;;
+        linux|macos) frontend_process=$(find_port_pid "$frontend_port") ;;
         windows)     frontend_process=$(netstat -ano 2>/dev/null | grep ":$frontend_port " | awk '{print $5}' | head -1) ;;
     esac
     if curl -4 -sk -o /dev/null --connect-timeout 3 "${protocol}://localhost:$frontend_port" 2>/dev/null; then
@@ -167,6 +134,7 @@ dev_health_report() {
     write_color "  Environnement" WHITE
     write_color "  ├─ Mode:     development" WHITE
     write_color "  ├─ Projet:   $PROJECT_DIR" WHITE
+    write_color "  ├─ Logs:     $WIZARD_LOG_DIR" WHITE
     verbose_value=$(extract_env_val "BACKEND/.env" "VERBOSE" "false")
     if [ "$verbose_value" = "true" ]; then
         write_color "  ├─ Verbose:  enabled" GREEN

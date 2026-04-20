@@ -45,7 +45,7 @@ prod_health_report() {
 
     mongo_status="✗ unreachable"
     mongo_color="RED"
-    mongo_state=$(_mongo_check)
+    mongo_state=$(check_mongo)
     if [ "$mongo_state" = "running" ]; then
         mongo_status="✓ local prêt"
         mongo_color="GREEN"
@@ -89,7 +89,7 @@ prod_health_report() {
 
     nginx_status="✗ inactive"
     nginx_color="RED"
-    if nginx_is_active; then
+    if check_nginx; then
         nginx_status="✓ active"
         nginx_color="GREEN"
     fi
@@ -137,12 +137,10 @@ prod_health_report() {
         alive=false
 
         if [ "$proto" = "tcp" ]; then
-            if command -v nc > /dev/null 2>&1; then
-                nc -z localhost "$port" 2>/dev/null && alive=true
-            elif command -v ncat > /dev/null 2>&1; then
-                ncat -z localhost "$port" 2>/dev/null && alive=true
-            elif command -v curl > /dev/null 2>&1; then
-                curl -s --connect-timeout 2 "telnet://localhost:$port" < /dev/null > /dev/null 2>&1 && alive=true
+            if command -v ss > /dev/null 2>&1; then
+                ss -ltn 2>/dev/null | grep -qE "[: ]$port\b" && alive=true
+            elif command -v netstat > /dev/null 2>&1; then
+                netstat -ltn 2>/dev/null | grep -qE "[: ]$port\b" && alive=true
             fi
         else
             curl -4 -sk -o /dev/null --connect-timeout 2 "${proto}://localhost:$port" 2>/dev/null && alive=true

@@ -37,14 +37,21 @@ wizard/
     colors.sh             ← write_color, constantes ANSI
     menu.sh               ← pick_menu, rendu + gestion input
     dependencies.sh       ← check_dep, installeurs, utilitaires partagés
+    guard.sh              ← guard_cmd, guard_sudo, guard_systemd, guard_port
+    os_detection.sh       ← detect_os, detect_distro, confirm_os_interactive
+    services.sh           ← ensure_services (dispatch par OS), prompt_launch
+  os/
+    linux.sh              ← install_* + start/stop/check (apt, systemd)
+    windows.sh            ← install_* via winget/choco, _win_refresh_path
+    macos.sh              ← install_* via brew
   shared/
     generate-env.sh       ← generate_env
   docker/
-    manager.sh            ← sélection dev/prod + health report
+    manager.sh            ← sous-menu dev/prod + health_report partagé
     dev.sh                ← flux Docker dev (compose.yaml)
     prod.sh               ← flux Docker prod (compose.prod.yaml)
   legacy/
-    manager.sh            ← sélection OS + environnement
+    manager.sh            ← sélection env (dev/prod)
     dev/
       install.sh          ← pipeline d'installation dev
       launch.sh           ← démarrage services dev

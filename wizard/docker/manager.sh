@@ -1,16 +1,5 @@
 #!/bin/sh
 
-docker_detect_os() {
-    if [ -z "$WIZARD_OS" ]; then
-        case "$(uname -s)" in
-            Linux*)              WIZARD_OS="linux" ;;
-            MINGW*|MSYS*|CYGWIN*) WIZARD_OS="windows" ;;
-            Darwin*)             WIZARD_OS="macos" ;;
-            *) write_color "  [✗] Systeme non reconnu" RED; return 1 ;;
-        esac
-    fi
-}
-
 docker_has_containers() {
     compose_file="${1:-compose.yaml}"
     docker compose -f "$compose_file" ps --quiet 2>/dev/null | grep -q .
@@ -128,7 +117,7 @@ docker_health_report() {
 }
 
 docker_manager() {
-    docker_detect_os
+    [ -z "$WIZARD_OS" ] && { write_color "  [✗] Plateforme non détectée" RED; return; }
 
     clear
     show_submenu_header "Docker Manager"

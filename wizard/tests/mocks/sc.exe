@@ -1,6 +1,0 @@
-#!/bin/sh
-echo "$@" >> "${MOCK_LOG:-/tmp}/sc.exe.log"
-case "$1" in
-    --version|-v|version) echo "sc.exe mock 0.0.0" ;;
-esac
-exit 0

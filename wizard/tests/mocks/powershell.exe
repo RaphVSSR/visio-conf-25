@@ -1,6 +1,0 @@
-#!/bin/sh
-echo "$@" >> "${MOCK_LOG:-/tmp}/powershell.exe.log"
-case "$1" in
-    --version|-v|version) echo "powershell.exe mock 0.0.0" ;;
-esac
-exit 0

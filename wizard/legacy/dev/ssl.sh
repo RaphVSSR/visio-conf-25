@@ -76,13 +76,13 @@ _dev_ssl_apply() {
         set_env_line "$environment_file" "SSL_KEY_FILE" "$private_key_path"
     done
 
-    sed -i "s|^FRONTEND_URL=http://|FRONTEND_URL=https://|" BACKEND/.env
-    sed -i "s|^FILE_STORAGE_URL=http://|FILE_STORAGE_URL=https://|" BACKEND/.env
-    sed -i "s|^PROFILE_PICTURES_URL=http://|PROFILE_PICTURES_URL=https://|" BACKEND/.env
+    sed_inplace "s|^FRONTEND_URL=http://|FRONTEND_URL=https://|" BACKEND/.env
+    sed_inplace "s|^FILE_STORAGE_URL=http://|FILE_STORAGE_URL=https://|" BACKEND/.env
+    sed_inplace "s|^PROFILE_PICTURES_URL=http://|PROFILE_PICTURES_URL=https://|" BACKEND/.env
 
-    sed -i "s|^REACT_APP_BACKEND_API_URL=http://|REACT_APP_BACKEND_API_URL=https://|" FRONTENDV2/.env
-    sed -i "s|^REACT_APP_BACKEND_FILE_STORAGE_URL=http://|REACT_APP_BACKEND_FILE_STORAGE_URL=https://|" FRONTENDV2/.env
-    sed -i "s|^REACT_APP_BACKEND_PROFILE_PICTURES_URL=http://|REACT_APP_BACKEND_PROFILE_PICTURES_URL=https://|" FRONTENDV2/.env
+    sed_inplace "s|^REACT_APP_BACKEND_API_URL=http://|REACT_APP_BACKEND_API_URL=https://|" FRONTENDV2/.env
+    sed_inplace "s|^REACT_APP_BACKEND_FILE_STORAGE_URL=http://|REACT_APP_BACKEND_FILE_STORAGE_URL=https://|" FRONTENDV2/.env
+    sed_inplace "s|^REACT_APP_BACKEND_PROFILE_PICTURES_URL=http://|REACT_APP_BACKEND_PROFILE_PICTURES_URL=https://|" FRONTENDV2/.env
 
     write_color "  [✓] HTTPS configuré (backend + frontend)" GREEN
 }

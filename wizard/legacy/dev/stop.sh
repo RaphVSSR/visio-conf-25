@@ -31,30 +31,26 @@ legacy_dev_stop() {
 _dev_are_services_running() {
     backend_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
     frontend_port=3000
-
-    case "$WIZARD_OS" in
-        linux|macos)
-            lsof -i :"$backend_port" > /dev/null 2>&1 || lsof -i :"$frontend_port" > /dev/null 2>&1
-            ;;
-        windows)
-            netstat -ano 2>/dev/null | grep "LISTENING" | grep -q ":$backend_port " || netstat -ano 2>/dev/null | grep "LISTENING" | grep -q ":$frontend_port "
-            ;;
-    esac
+    is_port_listening "$backend_port" || is_port_listening "$frontend_port"
 }
 
 _dev_kill_processes() {
-    backend_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
-    frontend_port=3000
+    for svc in backend frontend; do
+        pid_file="$WIZARD_LOG_DIR/$svc.pid"
+        if [ -f "$pid_file" ]; then
+            pid="$(cat "$pid_file")"
+            [ -n "$pid" ] && kill "$pid" 2>/dev/null
+            rm -f "$pid_file"
+        fi
+    done
 
+    backend_port=$(extract_env_val "BACKEND/.env" "PORT" 3220)
     case "$WIZARD_OS" in
         linux|macos)
-            process_list=$(lsof -ti :"$backend_port" 2>/dev/null; lsof -ti :"$frontend_port" 2>/dev/null)
-            for process_identifier in $process_list; do
-                kill "$process_identifier" 2>/dev/null
+            for target_port in "$backend_port" 3000; do
+                port_pid=$(find_port_pid "$target_port")
+                [ -n "$port_pid" ] && kill "$port_pid" 2>/dev/null
             done
-            ;;
-        windows)
-            powershell.exe -Command "Get-CimInstance Win32_Process -Filter \"name='powershell.exe'\" | Where-Object { \$_.CommandLine -match 'visio-conf-25' -and \$_.CommandLine -match '-NoExit' -and \$_.ProcessId -ne \$PID } | ForEach-Object { taskkill /PID \$_.ProcessId /F /T 2>\$null }" 2>/dev/null
             ;;
     esac
 }

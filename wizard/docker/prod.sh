@@ -27,16 +27,8 @@ docker_prod_install() {
     write_color "── Installation (Docker Prod) ──" CYAN
     echo ""
 
-    printf '%s' "  Repertoire d'installation [./] : "
-    read -r install_folder
-    install_folder="${install_folder:-./}"
-    install_folder="${install_folder%/}"
-
-    if ! resolve_project "$install_folder"; then
-        if ! clone_project "$PROJECT_DIR"; then
-            wait_enter
-            return 1
-        fi
+    if [ ! -d "$PROJECT_DIR/.git" ]; then
+        clone_project "$PROJECT_DIR" || { wait_enter; return 1; }
     fi
     cd "$PROJECT_DIR" || return 1
 
@@ -47,7 +39,6 @@ docker_prod_install() {
     fi
 
     echo ""
-    write_color "  Verification des dependances..." YELLOW
     if ! ensure_dep "docker"; then
         wait_enter
         return 1
@@ -60,6 +51,11 @@ docker_prod_install() {
         return 1
     fi
     write_color "  [✓] Docker Compose detecte" GREEN
+
+    if ! ensure_docker_access; then
+        wait_enter
+        return 1
+    fi
 
     echo ""
     generate_env "BACKEND/.env.template" "BACKEND/.env" "Backend" \
@@ -96,18 +92,14 @@ docker_prod_install() {
     _prod_ssl_detect
 
     echo ""
-    write_color "  Construction et demarrage..." YELLOW
-    if ! docker compose -f "$PROD_COMPOSE" up --build -d 2>&1; then
-        write_color "  [✗] Echec de docker compose" RED
+    write_color "  Construction de l'image Docker..." YELLOW
+    if ! docker compose -f "$PROD_COMPOSE" build 2>&1; then
+        write_color "  [✗] Echec de docker compose build" RED
         wait_enter
         return 1
     fi
 
-    echo ""
-    write_color "  Attente du demarrage des services..." YELLOW
-    sleep 10
-    docker_health_report "$PROD_COMPOSE"
-
+    prompt_launch docker_prod_launch
     wait_enter
 }
 
@@ -117,12 +109,6 @@ docker_prod_launch() {
     echo ""
 
     if ! locate_project; then
-        wait_enter
-        return
-    fi
-
-    if ! docker_has_containers "$PROD_COMPOSE"; then
-        write_color "  Aucun conteneur trouve. Lancez d'abord Installation." YELLOW
         wait_enter
         return
     fi

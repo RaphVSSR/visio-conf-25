@@ -5,18 +5,11 @@ legacy_prod_install() {
     write_color "── Installation (Prod) ──" CYAN
     echo ""
 
-    printf '%s' "  Répertoire d'installation [./] : "
-    read -r install_path
-    install_path="${install_path:-./}"
-    install_path="${install_path%/}"
-
-    if ! resolve_project "$install_path"; then
-        if ! clone_project "$PROJECT_DIR"; then
-            wait_enter
-            return 1
-        fi
+    if [ ! -d "$PROJECT_DIR/.git" ]; then
+        clone_project "$PROJECT_DIR" || { wait_enter; return 1; }
     fi
     cd "$PROJECT_DIR" || return 1
+    pull_project
 
     echo ""
     if ! verify_clone "legacy"; then
@@ -25,25 +18,14 @@ legacy_prod_install() {
     fi
 
     echo ""
-    write_color "  Vérification des dépendances..." YELLOW
-
-    if ! ensure_dep "node"; then
+    if ! ensure_services prod; then
         wait_enter
         return 1
     fi
 
+    echo ""
     write_color "  Vérification de MongoDB (local requis en prod)..." YELLOW
-    if ! _mongo_setup; then
-        wait_enter
-        return 1
-    fi
-
-    if ! ensure_dep "pm2"; then
-        wait_enter
-        return 1
-    fi
-
-    if ! ensure_dep "nginx" "-v"; then
+    if ! setup_mongo; then
         wait_enter
         return 1
     fi
@@ -117,13 +99,8 @@ legacy_prod_install() {
     fi
 
     echo ""
-    write_color "  Build backend..." YELLOW
-    if ! (cd BACKEND && npm run build); then
-        write_color "  [✗] Échec build backend" RED
-        wait_enter
-        return 1
-    fi
-    write_color "  [✓] Backend build OK" GREEN
+    [ -e BACKEND/src/models/core ] || ln -s Core BACKEND/src/models/core
+    write_color "  [✓] Backend prêt (tsx runtime)" GREEN
 
     write_color "  Build frontend..." YELLOW
     if ! (cd FRONTENDV2 && npm run build); then
@@ -151,15 +128,7 @@ legacy_prod_install() {
         macos)   pm2 startup launchd 2>&1 ;;
     esac
 
-    echo ""
-    write_color "  Démarrage pm2 + nginx..." YELLOW
-    _prod_start_services || write_color "  [!] Certains services n'ont pas démarré" YELLOW
-    pm2 save 2>&1
-    sleep 5
-
-    echo ""
-    prod_health_report
-
+    prompt_launch legacy_prod_launch
     wait_enter
 }
 
@@ -169,52 +138,65 @@ prod_nginx_generate() {
     project_folder="$(cd "${PROJECT_DIR:-.}" && pwd)"
     [ "$WIZARD_OS" = "windows" ] && project_folder="$(cygpath -m "$project_folder")"
 
+    if [ "$WIZARD_OS" = "linux" ] && [ -d /etc/nginx/sites-enabled ]; then
+        for enabled_entry in /etc/nginx/sites-enabled/*; do
+            [ -L "$enabled_entry" ] && [ -d "$enabled_entry" ] && sudo rm -f "$enabled_entry"
+        done
+    fi
+
+    if [ -z "$domain" ]; then
+        conf_name="default"
+        server_name_directive="server_name _;"
+        listen_block="    listen 80 default_server;\n    listen [::]:80 default_server;"
+        ssl_block=""
+    else
+        conf_name="$domain"
+        server_name_directive="server_name $domain;"
+        cert_path=""
+        case "$WIZARD_OS" in
+            linux|macos) cert_path="/etc/letsencrypt/live/$domain" ;;
+            windows)     cert_path="C:/Certbot/live/$domain" ;;
+        esac
+
+        ssl_block=""
+        listen_block="    listen 80;\n    listen [::]:80;"
+        if [ -d "$cert_path" ]; then
+            listen_block="    listen 443 ssl;\n    listen [::]:443 ssl;"
+            ssl_block="    ssl_certificate $cert_path/fullchain.pem;\n    ssl_certificate_key $cert_path/privkey.pem;\n"
+        fi
+    fi
+
     nginx_conf=""
     case "$WIZARD_OS" in
         linux)
             if [ -d "/etc/nginx/sites-available" ]; then
-                nginx_conf="/etc/nginx/sites-available/$domain"
-            elif [ -d "/etc/nginx/conf.d" ]; then
-                nginx_conf="/etc/nginx/conf.d/$domain.conf"
+                nginx_conf="/etc/nginx/sites-available/$conf_name"
             else
-                nginx_conf="/etc/nginx/conf.d/$domain.conf"
+                nginx_conf="/etc/nginx/conf.d/$conf_name.conf"
                 sudo mkdir -p /etc/nginx/conf.d 2>/dev/null
             fi
             ;;
         windows)
             nginx_folder=$(_win_nginx_dir)
-            nginx_conf="${nginx_folder}/conf/servers/${domain}.conf"
+            nginx_conf="${nginx_folder}/conf/servers/${conf_name}.conf"
             ;;
         macos)
             if [ -d "/opt/homebrew/etc/nginx" ]; then
-                nginx_conf="/opt/homebrew/etc/nginx/servers/$domain.conf"
+                nginx_conf="/opt/homebrew/etc/nginx/servers/$conf_name.conf"
             else
-                nginx_conf="/usr/local/etc/nginx/servers/$domain.conf"
+                nginx_conf="/usr/local/etc/nginx/servers/$conf_name.conf"
             fi
             ;;
     esac
 
-    cert_path=""
-    case "$WIZARD_OS" in
-        linux|macos) cert_path="/etc/letsencrypt/live/$domain" ;;
-        windows)     cert_path="C:/Certbot/live/$domain" ;;
-    esac
-
-    ssl_block=""
-    listen_block="    listen 80;\n    listen [::]:80;"
-
-    if [ -d "$cert_path" ]; then
-        listen_block="    listen 443 ssl;\n    listen [::]:443 ssl;"
-        ssl_block="    ssl_certificate $cert_path/fullchain.pem;\n    ssl_certificate_key $cert_path/privkey.pem;\n"
-    fi
-
-    config_content="server {\n${listen_block}\n    server_name $domain;\n\n${ssl_block}\n    location / {\n        root $project_folder/FRONTENDV2/build;\n        index index.html;\n        try_files \$uri \$uri/ /index.html;\n    }\n\n    location /api {\n        proxy_pass http://localhost:$back_port;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade \$http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host \$host;\n        proxy_set_header X-Real-IP \$remote_addr;\n    }\n\n    location /socket.io {\n        proxy_pass http://localhost:$back_port;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade \$http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host \$host;\n    }\n}\n"
+    config_content="server {\n${listen_block}\n    ${server_name_directive}\n\n${ssl_block}\n    location / {\n        root $project_folder/FRONTENDV2/build;\n        index index.html;\n        try_files \$uri \$uri/ /index.html;\n    }\n\n    location /api {\n        proxy_pass http://localhost:$back_port;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade \$http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host \$host;\n        proxy_set_header X-Real-IP \$remote_addr;\n    }\n\n    location /socket.io {\n        proxy_pass http://localhost:$back_port;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade \$http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host \$host;\n    }\n}\n"
 
     if [ "$WIZARD_OS" = "linux" ]; then
         printf '%b\n' "$config_content" | sudo tee "$nginx_conf" > /dev/null
         case "$nginx_conf" in
             *sites-available*)
-                sudo ln -sf "$nginx_conf" "/etc/nginx/sites-enabled/$domain" 2>/dev/null
+                sudo rm -f /etc/nginx/sites-enabled/default 2>/dev/null
+                sudo ln -sf "$nginx_conf" "/etc/nginx/sites-enabled/$conf_name" 2>/dev/null
                 ;;
         esac
         sudo nginx -t 2>&1
@@ -225,7 +207,7 @@ prod_nginx_generate() {
         printf '%b\n' "$config_content" > "$nginx_conf" 2>/dev/null
         main_conf="${nginx_folder}/conf/nginx.conf"
         if ! grep -q 'include servers/' "$main_conf" 2>/dev/null; then
-            sed -i '/http\s*{/a\    include servers/*.conf;' "$main_conf" 2>/dev/null
+            sed_inplace '/http[[:space:]]*{/a\    include servers/*.conf;' "$main_conf" 2>/dev/null
         fi
         "$(_win_nginx_exe)" -p "$nginx_folder" -t 2>&1
         nginx_result=$?

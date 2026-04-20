@@ -1,6 +1,0 @@
-#!/bin/sh
-echo "$@" >> "${MOCK_LOG:-/tmp}/openssl.log"
-case "$1" in
-    --version|-v|version) echo "openssl mock 0.0.0" ;;
-esac
-exit 0

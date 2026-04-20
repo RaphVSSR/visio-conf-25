@@ -26,23 +26,9 @@ legacy_prod_stop() {
     read -r answer
     answer_lower=$(echo "$answer" | tr 'A-Z' 'a-z')
     if [ "$answer_lower" = "o" ] || [ "$answer_lower" = "oui" ]; then
-        case "$WIZARD_OS" in
-            linux)
-                sudo systemctl stop nginx 2>&1
-                ;;
-            windows)
-                nginx_folder=$(_win_nginx_dir)
-                if [ -z "$nginx_folder" ]; then
-                    write_color "  [✗] nginx introuvable" RED
-                    return 1
-                fi
-                (cd "$nginx_folder" && "./nginx.exe" -s stop 2>&1)
-                ;;
-            macos)
-                brew services stop nginx 2>&1
-                ;;
-        esac
-        write_color "  [✓] nginx arrêté" GREEN
+        if stop_nginx; then
+            write_color "  [✓] nginx arrêté" GREEN
+        fi
     else
         write_color "  → nginx laissé en fonctionnement" CYAN
     fi
@@ -53,7 +39,7 @@ legacy_prod_stop() {
 _prod_are_services_running() {
     [ "$(pm2_get_status)" = "online" ] && return 0
 
-    nginx_is_active && return 0
+    check_nginx && return 0
 
     return 1
 }

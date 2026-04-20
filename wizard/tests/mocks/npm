@@ -1,8 +1,0 @@
-#!/bin/sh
-name=$(basename "$0")
-name=${name%.exe}
-echo "$@" >> "${MOCK_LOG:-/tmp}/$name.log"
-case "$1" in
-    --version|-v|-version|version) echo "$name mock 0.0.0" ;;
-esac
-exit 0

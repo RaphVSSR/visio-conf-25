@@ -5,18 +5,11 @@ legacy_dev_install() {
     write_color "── Installation (Dev) ──" CYAN
     echo ""
 
-    printf '%s' "  Répertoire d'installation [./] : "
-    read -r install_path
-    install_path="${install_path:-./}"
-    install_path="${install_path%/}"
-
-    if ! resolve_project "$install_path"; then
-        if ! clone_project "$PROJECT_DIR"; then
-            wait_enter
-            return 1
-        fi
+    if [ ! -d "$PROJECT_DIR/.git" ]; then
+        clone_project "$PROJECT_DIR" || { wait_enter; return 1; }
     fi
     cd "$PROJECT_DIR" || return 1
+    pull_project
 
     echo ""
     if ! verify_clone "legacy"; then
@@ -25,8 +18,7 @@ legacy_dev_install() {
     fi
 
     echo ""
-    write_color "  Vérification des dépendances..." YELLOW
-    if ! ensure_dep "node"; then
+    if ! ensure_services dev; then
         wait_enter
         return 1
     fi
@@ -35,13 +27,13 @@ legacy_dev_install() {
     write_color "  Vérification de MongoDB..." YELLOW
     mongo_mode="none"
     mongo_uri_override=""
-    mongo_state=$(_mongo_check)
+    mongo_state=$(check_mongo)
 
     if [ "$mongo_state" = "running" ]; then
         write_color "  [✓] MongoDB local prêt" GREEN
         mongo_mode="local"
     elif [ "$mongo_state" = "stopped" ]; then
-        if _mongo_setup; then
+        if setup_mongo; then
             mongo_mode="local"
         else
             wait_enter
@@ -60,7 +52,7 @@ legacy_dev_install() {
 
         case $MENU_RESULT in
             0)
-                if ! _mongo_setup; then
+                if ! setup_mongo; then
                     wait_enter
                     return 1
                 fi
@@ -165,13 +157,6 @@ legacy_dev_install() {
     echo ""
     dev_ssl_setup
 
-    echo ""
-    write_color "  Lancement des services..." YELLOW
-    _dev_launch_terminals
-    sleep 10
-
-    echo ""
-    dev_health_report
-
+    prompt_launch legacy_dev_launch
     wait_enter
 }

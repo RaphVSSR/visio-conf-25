@@ -1,8 +1,7 @@
 #!/bin/sh
 
 legacy_manager() {
-    legacy_select_os
-    [ -z "$WIZARD_OS" ] && return
+    [ -z "$WIZARD_OS" ] && { write_color "  [✗] Plateforme non détectée" RED; return; }
 
     legacy_select_env
     selected_environment="$MENU_ENV_RESULT"
@@ -25,24 +24,6 @@ legacy_manager() {
         . "$WIZARD_DIR/legacy/prod/ssl.sh"
         legacy_prod_menu
     fi
-}
-
-legacy_select_os() {
-    clear
-    show_submenu_header "Legacy Manager"
-    write_color "  Sélectionnez votre plateforme :" WHITE
-    echo ""
-
-    pick_menu --style lines \
-        --colors "CYAN,CYAN,CYAN,RED" \
-        "Linux" "Windows" "macOS" "Back"
-
-    case $MENU_RESULT in
-        0) WIZARD_OS="linux" ;;
-        1) WIZARD_OS="windows" ;;
-        2) WIZARD_OS="macos" ;;
-        *) WIZARD_OS="" ;;
-    esac
 }
 
 legacy_select_env() {
