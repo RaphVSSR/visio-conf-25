@@ -1,4 +1,3 @@
-
 export * from "./AdminTabPanel/AdminTabPanel";
 export * from "./AuthenticatedLayout/AuthenticatedLayout";
 export * from "./Dashboard/Dashboard";
@@ -6,6 +5,5 @@ export * from "./LoginForm/LoginForm";
 export * from "./NavigationSidebar/NavigationSidebar";
 export * from "./SignupForm/SignupForm";
 export * from "./TeamsSidebar/TeamsSidebar";
-export * from "./ChannelTabs/ChannelTabs";
 export * from "./MemberSelector/MemberSelector";
 export * from "./PostResponseItem/PostResponseItem";

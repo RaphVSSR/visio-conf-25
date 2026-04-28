@@ -8,8 +8,23 @@ import { AuthToasts } from 'components/AuthToasts/AuthToasts';
 import { ToastProvider } from 'contexts/ToastContext';
 
 export const App = () => {
+  return (
+    <AuthProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<UserAuth />}>
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={<Home />} />
 
-	return (
+              <Route element={<AdminAuth />}>
+                <Route path="/admin" element={<AdminPanel />} />
+              </Route>
+            </Route>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+          </Routes>
+        </BrowserRouter>
 
 		<AuthProvider>
 			<ToastProvider>

@@ -1,8 +1,8 @@
 "use client"
 
 import React from 'react'
-import HomeAdmin from "@/components/admin/HomeAdmin"
 import { useAppContext } from "@/context/AppContext"
+import HomeAdmin from '@/components/admin/HomeAdmin'
 
 function page() {
   const { currentUser } = useAppContext()

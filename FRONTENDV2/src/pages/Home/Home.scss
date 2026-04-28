@@ -1,4 +1,3 @@
-
 @use "../../design-system/scss/global.scss" as *;
 
 #homePage {
@@ -18,19 +17,19 @@
 		}
 	}
 
-	.sectionTitle {
-		font-size: 1.25rem;
-		margin: 0 0 10px 0;
-		color: $primary;
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		font-weight: 600;
+  .sectionTitle {
+    font-size: 1.25rem;
+    margin: 0 0 10px 0;
+    color: $primary;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
 
-		svg {
-			color: $primary;
-		}
-	}
+    svg {
+      color: $primary;
+    }
+  }
 
 	#homeContent {
 		display: flex;
@@ -92,12 +91,16 @@
 			height: 100%;
 			flex: 1;
 
-			svg {
-				color: $text-placeholder;
-				margin-bottom: 16px;
-				width: 48px;
-				height: 48px;
-			}
+    .resetButton {
+      margin-top: 16px;
+      padding: 8px 16px;
+      background-color: $bg-muted;
+      border: none;
+      border-radius: 8px;
+      color: $primary;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
 
 			h3 {
 				margin: 0 0 8px 0;
