@@ -298,10 +298,11 @@ export default class Permission extends Collection {
         try {
             
             await this.modelInstance.save();
+            //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
 
-        } catch (error: any) {
+        } catch (err: any) {
             
-            throw new TracedError("collectionSaving", error.message);
+            throw new TracedError("collectionSaving", err.message);
         }
     }
 

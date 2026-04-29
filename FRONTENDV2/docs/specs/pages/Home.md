@@ -1,31 +1,75 @@
-# Home
+# Référence de la page Home — VisioConf
 
-**Source**: `FRONTENDV2/src/pages/Home/Home.tsx`
+**Fichier source** : `FRONTENDV2/src/pages/Home/Home.tsx`
+**Styles** : `FRONTENDV2/src/pages/Home/Home.scss`
+**Type** : Composant React fonctionnel (FC) — Page
 
-Page d'accueil authentifiée affichant un message de bienvenue avec le prénom de l'utilisateur, le composant `Dashboard` et une barre latérale de contacts avec une barre de recherche. Utilise framer-motion pour les animations d'entrée.
+---
 
-## Props
+## 1. Description
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| — | — | — | Aucune prop (FC sans générique) |
+`Home` est la page d'accueil principale de l'application, affichée après authentification. Elle compose la barre de navigation, le tableau de bord (Dashboard), et la section contacts. Protégée par la garde `UserAuth`.
 
-## State
+---
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| user | `User \| null` | `{ firstname: "John" }` | Depuis `useAuth()`, utilisé pour afficher le message de bienvenue |
+## 2. Structure HTML sémantique
 
-## Méthodes
+```html
+<main id="homePage">
+    <motion.nav id="topBar">              ← Barre supérieure
+        <span id="topBarGreeting">        ← "Bonjour, {firstname}"
+        <Button id="disconnectBtn">       ← Bouton déconnexion
+    </motion.nav>
 
-| Nom | Paramètres (types) | Retour | Description |
-|-----|-------------------|--------|-------------|
-| — | — | — | Aucune méthode handler définie |
+    <Dashboard />                          ← Composant tableau de bord
 
-## Détails
+    <motion.section id="friendsSection">  ← Section contacts
+        <header id="friendsHeader">
+            <h2>Contacts</h2>
+            <SearchBar />
+        </header>
+        <section id="noFriends">          ← Placeholder "Aucun contact"
+            ...
+        </section>
+    </motion.section>
+</main>
+```
 
-- L'en-tête de bienvenue s'anime avec un fondu + glissement vers le bas (y: -10 à 0, 0.3s).
-- La barre latérale de contacts s'anime avec un fondu + glissement vers la gauche (x: 20 à 0, 0.5s, délai de 0.3s).
-- `SearchBar` reçoit `dDownNeeded="false"` pour désactiver la liste déroulante.
-- La section contacts est un placeholder statique ("Aucun contact") sans données dynamiques pour le moment.
-- Route : protégée par la garde `UserAuth`.
+---
+
+## 3. Props et state
+
+| Source | Propriété | Utilisation |
+|--------|-----------|-------------|
+| `useAuth()` | `isAuthenticated` | Redirection vers /login si false |
+| `useAuth()` | `user` | Affichage du prénom dans la barre |
+| `useAuth()` | `logout` | Action du bouton déconnexion |
+
+---
+
+## 4. Animations (framer-motion)
+
+| Élément | Animation | Delay |
+|---------|-----------|-------|
+| `nav#topBar` | Fade in + slide down (y: -12 → 0) | 0s |
+| `section#friendsSection` | Fade in + slide left (x: 20 → 0) | 0.3s |
+
+---
+
+## 5. Composants utilisés
+
+| Composant | Source | Rôle |
+|-----------|--------|------|
+| `Dashboard` | `components/` | Tableau de bord avec cards et actions rapides |
+| `Button` | `design-system/` | Bouton déconnexion avec icône LogOut |
+| `SearchBar` | `design-system/` | Barre de recherche contacts (sans dropdown) |
+
+---
+
+## 6. Relations avec autres classes
+
+| Classe | Relation | Description |
+|--------|----------|-------------|
+| `useAuth` | Home utilise useAuth() | State d'auth et action logout |
+| `Dashboard` | Home rend Dashboard | Sous-composant principal |
+| `UserAuth` | Home est protégé par UserAuth | Garde de route |

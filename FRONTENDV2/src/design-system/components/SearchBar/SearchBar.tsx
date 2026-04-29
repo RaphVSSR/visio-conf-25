@@ -32,7 +32,21 @@ export const SearchBar = <suggestingTypeFromParent,>({
     <>
       <div {...props} className="searchBar">
         <Search className="searchIcon" size={16} />
-        <input className="searchInput" type="text" placeholder={placeholder} />
+        <input
+          className="searchInput"
+          type="text"
+          placeholder={placeholder}
+          //value={searchQuery}
+          //onChange={handleSearch}
+        />
+        {/*{searchQuery && (
+					<button
+						onClick={clearSearch}
+						className="clearButton"
+					>
+						<X size={16} />
+					</button>
+				)}*/}
       </div>
       {dDownNeeded === "true" && <div className="searchSuggestions"></div>}
     </>

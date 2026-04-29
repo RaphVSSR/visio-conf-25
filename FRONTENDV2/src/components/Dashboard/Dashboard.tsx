@@ -1,17 +1,16 @@
-import { FC } from "react";
+import React, { FC, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
-  FileUp,
+  FileText,
   MessageSquare,
   PhoneCall,
-  UserPlus,
   Users,
-  Video,
   Zap,
 } from "lucide-react";
 import "./Dashboard.scss";
-import { Card } from "design-system/components";
+import { Button, Card } from "design-system/components";
+import { ContactPickerModal } from "components/call";
 
 export const Dashboard: FC = () => {
   const [stateContactToCallModal, setStateContactToCallModal] = useState(false);
@@ -27,58 +26,61 @@ export const Dashboard: FC = () => {
         <Zap size={22} /> Tableau de bord
       </h1>
       <section id="summaryCards">
-        <Card borderColor="#1E3664">
-          <div
-            className="cardIconBox"
-            style={{ backgroundColor: "rgba(30, 54, 100, 0.1)" }}
-          >
-            <MessageSquare size={20} />
-          </div>
+        <Card
+          icon="MessageSquare"
+          iconPosition="left"
+          iconSize={20}
+          borderColor="#1E3664"
+        >
           <h3>Messages non lus</h3>
-          <p className="cardValue">0</p>
+          {/*<p>{getUnreadReceivedMessagesCount()}</p>*/}
         </Card>
 
-        <Card borderColor="#F59E0B">
-          <div
-            className="cardIconBox"
-            style={{ backgroundColor: "rgba(245, 158, 11, 0.1)" }}
-          >
-            <PhoneCall size={20} />
-          </div>
+        <Card
+          icon="PhoneCall"
+          iconPosition="left"
+          iconSize={20}
+          borderColor="#F59E0B"
+        >
           <h3>Appels manqués</h3>
-          <p className="cardValue">0</p>
+          {/*<p>{getMissedCallsCount()}</p>*/}
         </Card>
 
-        <Card borderColor="#10B981">
-          <div
-            className="cardIconBox"
-            style={{ backgroundColor: "rgba(16, 185, 129, 0.1)" }}
-          >
-            <Users size={20} />
-          </div>
+        <Card
+          icon="Users"
+          iconPosition="left"
+          iconSize={20}
+          borderColor="#10B981"
+        >
           <h3>Contacts actifs</h3>
-          <p className="cardValue">0</p>
+          {/*<p>{getActiveContactsCount()}</p>*/}
         </Card>
       </section>
 
-      <nav id="dashQuickActions">
-        <button className="quickAction">
-          <MessageSquare size={16} />
-          <span>Nouvelle discussion</span>
-        </button>
-        <button className="quickAction">
-          <Video size={16} />
-          <span>Démarrer un appel</span>
-        </button>
-        <a href="/files" className="quickAction">
-          <FileUp size={16} />
-          <span>Partager un fichier</span>
-        </a>
-        <a href="/equipes" className="quickAction">
-          <UserPlus size={16} />
-          <span>Créer une équipe</span>
-        </a>
-      </nav>
+      <aside id="dashQuickActions">
+        <Button
+          text="Nouvelle Discussion"
+          icon="MessageSquare"
+          iconPosition="left"
+          iconSize={16}
+        />
+
+        <Button
+          text="Démarrer un appel"
+          icon="Video"
+          iconPosition="left"
+          iconSize={16}
+          onClick={() => setStateContactToCallModal(true)}
+        />
+        {/*<a href="/files" className="dashQuickAction">
+				<FileUp size={16} />
+				<span>Partager un fichier</span>
+			</a>
+			<a href="/equipes" className="dashQuickAction">
+				<UserPlus size={16} />
+				<span>Créer une équipe</span>
+			</a>*/}
+      </aside>
 
       <motion.section
         id="recentActivity"
@@ -91,10 +93,23 @@ export const Dashboard: FC = () => {
         </h2>
 
         <ul id="activitiesList">
+          {/*{recentActivities.length > 0 ? (
+					recentActivities.map((activity, index) =>
+						activity ? (
+							<li
+								key={index}
+								className="activityItem"
+							>
+								...
+							</li>
+						) : null
+					)
+				) : (*/}
           <li className="emptyActivities">
             <Activity size={40} />
             <p>Aucune activité récente</p>
           </li>
+          {/*)}*/}
         </ul>
       </motion.section>
 

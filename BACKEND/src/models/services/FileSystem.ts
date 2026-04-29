@@ -1,7 +1,7 @@
 import mongoose, { model, Schema, type Document, type HydratedDocument, type Model, type Types } from "mongoose";
 import crypto from "crypto"
-import Collection from "../core/Collection.ts";
-import TracedError from "../core/TracedError.ts";
+import Collection from "../Core/Collection.ts";
+import TracedError from "../Core/TracedError.ts";
 import path from "path";
 import { fileURLToPath } from 'url';
 import fs from "fs"
@@ -23,6 +23,23 @@ export type FolderType = {
     files?: FileType[],
 }
 
+/**
+ * @extends Collection
+ * 
+ * Folder est une sous classe -> elle hérite des propriétés et des méthodes de la classe Collection.
+ * Chaque dossier est une nouvelle entrée de la collection "Files".
+ *
+ * @param {FolderType} dataToConstruct - Chaque dossier créé attend des paramètres bien définies pour être valides à l'ajout dans la DB.
+ * 
+ * La classe Collection est une template que chaque "Collection like" va hériter pour n'avoir à gérer que ses propres propriétés/méthodes personnalisées.
+ * 
+ * Sur ce point la majorité des propriétés et méthodes des collections sont statiques pour travailler plus facilement avec leurs models.
+ * Néanmoins ce ne sont pas des singletons statiques puisque les informations d'instanciation sont stockées dans la propriété "modelInstance" si besoin.
+ * 
+ * Une fois que toutes les informations sont renseignées et vérifiées, on peut appeller .save() pour envoyer la collection dans la DB.
+ * 
+ * @see {@link Collection}
+ */
 export class Folder extends Collection {
 
     protected static schema = new Schema({
@@ -112,10 +129,11 @@ export class Folder extends Collection {
                 console.error(error);
             }
 
+            //if (process.env.VERBOSE) console.log("💾 Folder collection created and saved");
 
-        } catch (error: any) {
+        } catch (err: any) {
             
-            throw new TracedError("collectionSaving", error.message);
+            throw new TracedError("collectionSaving", err.message);
         }
     }
 
@@ -148,6 +166,23 @@ export type FileType = {
     deletedAt?: Date,
 }
 
+/**
+ * @extends Collection
+ * 
+ * File est une sous classe -> elle hérite des propriétés et des méthodes de la classe Collection.
+ * Chaque fichier est une nouvelle entrée de la collection "Files".
+ *
+ * @param {FileType} dataToConstruct - Chaque fichier créé attend des paramètres bien définies pour être valides à l'ajout dans la DB.
+ * 
+ * La classe Collection est une template que chaque "Collection like" va hériter pour n'avoir à gérer que ses propres propriétés/méthodes personnalisées.
+ * 
+ * Sur ce point la majorité des propriétés et méthodes des collections sont statiques pour travailler plus facilement avec leurs models.
+ * Néanmoins ce ne sont pas des singletons statiques puisque les informations d'instanciation sont stockées dans la propriété "modelInstance" si besoin.
+ * 
+ * Une fois que toutes les informations sont renseignées et vérifiées, on peut appeller .save() pour envoyer la collection dans la DB.
+ * 
+ * @see {@link Collection}
+ */
 export class File extends Collection {
 
     protected static schema = new Schema<FileType>({
@@ -224,11 +259,13 @@ export class File extends Collection {
 
     private static areVirtualsInitialized = (() => {
 
+        //Virtual for file's URL
         this.schema.virtual("url").get(function () {
 
             return "/file/" + this.id;
         })
 
+        //Virtual for file's full info
         this.schema.virtual("info").get(function ( this: HydratedDocument<FileType>): FileType {
             return {
                 id: this.id,
@@ -267,10 +304,11 @@ export class File extends Collection {
         try {
             
             await this.modelInstance.save();
+            //if (process.env.VERBOSE) console.log("💾 File collection created and saved");
 
-        } catch (error: any) {
+        } catch (err: any) {
             
-            throw new TracedError("collectionSaving", error.message);
+            throw new TracedError("collectionSaving", err.message);
         }
     }
 
@@ -288,7 +326,7 @@ export default class FileSystem {
 
 		storage: this.defStorage(),
 		limits: {
-			fileSize: 50 * 1024 * 1024,
+			fileSize: 50 * 1024 * 1024, // 50MB limit
 		},
 		fileFilter: this.defFilter(),
 	});
@@ -316,9 +354,9 @@ export default class FileSystem {
                 console.groupEnd();
             }
             
-        } catch (error: any) {
+        } catch (err: any) {
             
-            throw new TracedError("testFilesCopying", error.message);
+            throw new TracedError("testFilesCopying", err.message);
         }
 		
 	}
@@ -329,9 +367,9 @@ export default class FileSystem {
             
 			return fs.statSync(filePath).size;
 
-        } catch (error: any) {
+        } catch (err: any) {
          
-			throw new TracedError("getFileSize", error.message);
+			throw new TracedError("getFileSize", err.message);
         }			
 	}
 
@@ -344,9 +382,9 @@ export default class FileSystem {
 
 			if (process.env.VERBOSE === "true") console.log("✅ Local upload dir flushed successfully");
 
-        } catch (error: any) {
+        } catch (err: any) {
 
-            throw new Error("Error while flushing the upload directory. : " + error.message);
+            throw new Error("Error while flushing the upload directory. : " + err.message);
 
         }
     }
@@ -360,7 +398,9 @@ export default class FileSystem {
 				const userId = req.user.uuid;
 				const fileId = req.body.fileId || crypto.randomUUID();
 
-					const userDir = path.join(FileSystem.filesDir, userId);
+				//req.fileId = fileId // Store for later use
+		
+				const userDir = path.join(FileSystem.filesDir, userId);
 				const fileDir = path.join(userDir, fileId);
 		
 				integrityStatus(null, fileDir);

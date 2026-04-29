@@ -66,10 +66,11 @@ export default class TeamMember extends Collection {
         try {
             
             await this.modelInstance.save();
+            //if (process.env.VERBOSE === "true") console.log("💾 User collection created and saved");
 
-        } catch (error: any) {
+        } catch (err: any) {
             
-            throw new TracedError("collectionSaving", error.message);
+            throw new TracedError("collectionSaving", err.message);
         }
     }
 

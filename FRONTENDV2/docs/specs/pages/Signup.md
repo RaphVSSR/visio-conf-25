@@ -1,32 +1,37 @@
-# Signup
+# Référence de la page Signup — VisioConf
 
-**Source**: `FRONTENDV2/src/pages/Signup/Signup.tsx`
+**Fichier source** : `FRONTENDV2/src/pages/Signup/Signup.tsx`
+**Styles** : `FRONTENDV2/src/pages/Signup/Signup.scss`
+**Type** : Composant React fonctionnel (FC) — Page
 
-Page wrapper minimale affichant le composant `SignupForm` sur une image de fond. Toute la logique d'inscription réside dans `SignupForm`.
+---
 
-## Props
+## 1. Description
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| — | — | — | Aucune prop (FC sans générique) |
+`Signup` est la page d'inscription. Wrapper minimaliste qui affiche le composant `SignupForm` sur un fond d'image. Route publique (pas de garde).
 
-## State
+---
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| — | — | — | Aucun état local |
+## 2. Structure HTML sémantique
 
-## Méthodes
+```html
+<main id="signupPage" style="background-image: url('backgrounds/backLogin.jpg')">
+    <SignupForm />
+</main>
+```
 
-| Nom | Paramètres (types) | Retour | Description |
-|-----|-------------------|--------|-------------|
-| — | — | — | Aucune méthode |
+---
 
-## Détails
+## 3. Composants utilisés
 
-- Image de fond définie en inline : `backgrounds/backLogin.jpg`.
-- Route : `/signup`, publique (aucune garde).
+| Composant | Source | Rôle |
+|-----------|--------|------|
+| `SignupForm` | `components/` | Formulaire d'inscription complet |
 
-## Flux
+---
 
-Voir [auth-flows.md](../../flows/auth-flows.md)
+## 4. Route
+
+| Path | Garde | Description |
+|------|-------|-------------|
+| `/signup` | aucune | Page publique |
