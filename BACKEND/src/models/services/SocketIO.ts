@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import HTTPServer from "../Core/HTTPServer.ts";
+import HTTPServer from "../core/HTTPServer.ts";
 import CallSignaling from "./CallSignaling.ts";
 import User from "../User.ts";
 
