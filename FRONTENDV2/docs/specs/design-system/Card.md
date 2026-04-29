@@ -1,20 +1,82 @@
-# Card
+# Référence du composant Card — VisioConf Design System
 
-**Source**: `FRONTENDV2/src/design-system/components/Card/Card.tsx`
+**Fichier source** : `FRONTENDV2/src/design-system/components/Card/Card.tsx`
+**Styles** : `FRONTENDV2/src/design-system/components/Card/Card.scss`
+**Type** : Composant React fonctionnel (FC) — Primitif UI
 
-Conteneur carte rendu en tant que `motion.div` avec une animation de mise à l'échelle au survol (1.02). Supporte une icône optionnelle, une couleur de bordure personnalisée via la propriété CSS custom `--card-border-color`, et du contenu enfant libre. Étend toutes les props framer-motion/HTML div sauf `style`.
+---
 
-## Props
+## 1. Description
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| `children` | `ReactNode` | `<p>Content</p>` | Contenu de la carte |
-| `icon` | `keyof typeof icons` | `"MessageSquare"` | Nom de l'icône Lucide. Si fourni, `iconPosition` et `iconSize` sont requis |
-| `iconPosition` | `"left" \| "right"` | `"left"` | Placement de l'icône. Requis quand `icon` est défini |
-| `iconSize` | `number` | `20` | Taille de l'icône en pixels. Requis quand `icon` est défini |
-| `borderColor` | `string` | `"#1E3664"` | Définit la propriété CSS custom `--card-border-color`. Appliquée via style inline |
-| `...props` | `Omit<HTMLMotionProps<"div">, "style">` | `className="x"` | Toutes les props framer-motion/HTML div sauf `style` |
+`Card` est le composant carte du design system. Rendu comme un `motion.div` avec animation hover (scale 1.02). Supporte une icône optionnelle, une couleur de bordure personnalisable via CSS custom property, et du contenu enfant libre.
 
-## Détails
+---
 
-Utilise une union discriminée pour les props d'icône (même patron que Button). La prop `style` est omise du type spread car `borderColor` contrôle le style inline en interne via la propriété CSS custom.
+## 2. Props
+
+```typescript
+type CardProps = PropsWithChildren<(
+    | { icon: keyof typeof icons, iconPosition: "left" | "right", iconSize: number }
+    | { icon?: undefined, iconPosition?: undefined, iconSize?: undefined }
+) & {
+    borderColor?: string
+}> & Omit<HTMLMotionProps<"div">, "style">
+```
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `children` | `ReactNode` | oui | Contenu de la carte |
+| `icon` | `keyof typeof icons` | non | Nom de l'icône lucide-react |
+| `iconPosition` | `"left" \| "right"` | si icon | Position de l'icône |
+| `iconSize` | `number` | si icon | Taille de l'icône |
+| `borderColor` | `string` | non | Couleur CSS passée via `--card-border-color` |
+| `...props` | `Omit<HTMLMotionProps<"div">, "style">` | non | Props motion/HTML (sauf style) |
+
+---
+
+## 3. Structure HTML
+
+```html
+<motion.div
+    class="card"
+    whileHover={{ scale: 1.02 }}
+    style={{ "--card-border-color": borderColor }}
+>
+    {icon && iconPosition === "left" && <LucideIcons />}
+    {children}
+    {icon && iconPosition === "right" && <LucideIcons />}
+</motion.div>
+```
+
+---
+
+## 4. CSS Custom Property
+
+| Variable | Source | Utilisation |
+|----------|--------|-------------|
+| `--card-border-color` | `borderColor` prop | Couleur de la bordure latérale de la carte |
+
+---
+
+## 5. Relations avec autres classes
+
+| Classe | Relation | Description |
+|--------|----------|-------------|
+| `LucideIcons` | Card rend LucideIcons | Wrapper d'icône dynamique |
+| `framer-motion` | Card = motion.div | Animation hover |
+| `Dashboard` | Dashboard rend des Card | Cartes de résumé |
+
+---
+
+## 6. Exemples
+
+```tsx
+<Card icon="MessageSquare" iconPosition="left" iconSize={20} borderColor="#1E3664">
+    <h3>Messages non lus</h3>
+    <p>12</p>
+</Card>
+
+<Card>
+    <p>Carte simple sans icône</p>
+</Card>
+```

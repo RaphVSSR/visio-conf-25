@@ -1,17 +1,56 @@
-# LucideIcons
+# Référence du composant LucideIcons — VisioConf Design System
 
-**Source**: `FRONTENDV2/src/design-system/components/LucideIcons/LucideIcons.tsx`
+**Fichier source** : `FRONTENDV2/src/design-system/components/LucideIcons/LucideIcons.tsx`
+**Type** : Composant React fonctionnel (FC) — Primitif UI
 
-Wrapper type-safe pour les icônes lucide-react. Affiche dynamiquement toute icône du jeu lucide-react par nom sous forme de chaîne, avec un typage strict via `keyof typeof icons`.
+---
 
-## Props
+## 1. Description
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| `name` | `keyof typeof icons` | `"LogOut"` | Nom de l'icône Lucide (1000+ disponibles) |
-| `size` | `number` | `16` | Taille de l'icône en pixels |
-| `className` | `string` | `"btnIco"` | Classe CSS |
+`LucideIcons` est le wrapper type-safe pour les icônes lucide-react. Il permet de rendre dynamiquement n'importe quelle icône du set lucide-react par son nom (string), avec un typage strict via `keyof typeof icons`.
 
-## Détails
+---
 
-Effectue une recherche dynamique via `icons[name]` pour résoudre le composant icône, puis le rend avec `size` et les props restantes en spread.
+## 2. Props
+
+```typescript
+type LucideIconsProps = {
+    name: keyof typeof icons     // Nom de l'icône (type-safe, ~1000+ icônes)
+    size?: number                // Taille en pixels
+    className?: string           // Classe CSS
+}
+```
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `keyof typeof icons` | oui | Nom de l'icône lucide-react |
+| `size` | `number` | non | Taille en pixels |
+| `className` | `string` | non | Classe CSS additionnelle |
+
+---
+
+## 3. Fonctionnement
+
+```typescript
+const Icon = icons[name]    // Lookup dynamique dans le registre lucide-react
+return <Icon size={size} {...props} />
+```
+
+---
+
+## 4. Relations avec autres classes
+
+| Classe | Relation | Description |
+|--------|----------|-------------|
+| `Button` | Button rend LucideIcons | Icônes dans les boutons |
+| `Card` | Card rend LucideIcons | Icônes dans les cartes |
+| `lucide-react` | LucideIcons wrappe lucide-react | Bibliothèque d'icônes source |
+
+---
+
+## 5. Exemples
+
+```tsx
+<LucideIcons name="LogOut" size={16} className="btnIco" />
+<LucideIcons name="MessageSquare" size={20} />
+```

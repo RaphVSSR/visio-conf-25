@@ -1,19 +1,65 @@
-# Button
+# Référence du composant Button — VisioConf Design System
 
-**Source**: `FRONTENDV2/src/design-system/components/Button/Button.tsx`
+**Fichier source** : `FRONTENDV2/src/design-system/components/Button/Button.tsx`
+**Styles** : `FRONTENDV2/src/design-system/components/Button/Button.scss`
+**Type** : Composant React fonctionnel (FC) — Primitif UI
 
-Bouton réutilisable rendu en tant que `motion.button` (framer-motion). Supporte un label texte et une icône optionnelle positionnée à gauche ou à droite via `LucideIcons`. Étend toutes les props framer-motion/HTML button.
+---
 
-## Props
+## 1. Description
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| `text` | `string` | `"Disconnect"` | Texte du label du bouton |
-| `icon` | `keyof typeof icons` | `"LogOut"` | Nom de l'icône Lucide. Si fourni, `iconPosition` et `iconSize` sont requis |
-| `iconPosition` | `"left" \| "right"` | `"left"` | Placement de l'icône par rapport au texte. Requis quand `icon` est défini |
-| `iconSize` | `number` | `16` | Taille de l'icône en pixels. Requis quand `icon` est défini |
-| `...props` | `HTMLMotionProps<"button">` | `onClick={fn}` | Toutes les props framer-motion et HTML button |
+`Button` est le bouton réutilisable du design system. Rendu comme un `motion.button` (framer-motion), il supporte un texte, une icône optionnelle positionnée à gauche ou à droite, et toutes les props HTML/motion d'un bouton.
 
-## Détails
+---
 
-Utilise une union discriminée : quand `icon` est fourni, `iconPosition` et `iconSize` deviennent obligatoires. Quand `icon` est undefined, les deux doivent aussi être undefined.
+## 2. Props
+
+```typescript
+type ButtonProps = {
+    text: string
+} & (
+    | { icon: keyof typeof icons, iconPosition: "left" | "right", iconSize: number }
+    | { icon?: undefined, iconPosition?: undefined, iconSize?: undefined }
+) & HTMLMotionProps<"button">
+```
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `text` | `string` | oui | Texte du bouton |
+| `icon` | `keyof typeof icons` | non | Nom de l'icône lucide-react |
+| `iconPosition` | `"left" \| "right"` | si icon | Position de l'icône par rapport au texte |
+| `iconSize` | `number` | si icon | Taille de l'icône en pixels |
+| `...props` | `HTMLMotionProps<"button">` | non | Toutes les props framer-motion/HTML (onClick, className, etc.) |
+
+**Union discriminée :** Si `icon` est fourni, `iconPosition` et `iconSize` sont obligatoires. Si `icon` est `undefined`, les deux autres doivent l'être aussi.
+
+---
+
+## 3. Structure HTML
+
+```html
+<motion.button class="btn" {...props}>
+    {icon && iconPosition === "left" && <LucideIcons />}
+    <span>{text}</span>
+    {icon && iconPosition === "right" && <LucideIcons />}
+</motion.button>
+```
+
+---
+
+## 4. Relations avec autres classes
+
+| Classe | Relation | Description |
+|--------|----------|-------------|
+| `LucideIcons` | Button rend LucideIcons | Wrapper d'icône dynamique |
+| `framer-motion` | Button = motion.button | Animations déclaratives |
+
+---
+
+## 5. Exemples
+
+```tsx
+<Button text="Déconnexion" icon="LogOut" iconPosition="left" iconSize={16} onClick={logout} />
+<Button text="Nouvelle Discussion" icon="MessageSquare" iconPosition="left" iconSize={16} />
+<Button text="Simple" />
+```

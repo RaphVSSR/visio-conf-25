@@ -1,36 +1,89 @@
-# LoginForm
+# Référence du composant LoginForm — VisioConf
 
-**Source**: `FRONTENDV2/src/components/LoginForm/LoginForm.tsx`
+**Fichier source** : `FRONTENDV2/src/components/LoginForm/LoginForm.tsx`
+**Styles** : `FRONTENDV2/src/components/LoginForm/LoginForm.scss`
+**Type** : Composant React fonctionnel
 
-Composant de formulaire de connexion utilisant la validation native HTML5. Redirige vers `/home` quand déjà authentifié. Affiche un message de rejet en cas d'échec de connexion et bascule la visibilité du mot de passe.
+---
 
-## Props
+## 1. Description
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| *(aucun)* | — | — | Aucune prop, utilise le hook `useAuth` |
+`LoginForm` est le formulaire de connexion. Il gère trois états visuels : le formulaire de saisie, l'attente d'approbation multi-session, et le message de rejet. Utilise la validation HTML5 native et redirige automatiquement vers `/home` si l'utilisateur est déjà authentifié.
 
-## State
+---
 
-| Nom | Type | Exemple | Description |
-|-----|------|---------|-------------|
-| pwdStatus | `"shown" \| "hidden"` | `"hidden"` | Contrôle la visibilité du champ mot de passe |
-| error | `string` | `""` | Message d'erreur local (actuellement défini mais seulement affiché) |
+## 2. State local
 
-## Méthodes
+| State | Type | Valeur initiale | Description |
+|-------|------|-----------------|-------------|
+| `pwdStatus` | `"shown" \| "hidden"` | `"hidden"` | Visibilité du mot de passe |
+| `error` | `string` | `""` | Message d'erreur local |
 
-| Nom | Paramètres (types) | Retour | Description |
-|-----|-------------------|--------|-------------|
-| handleSubmit | event (`FormEvent<HTMLFormElement>`) | void | Valide le formulaire, extrait email/password depuis FormData, appelle `login()` |
+---
 
-## Détails
+## 3. State depuis useAuth
 
-- Consomme `login`, `isLoading`, `isAuthenticated`, `loginRejected` depuis `useAuth()`.
-- Un `useEffect` redirige vers `/home` avec `replace: true` quand `isAuthenticated` devient vrai.
-- Le bouton de soumission est désactivé pendant le chargement et affiche le texte "Connexion en cours...".
-- `loginRejected` affiche un message statique "Email ou mot de passe incorrect."
-- Lien vers `/signup` via `Link` de `react-router-dom`.
+| Propriété | Utilisation |
+|-----------|-------------|
+| `login` | Appelé à la soumission du formulaire |
+| `isLoading` | Désactive le bouton submit, affiche "Connexion en cours..." |
+| `isAuthenticated` | Auto-redirection vers /home si true |
+| `pendingLoginRequestId` | Bascule sur l'affichage "En attente d'approbation" si non-null |
+| `loginRejected` | Affiche "Connexion refusée — la session active a refusé votre demande" |
 
-## Flux
+---
 
-Voir [auth-flows.md](../../flows/auth-flows.md)
+## 4. Structure HTML sémantique
+
+### Mode formulaire
+
+```html
+<form id="loginForm" onSubmit={handleSubmit}>
+    <img src="logos/logo_univ_grand.svg" />
+    <h1>Se connecter</h1>
+    {loginRejected && <p class="rejectedMessage">...</p>}
+    <fieldset id="inputWrapper">
+        <input type="email" name="email" required />
+        <div id="pwdWrapper">
+            <input type="password" name="password" required />
+            <Eye/EyeOff />                    ← Toggle visibilité
+        </div>
+    </fieldset>
+    <footer id="footerForm">
+        <button type="submit" disabled={isLoading} />
+        <Link to="/signup">Créer son compte</Link>
+    </footer>
+</form>
+```
+
+### Mode attente d'approbation
+
+```html
+<section id="loginForm">
+    <img src="logos/logo_univ_grand.svg" />
+    <h1>En attente d'approbation</h1>
+    <p class="pendingMessage">Une session active existe...</p>
+</section>
+```
+
+---
+
+## 5. Soumission
+
+```
+handleSubmit(event)
+    ├─ event.preventDefault()
+    ├─ form.checkValidity() → form.reportValidity() si invalide
+    ├─ FormData → email, password
+    ├─ setError("")
+    └─ login(email, password)
+```
+
+---
+
+## 6. Relations avec autres classes
+
+| Classe | Relation | Description |
+|--------|----------|-------------|
+| `useAuth` | LoginForm utilise useAuth() | login, isLoading, isAuthenticated, pendingLoginRequestId, loginRejected |
+| `Login` | Login rend LoginForm | Page wrapper |
