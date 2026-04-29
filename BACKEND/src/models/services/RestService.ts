@@ -9,7 +9,7 @@ import express, {
 } from "express";
 import cors from "cors";
 import FileRoutes from "../../routes/FileRoutes.ts";
-import TracedError from "../Core/TracedError.ts";
+import TracedError from "../core/TracedError.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

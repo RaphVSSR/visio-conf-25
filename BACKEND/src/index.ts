@@ -1,7 +1,7 @@
 import dotenv from "dotenv"
 import Database from "./models/services/Database.ts"
-import TracedError from "./models/Core/TracedError.ts";
-import HTTPServer from "./models/Core/HTTPServer.ts";
+import TracedError from "./models/core/TracedError.ts";
+import HTTPServer from "./models/core/HTTPServer.ts";
 import SocketIO from "./models/services/SocketIO.ts";
 import { init as initController } from "./Controller/Controller.abstracts.ts";
 
