@@ -16,10 +16,14 @@
     line-height: normal;
   }
 
-  #infosWrapper,
-  #tabsWrapper {
-    padding: 0 5%;
-  }
+	h1{
+	  color: $tab-heading;
+	  font-family: inherit;
+	  font-size: 40px;
+	  font-style: normal;
+	  font-weight: 800;
+	  line-height: normal;
+	}
 
   #infosWrapper {
     display: flex;
@@ -37,10 +41,11 @@
       border-style: solid;
       font-size: 20px;
 
-      &--users {
-        background-color: $success-light;
-        border-color: $success-border;
-      }
+	#infosWrapper{
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  font-family: inherit;
 
       &--calls {
         background-color: $purple-light;

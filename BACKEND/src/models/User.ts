@@ -1,31 +1,35 @@
-import mongoose, { type Model, type HydratedDocument, model, Schema, Types } from "mongoose"
+import mongoose, {
+  type Model,
+  type HydratedDocument,
+  model,
+  Schema,
+  Types,
+} from "mongoose";
 import { type FileType, type FolderType } from "./services/FileSystem.ts";
 import TracedError from "./core/TracedError.ts";
-import { sha256 } from "js-sha256"
+import { sha256 } from "js-sha256";
 
 const { models } = mongoose;
 
 export type UserType = {
-
-    _id?: Types.ObjectId,
-    socket_id?: string,
-    firstname: string,
-    lastname: string,
-    email: string,
-    phone: string,
-    status?: "waiting" | "active",
-    password: string,
-    job?: string,
-    desc: string,
-    date_created?: Date,
-    picture?: string,
-    is_online?: boolean,
-    disturb_status?: string,
-    last_connection?: Date,
-    direct_manager?: string,
-    roles?: Types.ObjectId,
-
-}
+  _id?: Types.ObjectId;
+  socket_id?: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  status?: "waiting" | "active";
+  password: string;
+  job?: string;
+  desc: string;
+  date_created?: Date;
+  picture?: string;
+  is_online?: boolean;
+  disturb_status?: string;
+  last_connection?: Date;
+  direct_manager?: string;
+  roles?: string[];
+};
 
 export default class User {
   protected static schema = new Schema<UserType>({
@@ -39,8 +43,7 @@ export default class User {
       required: true,
       default: "waiting",
       enum: ["waiting", "active"],
-      description:
-        "Choose user status between : waiting, active",
+      description: "Choose user status between : waiting, active",
     },
     password: { type: String, required: true, description: "SHA256" },
     job: {
@@ -73,150 +76,136 @@ export default class User {
       default: "none",
       description: "User uuid of the direct manager",
     },
-    //tokens: { type: Object, default: {} },
     roles: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "Role",
+        type: String,
         default: "user",
-        description: `List of roles id created by admin in the roles collection`,
+        description: `List of role uuids (e.g. "admin", "user")`,
       },
     ],
   });
 
-    static model: Model<UserType> = models.User || model<UserType>("User", this.schema);
+  static model: Model<UserType> =
+    models.User || model<UserType>("User", this.schema);
 
-    modelInstance;
+  modelInstance;
 
-    //testRootFolders;
+  constructor(dataToConstruct: UserType) {
+    this.modelInstance = new User.model(dataToConstruct);
+  }
 
-    constructor(dataToConstruct: UserType){
+  static async inject() {
+    [
+      {
+        firstname: "test1",
+        lastname: "testlast1",
+        email: "test1@visioconf.com",
+        phone: "06 52 14 55 45",
+        password: sha256("12345678"),
+        desc: "Une description vreumannnnn",
+        status: "active" as const,
+        roles: ["admin", "user"],
+      },
+      {
+        firstname: "test2",
+        lastname: "testlast2",
+        email: "test2@visioconf.com",
+        phone: "06 52 14 55 45",
+        password: sha256("12345678"),
+        desc: "Une description vreumannnnn",
+        status: "active" as const,
+        roles: ["user"],
+      },
+      {
+        firstname: "test3",
+        lastname: "testlast3",
+        email: "test3@visioconf.com",
+        phone: "06 52 14 55 45",
+        password: sha256("12345678"),
+        desc: "Une description vreumannnnn",
+        status: "active" as const,
+        roles: ["user"],
+      },
+      {
+        firstname: "test4",
+        lastname: "testlast4",
+        email: "test4@visioconf.com",
+        phone: "06 52 14 55 45",
+        password: sha256("12345678"),
+        desc: "Une description vreumannnnn",
+        status: "active" as const,
+        roles: ["user"],
+      },
+      {
+        firstname: "test5",
+        lastname: "testlast5",
+        email: "test5@visioconf.com",
+        phone: "06 52 14 55 45",
+        password: sha256("12345678"),
+        desc: "Une description vreumannnnn",
+        status: "active" as const,
+        roles: ["user"],
+      },
+    ].map((user) => {
+      const newUser = new User(user);
+      newUser.save();
+    });
+  }
 
-        this.modelInstance = new User.model(dataToConstruct);
-
-        //this.testRootFolders = this.defTestRootFolders(dataToConstruct);
-        //this.defTestSubFolders(dataToConstruct);
-
+  async save() {
+    try {
+      await this.modelInstance.save();
+    } catch (error: any) {
+      throw new TracedError("collectionSaving", error.message);
     }
+  }
 
-    static async inject(){
+  static async getUser(email: string) {
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
 
-        [{
-            firstname: "test1",
-            lastname: "testlast1",
-            email: "test1@visioconf.com",
-            phone: "06 52 14 55 45",
-            password: sha256("12345678"),
-            desc: "Une description vreumannnnn",
-        },
-        {
-            firstname: "test2",
-            lastname: "testlast2",
-            email: "test2@visioconf.com",
-            phone: "06 52 14 55 45",
-            password: sha256("12345678"),
-            desc: "Une description vreumannnnn",
-        },
-        {
-            firstname: "test3",
-            lastname: "testlast3",
-            email: "test3@visioconf.com",
-            phone: "06 52 14 55 45",
-            password: sha256("12345678"),
-            desc: "Une description vreumannnnn",
-        },
-        {
-            firstname: "test4",
-            lastname: "testlast4",
-            email: "test4@visioconf.com",
-            phone: "06 52 14 55 45",
-            password: sha256("12345678"),
-            desc: "Une description vreumannnnn",
-        },
-        {
-            firstname: "test5",
-            lastname: "testlast5",
-            email: "test5@visioconf.com",
-            phone: "06 52 14 55 45",
-            password: sha256("12345678"),
-            desc: "Une description vreumannnnn",
-        }].map(user => {
+    return this.model.findOne({ email: email });
+  }
 
-            const newUser = new User(user);
-            newUser.save();
-        })
-    }
+  static async getUsers(emails: string[]) {
+    emails.forEach((email, index) => {
+      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email))
+        emails.splice(index, 1);
+    });
 
-    async save(){
+    return this.model.find({ email: { $in: emails } });
+  }
 
-        try {
-            
-            await this.modelInstance.save();
-            //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
+  static async updateUser(email: string, newData: Partial<UserType>) {
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
 
-        } catch (err: any) {
-            
-            throw new TracedError("collectionSaving", err.message);
-        }
-    }
+    return this.model.updateOne({ email: email }, { $set: newData });
+  }
 
-    static async getUser(email: string) {
+  static async updateUsers(emails: string[], newData: Partial<UserType>) {
+    emails.forEach((email, index) => {
+      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email))
+        emails.splice(index, 1);
+    });
 
-        if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
+    return this.model.updateMany({ email: { $in: emails } }, { $set: newData });
+  }
 
-        return this.model.findOne({email: email});
-    }
+  static async deleteUser(email: string) {
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
 
-    static async getUsers(emails: string[]) {
-        
-        emails.forEach((email, index) => {
-            
-            if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) emails.splice(index, 1);
+    return this.model.deleteOne({ email: email });
+  }
 
-        });
+  static async deleteUsers(emails: string[]) {
+    emails.forEach((email, index) => {
+      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email))
+        emails.splice(index, 1);
+    });
 
-        return this.model.find({ email: {$in: emails}});
-    }
+    return this.model.deleteMany({ email: { $in: emails } });
+  }
 
-    static async updateUser(email: string, newData: Partial<UserType>) {
-        
-        if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
-
-        return this.model.updateOne({email: email}, { $set: newData});
-    }
-
-    static async updateUsers(emails: string[], newData: Partial<UserType>) {
-        
-        emails.forEach((email, index) => {
-            
-            if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) emails.splice(index, 1);
-
-        });
-
-        return this.model.updateMany({ email: {$in: emails}}, {$set: newData});
-    }
-
-    static async deleteUser(email: string) {
-        
-        if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return;
-
-        return this.model.deleteOne({email: email});
-    }
-
-    static async deleteUsers(emails: string[]) {
-        
-        emails.forEach((email, index) => {
-            
-            if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) emails.splice(index, 1);
-
-        });
-
-        return this.model.deleteMany({ email: {$in: emails}});
-    }
-
-    static async flushAll() {
-
-        return this.model.deleteMany({});
-    }
-
+  static async flushAll() {
+    return this.model.deleteMany({});
+  }
 }

@@ -122,15 +122,88 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
     },
   ];
 
-  const tabDataSelected = tabsData.find((tab) => tab.name === tabSelected);
+  const tabsData = [
+    {
+      name: "Utilisateurs",
+      icon: <UsersRound size={40} />,
+      subOption: [
+        {
+          label: "Lister",
+        },
+        {
+          label: "Modifier",
+        },
+        {
+          label: "Valider",
+        },
+        {
+          label: "Désactiver",
+        },
+        {
+          label: "Bannir",
+        },
+      ],
+    },
+    {
+      name: "Rôles",
+      icon: <Drama size={40} />,
+      subOption: [
+        {
+          label: "Lister",
+        },
+        {
+          label: "Créer",
+        },
+        {
+          label: "Dupliquer",
+        },
+        {
+          label: "Modifier",
+        },
+        {
+          label: "Supprimer",
+        },
+      ],
+    },
+    {
+      name: "Permissions",
+      icon: <ListChecks size={40} />,
+      subOption: [
+        {
+          label: "Lister",
+        },
+        {
+          label: "Créer",
+        },
+        {
+          label: "Modifier",
+        },
+      ],
+    },
+    {
+      name: "Equipes",
+      icon: <MessagesSquare size={40} />,
+      subOption: [
+        {
+          label: "Lister",
+        },
+        {
+          label: "Créer",
+        },
+        {
+          label: "Modifier",
+        },
+        {
+          label: "Supprimer",
+        },
+      ],
+    },
+  ];
 
   if (!tabDataSelected) return null;
 
   return (
-    <section
-      id="adminTab"
-      //onClick={setTabSelected(tab)}
-    >
+    <section id="adminTab">
       <section id="tabHeader">
         <div id="row1">
           <div className="col1">

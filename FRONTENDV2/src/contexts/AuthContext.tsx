@@ -6,14 +6,12 @@ import React, {
   type FC,
   type PropsWithChildren,
 } from "react";
-import Controleur from "Controller/controleur.js";
-import { SocketIO } from "services/SocketIO";
+import MessageClientAdapter from "services/MessageClientAdapter";
 import { AuthSync } from "services/auth/AuthSync";
 import type { AuthState, AuthContextType } from "services/auth/AuthSync.types";
 
 export type {
   AuthUser,
-  PendingSessionRequest,
   AuthState,
   AuthActions,
   AuthContextType,
@@ -26,9 +24,6 @@ const INITIAL_STATE: AuthState = {
   isAuthenticated: false,
   isLoading: true,
   expiresAt: null,
-  sessionId: null,
-  pendingLoginRequestId: null,
-  pendingSessionRequests: [],
   showExpiryWarning: false,
   loginRejected: false,
 };
@@ -37,30 +32,32 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   const [state, setState] = useState<AuthState>(INITIAL_STATE);
   const authRef = useRef<AuthSync | null>(null);
 
-  useEffect(() => {
-    const controleur = new Controleur();
-    controleur.verboseall =
-      process.env.REACT_APP_VERBOSE === "true" &&
-      Number(process.env.REACT_APP_VERBOSE_LVL) >= 3;
+  const [state, setState] = useState<AuthState>(INITIAL_STATE);
+  const authRef = useRef<AuthSync | null>(null);
+  const socketRef = useRef<MessageClientAdapter | null>(null);
 
-    SocketIO.init(controleur);
-    authRef.current = new AuthSync(controleur, setState);
+  useEffect(() => {
+    const socket = new MessageClientAdapter(
+      process.env.REACT_APP_BACKEND_API_URL || "http://localhost:3220",
+    );
+    socketRef.current = socket;
+    authRef.current = new AuthSync(socket, setState);
 
     return () => {
       authRef.current?.destroy();
       authRef.current = null;
-      SocketIO.disconnect();
+      socket.disconnect();
+      socketRef.current = null;
     };
   }, []);
 
   const contextValue: AuthContextType = {
     ...state,
+    socket: socketRef.current,
     login: (email, password) => authRef.current?.login(email, password),
     register: (data) => authRef.current?.register(data),
     logout: () => authRef.current?.logout(),
     refreshSession: () => authRef.current?.refreshSession(),
-    respondToPendingSession: (requestId, accepted) =>
-      authRef.current?.respondToPendingSession(requestId, accepted),
     dismissExpiryWarning: () =>
       setState((prev) => ({ ...prev, showExpiryWarning: false })),
   };

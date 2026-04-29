@@ -1,106 +1,30 @@
-# Référence du ToastContext — VisioConf
+# ToastContext
 
-**Fichier source** : `FRONTENDV2/src/contexts/ToastContext.tsx`
-**Type** : React Context Provider
+**Source**: `FRONTENDV2/src/contexts/ToastContext.tsx`
 
----
+Système global de notifications toast. Gère une file d'éléments toast avec fermeture automatique, transitions animées via `framer-motion` (`AnimatePresence mode="popLayout"`), et accessibilité via `aria-live="polite"`. Affiche les toasts dans un conteneur `<aside>` en dehors des enfants.
 
-## 1. Description
+## Propriétés
 
-`ToastContext` est le système de notifications toast global de l'application. Il gère une file de toasts avec auto-dismiss, animations via `framer-motion`, et accessibilité via `aria-live="polite"`.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `ToastItem.id` | `string` | `"toast-3"` | ID auto-généré incrémentiel |
+| `ToastItem.message` | `string` | `"Login successful"` | Texte principal du toast |
+| `ToastItem.variant` | `ToastVariant` | `"success"` | Style visuel du toast |
+| `ToastItem.subtitle` | `string?` | `"Welcome back"` | Texte secondaire optionnel |
+| `ToastItem.actions` | `ToastAction[]?` | `[{ label: "Undo", onClick: fn }]` | Boutons d'action optionnels |
 
----
+## Méthodes / Actions / Valeurs retournées
 
-## 2. Exports
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| `addToast` | `toast: { message: string, variant: ToastVariant, subtitle?: string, actions?: ToastAction[], duration?: number }` | `string` (id) | Ajoute un toast. Fermeture automatique après `duration` ms (défaut 5000). Définir `duration: 0` pour désactiver la fermeture automatique |
+| `removeToast` | `id: string` | `void` | Supprime un toast immédiatement |
+| `useToast` | — | `{ addToast, removeToast }` | Hook pour accéder au contexte. Lance une erreur si utilisé en dehors de `ToastProvider` |
 
-| Export | Type | Description |
-|--------|------|-------------|
-| `ToastProvider` | `FC<PropsWithChildren>` | Le composant provider |
-| `useToast` | `() => ToastContextType` | Hook d'accès au context |
+## Exports
 
----
-
-## 3. Types
-
-```typescript
-type ToastItem = {
-    id: string              // Auto-généré ("toast-1", "toast-2", ...)
-    message: string
-    variant: ToastVariant   // "success" | "danger" | "warning" | "info"
-    subtitle?: string
-    actions?: ToastAction[]
-}
-
-type ToastContextType = {
-    addToast: (toast: Omit<ToastItem, "id"> & { duration?: number }) => string
-    removeToast: (id: string) => void
-}
-```
-
----
-
-## 4. API
-
-| Méthode | Paramètres | Retour | Description |
-|---------|------------|--------|-------------|
-| `addToast` | `{ message, variant, subtitle?, actions?, duration? }` | `string` (id) | Ajoute un toast. Auto-dismiss après `duration` ms (défaut 5000). `duration: 0` = pas d'auto-dismiss |
-| `removeToast` | `id: string` | `void` | Retire un toast immédiatement |
-
----
-
-## 5. Rendu
-
-```tsx
-<ToastContext.Provider value={{ addToast, removeToast }}>
-    {children}
-    <aside className="globalToastContainer" aria-live="polite">
-        <AnimatePresence mode="popLayout">
-            {toasts.map(toast => <Toast ... />)}
-        </AnimatePresence>
-    </aside>
-</ToastContext.Provider>
-```
-
-- Le conteneur `<aside>` est rendu en dehors des `children` pour être toujours visible
-- `aria-live="polite"` annonce les toasts aux screen readers sans interrompre
-- `AnimatePresence mode="popLayout"` gère les animations d'entrée/sortie avec repositionnement automatique
-
----
-
-## 6. Relations avec autres classes
-
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `Toast` | ToastProvider rend des composants Toast | Design system component |
-| `AuthToasts` | Utilise `useToast` indirectement (même pattern) | Composant de notifications auth |
-| `App` | App monte ToastProvider | Provider global |
-
----
-
-## 7. Exemples
-
-### Ajouter un toast depuis un composant
-
-```typescript
-const { addToast } = useToast()
-
-addToast({
-    message: "Connexion réussie",
-    variant: "success",
-    duration: 3000,
-})
-```
-
-### Toast avec actions
-
-```typescript
-addToast({
-    message: "Nouvelle demande de connexion",
-    variant: "warning",
-    actions: [
-        { label: "Accepter", onClick: () => accept(), variant: "primary" },
-        { label: "Refuser", onClick: () => reject(), variant: "ghost" },
-    ],
-    duration: 0, // Pas d'auto-dismiss
-})
-```
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `ToastProvider` | `FC<PropsWithChildren>` | `<ToastProvider>{children}</ToastProvider>` | Le composant fournisseur |
+| `useToast` | `() => ToastContextType` | `const { addToast } = useToast()` | Hook pour consommer le contexte |

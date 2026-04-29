@@ -1,37 +1,32 @@
-# Référence de la page Login — VisioConf
+# Login
 
-**Fichier source** : `FRONTENDV2/src/pages/Login/Login.tsx`
-**Styles** : `FRONTENDV2/src/pages/Login/Login.scss`
-**Type** : Composant React fonctionnel (FC) — Page
+**Source**: `FRONTENDV2/src/pages/Login/Login.tsx`
 
----
+Page wrapper minimale affichant le composant `LoginForm` sur une image de fond. Toute la logique de connexion réside dans `LoginForm`.
 
-## 1. Description
+## Props
 
-`Login` est la page de connexion. C'est un wrapper minimaliste qui affiche le composant `LoginForm` sur un fond d'image. Route publique (pas de garde).
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| — | — | — | Aucune prop (FC sans générique) |
 
----
+## State
 
-## 2. Structure HTML sémantique
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| — | — | — | Aucun état local |
 
-```html
-<main id="loginPage" style="background-image: url('backgrounds/backLogin.jpg')">
-    <LoginForm />
-</main>
-```
+## Méthodes
 
----
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| — | — | — | Aucune méthode |
 
-## 3. Composants utilisés
+## Détails
 
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `LoginForm` | `components/` | Formulaire de connexion complet |
+- Image de fond définie en inline : `backgrounds/backLogin.jpg`.
+- Route : `/login`, publique (aucune garde).
 
----
+## Flux
 
-## 4. Route
-
-| Path | Garde | Description |
-|------|-------|-------------|
-| `/login` | aucune | Page publique |
+Voir [auth-flows.md](../../flows/auth-flows.md)

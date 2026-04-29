@@ -1,128 +1,30 @@
-# Référence de la classe abstraite ControllerService — VisioConf (Frontend)
+# MessageClientAdapter
 
-**Fichier source** : `FRONTENDV2/src/Controller/Controller.service.ts`
-**Types** : `FRONTENDV2/src/Controller/Controller.types.ts`
+**Source**: `FRONTENDV2/src/services/MessageClientAdapter.ts`
 
----
+Wrapper client Socket.io gérant la connexion, l'envoi de messages et la réception de messages avec le backend. Les messages sont échangés sous forme de chaînes JSON-stringifiées via l'événement Socket.io `"message"`. Le handshake initial utilise `demande_liste` / `donne_liste` pour signaler que le serveur est prêt.
 
-## 1. Description
+## Propriétés
 
-`ControllerService` est la classe abstraite de base pour tous les services inscrits au controleur côté frontend. C'est l'équivalent exact de la classe backend — même interface, même pattern pub/sub. Un service hérite de `ControllerService`, implémente `traitementMessage()`, et est automatiquement inscrit au controleur à la construction.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| `socket` | `Socket` (private) | — | Instance socket.io-client, configurée avec `autoConnect`, `reconnection`, `withCredentials` |
+| `handlers` | `Map<string, Set<MessageHandler>>` (private) | — | Handlers enregistrés indexés par nom de message |
+| `readyCallbacks` | `(() => void)[]` (private) | — | Callbacks en file d'attente jusqu'à la fin du handshake serveur |
+| `ready` | `boolean` (private) | `false` | Devient `true` après réception de `donne_liste` |
 
----
+## Méthodes
 
-## 2. Types TypeScript
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| `constructor` | `url: string` | `MessageClientAdapter` | Se connecte au serveur, écoute les messages entrants, émet `demande_liste` |
+| `onReady` | `callback: () => void` | `void` | Exécute le callback quand le serveur est prêt, ou immédiatement si déjà prêt |
+| `on` | `messageName: string, handler: MessageHandler` | `void` | Enregistre un handler pour un nom de message |
+| `off` | `messageName: string, handler: MessageHandler` | `void` | Supprime un handler pour un nom de message |
+| `send` | `messageName: string, payload: unknown` | `void` | Envoie un message via `socket.emit("message", JSON.stringify({ [messageName]: payload }))` |
+| `onReconnect` | `callback: () => void` | `void` | Enregistre un callback sur l'événement de reconnexion Socket.io |
+| `disconnect` | — | `void` | Ferme la connexion Socket.io |
 
-### Controller
+## Détails
 
-```typescript
-type Controller = {
-    listeEmission: Record<string, Record<string, LooseSubscriber>>
-    listeAbonnement: Record<string, Record<string, LooseSubscriber>>
-    verbose: boolean
-    verboseall: boolean
-    inscription: (subscriber: ControllerSubscriber, emitted: string[], received: string[]) => void
-    desincription: (subscriber: ControllerSubscriber, emitted: string[], received: string[]) => void
-    envoie: (subscriber: ControllerSubscriber, message: Record<string, unknown>) => void
-}
-```
-
-### ControllerSubscriber
-
-```typescript
-type ControllerSubscriber = {
-    nomDInstance: string
-    traitementMessage: (mesg: ControllerMessage) => void
-}
-```
-
-### ControllerMessage
-
-```typescript
-type ControllerMessage = { id: string } & Record<string, unknown>
-```
-
-- `id` : socketId de l'émetteur (côté serveur) ou identifiant interne
-- Les autres clés sont les noms des actions avec leur payload
-
----
-
-## 3. Propriétés de la classe
-
-| Propriété | Type | Visibilité | Description | Exemple |
-|-----------|------|------------|-------------|---------|
-| `nomDInstance` | `string` | `readonly` | Nom d'inscription dans le controleur | `"AuthService"` |
-| `controleur` | `Controller` | `protected readonly` | Référence au controleur | — |
-| `messagesEmitted` | `string[]` | `readonly` | Messages que ce service peut émettre | `["login", "register"]` |
-| `messagesReceived` | `string[]` | `readonly` | Messages que ce service écoute | `["login_success", "login_failure"]` |
-
----
-
-## 4. Méthodes
-
-| Méthode | Paramètres | Retour | Static/Instance | Description |
-|---------|------------|--------|-----------------|-------------|
-| `constructor` | `controleur, nom, messagesEmitted, messagesReceived` | `ControllerService` | instance | S'inscrit au controleur via `controleur.inscription()` |
-| `traitementMessage` | `mesg: ControllerMessage` | `void` | instance (abstract) | Dispatcher des messages reçus. Doit être implémenté par chaque service |
-| `sendMessage` | `message: Record<string, unknown>` | `void` | `protected` | Envoie un message via `controleur.envoie()` |
-| `destroy` | — | `void` | instance | Se désinscrit du controleur via `controleur.desincription()` |
-
----
-
-## 5. Services inscrits
-
-| Service | nomDInstance | Émis | Reçus |
-|---------|-------------|------|-------|
-| `CanalSocketio` | `"canalsocketio"` | (tous les messages Socket.io) | (tous les messages Socket.io) |
-| `AuthService` | `"AuthService"` | 6 messages auth | 13 messages auth |
-
----
-
-## 6. Pattern de communication (Frontend)
-
-```
-Serveur
-    ↕ Socket.io
-CanalSocketio (canalsocketio.js — OFF-LIMITS)
-    ↕ controleur.envoie() / traitementMessage()
-AuthService (ou autre ControllerService)
-    ↕ setState()
-React Context (AuthContext)
-    ↕ useAuth()
-Composants React
-```
-
----
-
-## 7. Exemples
-
-### Créer un nouveau service frontend
-
-```typescript
-class MyService extends ControllerService {
-    traitementMessage(mesg: ControllerMessage): void {
-        if (mesg.my_action_response) {
-            // Mettre à jour le state React
-        }
-    }
-
-    requestData(): void {
-        this.sendMessage({ my_action_request: { param: "value" } })
-    }
-}
-
-const service = new MyService(controleur, "MyService",
-    ["my_action_request"],
-    ["my_action_response"]
-)
-```
-
-### Message transitant par le controleur
-
-```typescript
-// AuthService envoie au controleur :
-this.sendMessage({ login: { email: "john@example.com", password: "sha256...", deviceInfo: "web" } })
-
-// Le controleur route vers CanalSocketio → Socket.io → Serveur
-// Le serveur répond → CanalSocketio → controleur → AuthService.traitementMessage()
-```
+Le type `MessageHandler` est `(payload: any) => void`. Les messages entrants sont parsés depuis le JSON, la première clé est utilisée comme nom de message, et sa valeur est distribuée à tous les handlers enregistrés pour ce nom. Le paramètre `payload` dans `send` a pour valeur par défaut `{}`.

@@ -8,7 +8,6 @@ export const AuthToasts: FC = () => {
 
 	const {
 		showExpiryWarning, expiresAt, refreshSession, dismissExpiryWarning,
-		pendingSessionRequests, respondToPendingSession,
 	} = useAuth()
 
 	const [timeLeft, setTimeLeft] = useState("")
@@ -29,24 +28,11 @@ export const AuthToasts: FC = () => {
 		return () => clearInterval(interval)
 	}, [showExpiryWarning, expiresAt])
 
-	const hasToasts = showExpiryWarning || pendingSessionRequests.length > 0
-	if (!hasToasts) return null
+	if (!showExpiryWarning) return null
 
 	return (
 		<aside className="authToasts" aria-live="assertive">
 			<AnimatePresence mode="popLayout">
-				{pendingSessionRequests.map(request => (
-					<Toast
-						key={request.requestId}
-						variant="warning"
-						message="Nouvelle demande de connexion"
-						subtitle={`${request.requesterInfo}\n${request.deviceInfo}`}
-						actions={[
-							{ label: "Accepter", onClick: () => respondToPendingSession(request.requestId, true), variant: "primary" },
-							{ label: "Refuser", onClick: () => respondToPendingSession(request.requestId, false), variant: "ghost" },
-						]}
-					/>
-				))}
 				{showExpiryWarning && (
 					<Toast
 						key="session-expiry"

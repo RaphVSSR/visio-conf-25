@@ -1,15 +1,15 @@
-import path from "path";
-import { fileURLToPath } from "url";
-import express, {
-  type Express,
-  Router,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
-import cors from "cors";
-import FileRoutes from "../../routes/FileRoutes.ts";
-import TracedError from "../Core/TracedError.ts";
+
+import path from "path"
+import { fileURLToPath } from "url"
+import express, { type Express, Router, type Request, type Response, type NextFunction, type RequestHandler } from "express"
+import session from "express-session"
+import ConnectMongoDBSession from "connect-mongodb-session"
+import cors from "cors"
+import AuthRoutes from "../../routes/AuthRoutes.ts"
+import TracedError from "../core/TracedError.ts";
+import SessionManager from "./authentication/SessionManager.ts";
+
+const MongoDBStore = ConnectMongoDBSession(session)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,16 +17,17 @@ const __dirname = path.dirname(__filename);
 export default class RestService {
   private static server: Express = express();
 
-  static async implement() {
-    if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL >= "2")
-      console.group("⚙️ Implementing Express server..");
+	private static server: Express = express();
+	static sessionMiddleware: RequestHandler;
 
     this.server.use(express.json());
     this.corsDef();
 
     this.server.use(express.static(path.join(__dirname, "..", "..", "public")));
 
-    await this.routesDef();
+		this.server.use(express.json());
+		this.corsDef();
+		this.sessionDef();
 
     if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL >= "2") {
       console.log("✅ Success");
@@ -66,11 +67,37 @@ export default class RestService {
         }),
       );
 
-      if (process.env.VERBOSE === "true") console.log(`✅ CORS fully defined`);
-    } catch (err: any) {
-      throw new TracedError("restCorsDef", err.message);
-    }
-  }
+	private static sessionDef() {
+
+		const store = new MongoDBStore({
+			uri: process.env.MONGO_URI || "mongodb://localhost:27017/visioconf",
+			collection: "sessions",
+		})
+
+		store.on("error", (error: Error) => {
+			console.error("Session store error:", error)
+		})
+
+		this.sessionMiddleware = session({
+			name: "visioconf_session",
+			secret: process.env.SESSION_SECRET || "visioconf-session-secret",
+			resave: false,
+			saveUninitialized: true,
+			store,
+			cookie: {
+				maxAge: SessionManager.getSessionDurationMs(),
+				httpOnly: true,
+				sameSite: "lax",
+				secure: process.env.NODE_ENV === "prod",
+			},
+		})
+
+		this.server.use(this.sessionMiddleware)
+
+		if (process.env.VERBOSE === "true") console.log("✅ Session middleware configured (connect-mongodb-session)")
+	}
+
+	private static corsDef(){
 
   private static async routesDef() {
     try {
@@ -85,10 +112,58 @@ export default class RestService {
         coreRouter,
       );
 
-      if (process.env.VERBOSE === "true")
-        console.log(`✅ Routes fully initialized\n`);
-    } catch (err: any) {
-      throw new TracedError("restRoutesDef", err.message);
-    }
-  }
+					origin: (origin, callback) => {
+
+						if (!origin) return callback(null, true)
+
+						const allowedOrigins = [
+							process.env.FRONTEND_URL ?? "http://localhost:3000",
+							"http://127.0.0.1:3000",
+						]
+
+						const ipPattern =
+							/^http:\/\/((192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|127\.0\.0\.1)\d{1,3}\.\d{1,3}|localhost):3000$/
+
+						if (allowedOrigins.includes(origin) || ipPattern.test(origin)) {
+							callback(null, true)
+						} else {
+							console.log(`CORS: Origin ${origin} not allowed`)
+							callback(new Error("Not allowed by CORS"))
+						}
+					},
+					credentials: true,
+					methods: ["GET", "POST"],
+					allowedHeaders: ["Content-Type", "Authorization"],
+
+				})
+			);
+
+			if (process.env.VERBOSE === "true") console.log(`✅ CORS fully defined`);
+
+		} catch (error: any) {
+
+			throw new TracedError("restCorsDef", error.message);
+		}
+
+	}
+
+	private static async routesDef(){
+
+		try {
+
+			const coreRouter = Router();
+
+			coreRouter.use("/auth", AuthRoutes);
+
+			this.server.use(process.env.API_BASE_PREFIX?.startsWith("/") ? process.env.API_BASE_PREFIX : "/", coreRouter);
+
+			if (process.env.VERBOSE === "true") console.log(`✅ Routes fully initialized\n`);
+
+		} catch (error: any) {
+
+			throw new TracedError("restRoutesDef", error.message);
+
+		}
+
+	}
 }

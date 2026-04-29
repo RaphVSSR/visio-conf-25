@@ -1,88 +1,29 @@
-# Référence de la page AdminPanel — VisioConf
+# AdminPanel
 
-**Fichier source** : `FRONTENDV2/src/pages/AdminPanel/AdminPanel.tsx`
-**Styles** : `FRONTENDV2/src/pages/AdminPanel/AdminPanel.scss`
-**Type** : Composant React fonctionnel (FC) — Page
+**Source**: `FRONTENDV2/src/pages/AdminPanel/AdminPanel.tsx`
 
----
+Page de tableau de bord d'administration affichant des cartes d'information (utilisateurs connectés, appels en cours) et une navigation par onglets (Utilisateurs, Rôles, Permissions, Équipes). La sélection d'un onglet affiche le composant `AdminTabPanel` à la place de la vue principale. Les valeurs d'information sont actuellement codées en dur.
 
-## 1. Description
+## Props
 
-`AdminPanel` est le panel d'administration. Il affiche des cartes d'information (utilisateurs connectés, appels en cours) et une navigation par onglets (Utilisateurs, Rôles, Permissions, Equipes). La sélection d'un onglet monte le composant `AdminTabPanel`.
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| — | — | — | Aucune prop (FC sans générique) |
 
-**État actuel :** Les valeurs dynamiques sont hardcodées (4 utilisateurs, 6 appels). L'ancien code utilisant le controleur est commenté — à migrer vers le pattern `ControllerService`.
+## State
 
----
+| Nom | Type | Exemple | Description |
+|-----|------|---------|-------------|
+| tabSelected | `string \| null` | `"Utilisateurs"` | Nom de l'onglet actuellement sélectionné, `null` affiche la vue principale du tableau de bord |
 
-## 2. Structure HTML sémantique
+## Méthodes
 
-### Vue principale (pas d'onglet sélectionné)
+| Nom | Paramètres (types) | Retour | Description |
+|-----|-------------------|--------|-------------|
+| tabs[n].click | — | `void` | Définit `tabSelected` au nom de l'onglet correspondant |
 
-```html
-<main id="adminPanel">
-    <h1>Administration</h1>
-    <section id="infosWrapper">
-        <article class="info info--users">      ← Utilisateurs connectés
-        <article class="info info--calls">       ← Appels en cours
-    </section>
-    <nav id="tabsWrapper">
-        <button class="tab tab--users">          ← Onglet Utilisateurs
-        <button class="tab tab--roles">          ← Onglet Rôles
-        <button class="tab tab--permissions">    ← Onglet Permissions
-        <button class="tab tab--teams">          ← Onglet Equipes
-    </nav>
-</main>
-```
+## Détails
 
-### Vue onglet (onglet sélectionné)
-
-```html
-<AdminTabPanel tabSelected={tabSelected} setTabSelected={setTabSelected} />
-```
-
----
-
-## 3. State
-
-| State | Type | Description |
-|-------|------|-------------|
-| `tabSelected` | `string \| null` | Nom de l'onglet sélectionné (`null` = vue principale) |
-
----
-
-## 4. Onglets
-
-| Nom | Modifier CSS | Icône |
-|-----|-------------|-------|
-| Utilisateurs | `users` | `UsersRound` |
-| Rôles | `roles` | `Drama` |
-| Permissions | `permissions` | `ListChecks` |
-| Equipes | `teams` | `MessagesSquare` |
-
----
-
-## 5. Composants utilisés
-
-| Composant | Source | Rôle |
-|-----------|--------|------|
-| `AdminTabPanel` | `components/` | Panel détaillé d'un onglet avec sous-options |
-
----
-
-## 6. Route
-
-| Path | Garde | Description |
-|------|-------|-------------|
-| `/admin` | `UserAuth` + `AdminAuth` | Double protection (auth + rôle admin) |
-
----
-
-## 7. Code commenté (à migrer)
-
-L'ancien code contenait :
-- Inscription manuelle au controleur (`controleur.inscription(handler, ...)`)
-- Messages : `users_list_request`, `user_perms_request`, `users_list_response`, `user_perms_response`
-- Vérification dynamique des permissions utilisateur
-- Comptage des utilisateurs en ligne
-
-Ce code doit être migré vers un `AdminService extends ControllerService` dédié.
+- Quand `tabSelected` est non-null, affiche `<AdminTabPanel tabSelected={tabSelected} setTabSelected={setTabSelected} />` en remplacement de toute la vue principale.
+- Les définitions d'onglets sont un tableau local avec `name`, `icon` (composant Lucide), `modifier` (suffixe de classe CSS), et handler `click`.
+- Route : `/admin` avec double garde (UserAuth + AdminAuth).

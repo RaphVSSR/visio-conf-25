@@ -16,9 +16,10 @@ export const LoginForm = () => {
   const [error, setError] = useState<string>("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isAuthenticated) navigate("/home", { replace: true });
-  }, [isAuthenticated, navigate]);
+    const [pwdStatus, setPwdStatus] = useState<"shown" | "hidden">("hidden");
+    const { login, isLoading, isAuthenticated, loginRejected } = useAuth();
+    const [error, setError] = useState<string>("");
+    const navigate = useNavigate();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,15 +30,6 @@ export const LoginForm = () => {
       return;
     }
 
-    const formData = new FormData(form);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    setError("");
-    login(email, password);
-  }
-
-  if (pendingLoginRequestId) {
     return (
       <section id="loginForm">
         <img
@@ -90,23 +82,43 @@ export const LoginForm = () => {
               size={20}
               onClick={() => setPwdStatus("hidden")}
             />
-          ) : (
-            <Eye
-              className="pwdVisibilityIco"
-              size={20}
-              onClick={() => setPwdStatus("shown")}
-            />
-          )}
-        </div>
-      </fieldset>
-      <footer id="footerForm">
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Connexion en cours..." : "Se connecter"}
-        </button>
-        <Link to="/signup" id="signupLink">
-          Créer son compte
-        </Link>
-      </footer>
-    </form>
-  );
-};
+
+            <h1>Se connecter</h1>
+            {loginRejected && <p className="rejectedMessage">Email ou mot de passe incorrect.</p>}
+            {error && <p className="error">{error}</p>}
+            <fieldset id="inputWrapper">
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Email"
+                    required
+                />
+                <div id="pwdWrapper">
+                    <input
+                        type={pwdStatus === "shown" ? "text" : "password"}
+                        id="password"
+                        name="password"
+                        placeholder="Password"
+                        required
+                    />
+
+                    {pwdStatus === "shown" ? <EyeOff className="pwdVisibilityIco" size={20} onClick={() => setPwdStatus("hidden")}/> : <Eye className="pwdVisibilityIco" size={20} onClick={() => setPwdStatus("shown")}/>}
+                </div>
+
+            </fieldset>
+            <footer id="footerForm">
+
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                >
+                    {isLoading ? "Connexion en cours..." : "Se connecter"}
+                </button>
+                <Link to="/signup" id="signupLink">Créer son compte</Link>
+
+            </footer>
+        </form>
+    )
+}

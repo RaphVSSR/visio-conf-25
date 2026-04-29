@@ -1,47 +1,8 @@
-import { FC, useEffect } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { FC } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "hooks/useAuth";
-import {
-  AudioCallProvider,
-  useAudioCall,
-} from "contexts/call/AudioCallContext";
-import { AudioCallOverlay, IncomingCallModal } from "components/call";
-import { PhoneOff } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import "./CallEndedToast.scss";
+import { AuthenticatedLayout } from "components/AuthenticatedLayout/AuthenticatedLayout";
 
-const CallEndedToast: FC = () => {
-  const { callEndedNotice, dismissCallEndedNotice } = useAudioCall();
-
-  useEffect(() => {
-    if (!callEndedNotice) return;
-    const timer = setTimeout(dismissCallEndedNotice, 4000);
-    return () => clearTimeout(timer);
-  }, [callEndedNotice, dismissCallEndedNotice]);
-
-  return (
-    <AnimatePresence>
-      {callEndedNotice && (
-        <motion.div
-          className="callEndedToast"
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -30 }}
-          onClick={dismissCallEndedNotice}
-        >
-          <PhoneOff size={18} className="callEndedIcon" />
-          {callEndedNotice}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
-
-/**
- * Garde de route pour les pages protégées.
- * Redirige vers /login si l'utilisateur n'est pas authentifié.
- * Affiche un écran de chargement pendant la vérification.
- */
 export const UserAuth: FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -49,12 +10,7 @@ export const UserAuth: FC = () => {
 
   if (!isAuthenticated) return <Navigate to={"/login"} replace />;
 
-  return (
-    <AudioCallProvider>
-      <Outlet />
-      <AudioCallOverlay />
-      <IncomingCallModal />
-      <CallEndedToast />
-    </AudioCallProvider>
-  );
+  if (!isAuthenticated) return <Navigate to={"/login"} replace />;
+
+  return <AuthenticatedLayout />;
 };
