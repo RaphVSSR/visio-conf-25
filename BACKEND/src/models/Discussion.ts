@@ -120,8 +120,6 @@ export default class Discussion extends Collection {
                 type: this.type,
                 members: this.members,
                 date_created: this.date_created,
-                //members_count: this.members_count,
-                //messages_count: this.messages_count,
             }
         });
 
@@ -154,11 +152,10 @@ export default class Discussion extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE === "true") console.log("💾 User collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 

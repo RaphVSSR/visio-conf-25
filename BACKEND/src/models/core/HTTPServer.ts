@@ -1,20 +1,17 @@
 
-import { createServer } from "node:http";
-import { Server } from "http";
-import RestService from "../services/RestService.ts";
+import { createServer, type Server } from "node:http"
+import type { Express } from "express"
 
 export default class HTTPServer {
 
-	static server: Server;
-	private static port: number = process.env.PORT ? Number(process.env.PORT) : 3220;
+	static server: Server
+	static port: number = process.env.PORT ? Number(process.env.PORT) : 3220
 
-	static async init(){
-
-		this.server = createServer(await RestService.implement());
+	static createFromExpress(app: Express) {
+		this.server = createServer(app)
 	}
 
-	static start(){
-
-		this.server.listen(this.port, () => console.log(`Visioconf app listening on port ${this.port}`) );
+	static listen() {
+		this.server.listen(this.port, "0.0.0.0", () => console.log(`Visioconf app listening on port ${this.port}`))
 	}
 }

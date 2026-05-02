@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "hooks/useAuth";
-import { SocketIO } from "services/SocketIO";
+import type MessageClientAdapter from "services/MessageClientAdapter";
 import type {
     ActiveCallState,
     CallStatus,
@@ -36,19 +36,13 @@ interface CallBaseHookReturn {
 }
 
 export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
-    const { user } = useAuth();
+    const { user, socket } = useAuth();
 
     const [callState, setCallState] = useState<ActiveCallState | null>(null);
     const [incomingCall, setIncomingCall] = useState<IncomingCallInfo | null>(null);
     const [callEndedNotice, setCallEndedNotice] = useState<string | null>(null);
 
-    const getSocket = useCallback(() => SocketIO.canal.socket, []);
-
-    useEffect(() => {
-        if (user?._id) {
-            SocketIO.canal.socket.emit("authenticate:session", user._id);
-        }
-    }, [user?._id]);
+    const getSocket = useCallback((): MessageClientAdapter | null => socket, [socket]);
 
     // --- Peer connections ---
 
@@ -185,12 +179,11 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
         (payload: { callId: string; userId: string }) => {
             setCallState((prev) => {
                 if (!prev) return prev;
-                return {
-                    ...prev,
-                    participants: prev.participants.filter(
-                        (p) => p.userId !== payload.userId,
-                    ),
-                };
+                const remaining = prev.participants.filter(p => p.userId !== payload.userId);
+                if (!prev.isGroupCall) {
+                    setCallEndedNotice("L'appel a été refusé");
+                }
+                return { ...prev, participants: remaining };
             });
         },
         [],
@@ -198,14 +191,14 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
 
     const onCallEnded = useCallback(() => {
         if (callState) {
-            setCallEndedNotice("L'autre participant a mis fin a l'appel");
+            setCallEndedNotice(prev => prev ?? "L'autre participant a mis fin a l'appel");
         }
         cleanupCall();
     }, [callState, cleanupCall]);
 
     const onCallError = useCallback(
         (message: string) => {
-            console.error("Call error:", message);
+            setCallEndedNotice(message);
             cleanupCall();
         },
         [cleanupCall],
@@ -254,7 +247,12 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
             const callId = uuidv4();
             const isGroupCall = targetUsers.length > 1;
 
-            await getLocalMediasStream();
+            try {
+                await getLocalMediasStream();
+            } catch {
+                setCallEndedNotice("Accès au micro refusé");
+                return;
+            }
 
             setCallState({
                 callId,
@@ -277,7 +275,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
                 isCameraOn: options.callType === "video",
             });
 
-            getSocket().emit("call:initiate", {
+            getSocket()?.send("call:initiate", {
                 callId,
                 callType: options.callType,
                 targetUserIds: targetUsers.map((u) => u.userId),
@@ -292,7 +290,14 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
     const acceptCall = useCallback(async () => {
         if (!incomingCall || !user) return;
 
-        await getLocalMediasStream();
+        try {
+            await getLocalMediasStream();
+        } catch {
+            setCallEndedNotice("Accès au micro refusé");
+            getSocket()?.send("call:reject", { callId: incomingCall.callId });
+            setIncomingCall(null);
+            return;
+        }
 
         setCallState({
             callId: incomingCall.callId,
@@ -306,7 +311,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
             isCameraOn: incomingCall.callType === "video",
         });
 
-        getSocket().emit("call:accept", {
+        getSocket()?.send("call:accept", {
             callId: incomingCall.callId,
             userName: `${user.firstname} ${user.lastname}`,
             userPicture: user.picture || "",
@@ -317,13 +322,13 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
 
     const rejectCall = useCallback(() => {
         if (!incomingCall) return;
-        getSocket().emit("call:reject", { callId: incomingCall.callId });
+        getSocket()?.send("call:reject", { callId: incomingCall.callId });
         setIncomingCall(null);
     }, [incomingCall, getSocket]);
 
     const hangUp = useCallback(() => {
         if (!callState) return;
-        getSocket().emit("call:hangup", { callId: callState.callId });
+        getSocket()?.send("call:hangup", { callId: callState.callId });
         cleanupCall();
     }, [callState, cleanupCall, getSocket]);
 
@@ -341,7 +346,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
             );
 
             if (callState) {
-                getSocket().emit("call:mute-toggle", {
+                getSocket()?.send("call:mute-toggle", {
                     callId: callState.callId,
                     isMuted: !audioTrack.enabled,
                 });

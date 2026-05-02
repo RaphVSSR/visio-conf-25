@@ -1,0 +1,268 @@
+@use "../../design-system/scss/global.scss" as *;
+
+.channel-form {
+	width: 100%;
+	max-width: 800px;
+	margin: 0 auto;
+	background-color: $bg-white;
+	border-radius: 8px;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+	display: flex;
+	flex-direction: column;
+	max-height: calc(100vh - 40px);
+	position: relative;
+
+	&__header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 16px 20px;
+		border-bottom: 1px solid $bg-divider;
+		flex-shrink: 0;
+	}
+
+	&__title-container {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	&__icon {
+		color: $primary;
+	}
+
+	&__title {
+		font-size: 18px;
+		font-weight: 600;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		color: #111827;
+	}
+
+	&__team-name {
+		font-size: 14px;
+		font-weight: 400;
+		color: $text-subtle;
+		margin-top: 4px;
+	}
+
+	&__close-button {
+		background: transparent;
+		border: none;
+		color: $text-subtle;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		border-radius: 4px;
+		transition: background-color 0.2s;
+
+		&:hover {
+			background-color: $bg-muted;
+			color: #374151;
+		}
+	}
+
+	&__error {
+		padding: 12px;
+		background-color: #fee2e2;
+		color: #b91c1c;
+		border-radius: 6px;
+		font-size: 14px;
+		margin: 16px 20px 0;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	&__form {
+		padding: 20px 20px 0px;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		overflow-y: auto;
+		flex-grow: 1;
+	}
+
+	&__form-group {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	&__label {
+		font-size: 14px;
+		font-weight: 500;
+		color: #374151;
+	}
+
+	&__input-wrapper {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	&__input-icon {
+		position: absolute;
+		left: 12px;
+		color: $text-subtle;
+	}
+
+	&__input {
+		width: 100%;
+		padding: 10px 12px 10px 40px;
+		border: 1px solid #d1d5db;
+		border-radius: 6px;
+		font-size: 14px;
+		transition: border-color 0.2s;
+		color: #111827;
+		background-color: $bg-white;
+
+		&:focus {
+			outline: none;
+			border-color: $primary;
+			box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+		}
+	}
+
+	&__visibility-options {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	&__visibility-option {
+		display: flex;
+		align-items: center;
+		padding: 12px;
+		border: 1px solid #d1d5db;
+		border-radius: 6px;
+		background-color: $bg-white;
+		cursor: pointer;
+		transition: all 0.2s;
+		text-align: left;
+
+		&:hover {
+			border-color: #9ca3af;
+		}
+
+		&--selected {
+			border-color: $primary;
+			background-color: #f5f3ff;
+		}
+	}
+
+	&__visibility-icon {
+		margin-right: 12px;
+		color: $primary;
+	}
+
+	&__option-content {
+		flex: 1;
+	}
+
+	&__option-title {
+		display: block;
+		font-weight: 500;
+		color: #111827;
+		margin-bottom: 4px;
+	}
+
+	&__option-description {
+		display: block;
+		font-size: 13px;
+		color: $text-subtle;
+	}
+
+	&__check-icon {
+		color: $primary;
+	}
+
+	&__actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 12px;
+		padding: 16px 0px;
+		border-top: 1px solid $bg-divider;
+		background-color: $bg-white;
+		position: sticky;
+		bottom: 0px;
+		z-index: 10;
+		flex-shrink: 0;
+	}
+
+	&__cancel-button,
+	&__submit-button {
+		padding: 10px 16px;
+		border-radius: 6px;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		transition: all 0.2s;
+	}
+
+	&__cancel-button {
+		background-color: $bg-white;
+		border: 1px solid #d1d5db;
+		color: #374151;
+
+		&:hover {
+			background-color: $bg-muted;
+		}
+	}
+
+	&__submit-button {
+		background-color: $primary;
+		border: none;
+		color: $bg-white;
+
+		&:hover {
+			background-color: $primary-hover;
+		}
+
+		&:disabled {
+			background-color: $text-subtle;
+			cursor: not-allowed;
+		}
+	}
+
+	&__button-spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		border-radius: 50%;
+		border-top-color: $bg-white;
+		animation: channel-form-spin 1s linear infinite;
+	}
+
+	&__delete-button {
+		margin-right: auto;
+		padding: 10px 16px;
+		border-radius: 6px;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		background-color: #fee2e2;
+		border: 1px solid #fecaca;
+		color: #b91c1c;
+		transition: all 0.2s;
+
+		&:hover {
+			background-color: #fecaca;
+		}
+	}
+}
+
+@keyframes channel-form-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

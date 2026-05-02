@@ -1,283 +1,131 @@
-import crypto from "crypto"
 import { sha256 } from "js-sha256"
 import User from "../../User.ts"
-import Session from "./Session.ts"
-import { type Controller, type ControllerMessage } from "../../../Controller/Controller.types.ts"
-import { ControllerService } from "../../../Controller/Controller.service.ts"
+import SessionManager from "./SessionManager.ts"
+import { getMessagesByDomain } from "../../ListeMessages.ts"
 
-type PendingSessionRequest = {
-	socketId: string
-	userId: string
-	user: any
-	deviceInfo: string
-	timeout: NodeJS.Timeout
-}
+type MessageHandler = (socketId: string, payload: any) => void
 
-export default class AuthService extends ControllerService {
+export default class AuthService {
 
-	private pendingRequests = new Map<string, PendingSessionRequest>()
+	controleur: any
+	nomDInstance: string
+	private handlers = new Map<string, MessageHandler>()
 
-	traitementMessage(mesg: ControllerMessage) {
-
-		const socketId = mesg.id
-		const action = Object.keys(mesg).find(key => key !== "id")
-
-		switch (action) {
-
-			case "login":
-				this.login(socketId, mesg[action] as { email: string, password: string, deviceInfo: string }); break
-
-			case "authenticate":
-				this.authenticate(socketId, mesg[action] as { sessionId: string }); break
-
-			case "register":
-				this.register(socketId, mesg[action] as { password: string, firstname: string, lastname: string, email: string, phone: string }); break
-
-			case "user_disconnect":
-				this.user_disconnect(socketId); break
-
-			case "session_refresh":
-				this.session_refresh(socketId); break
-
-			case "session_pending_choice":
-				this.resultManualSessionValidationByUser(socketId, mesg[action] as { requestId: string, accepted: boolean }); break
-
-			case "client_deconnexion":
-				this.client_deconnexion(mesg[action] as string); break
-		}
+	constructor(controleur: any, name: string) {
+		this.controleur = controleur
+		this.nomDInstance = name
 	}
 
-	private async login(socketId: string, payload: { email: string, password: string, deviceInfo: string }) {
+	private registerHandler(messageName: string, handler: MessageHandler) {
+		this.handlers.set(messageName, handler)
+	}
 
-		const { email, password, deviceInfo } = payload
+	private send(socketIds: string | string[], messageName: string, payload: unknown) {
+		const ids = Array.isArray(socketIds) ? socketIds : [socketIds]
+		this.controleur.envoie(this, { [messageName]: payload, id: ids })
+	}
+
+	traitementMessage(msg: any) {
+		if (typeof msg.socket_disconnect === "string") {
+			this.socketDisconnect(msg.socket_disconnect)
+			return
+		}
+		const action = Object.keys(msg).find(prop => prop !== "id")
+		if (!action) return
+		const handler = this.handlers.get(action)
+		if (handler) handler(msg.id, msg[action])
+	}
+
+	register() {
+		this.registerHandler("login", this.login)
+		this.registerHandler("authenticate", this.authenticate)
+		this.registerHandler("register", this.handleRegister)
+		this.registerHandler("socket_disconnect", this.socketDisconnect)
+
+		const outgoing = [...getMessagesByDomain("auth").received, ...getMessagesByDomain("socket").received]
+		this.controleur.inscription(this, outgoing, [...this.handlers.keys()])
+	}
+
+	private login = async (socketId: string, payload: { email: string, password: string }) => {
+
+		const { email, password } = payload
 
 		const user = await User.getUser(email)
-		if (!user) return this.controleur.envoie(this, { login_failure: { reason: "user_not_found" }, id: [socketId] })
+		if (!user) return this.send(socketId, "login_response", { status: "failure", reason: "user_not_found" })
 
-		if (!this.verifyPassword(password, user.password)) return this.controleur.envoie(this, { login_failure: { reason: "wrong_password" }, id: [socketId] })
+		if (!AuthService.verifyPassword(password, user.password)) return this.send(socketId, "login_response", { status: "failure", reason: "wrong_password" })
 
-		const userDetails = user.toObject()
-		delete userDetails.password
-
-		const existingSessions = await Session.getSessions(user._id!.toString())
-
-		if (existingSessions.length > 0) {
-
-			this.createManualSessionValidationByUser(socketId, userDetails, deviceInfo)
-
-		} else {
-
-			const { sessionId, expiresAt } = await this.createSession(socketId, user._id!.toString())
-			this.controleur.envoie(this, { login_success: { user: userDetails, expiresAt, sessionId }, id: [socketId] })
-
-		}
-	}
-
-	private async createManualSessionValidationByUser(socketId: string, user: any, deviceInfo: string) {
-
-		const requestId = crypto.randomUUID()
+		const userDetails = AuthService.sanitizeUser(user.toObject())
 		const userId = user._id!.toString()
-		const timeoutSeconds = parseInt(process.env.SESSION_APPROVAL_TIMEOUT_SECONDS || "60")
 
-		const timeout = setTimeout(() => {
-			this.rejectManualSessionValidationByUser(requestId, "timeout")
-		}, timeoutSeconds * 1000)
-
-		this.pendingRequests.set(requestId, { socketId, userId, user, deviceInfo, timeout })
-
-		this.controleur.envoie(this, { login_pending: { requestId }, id: [socketId] })
-
-		const userSockets = await Session.getUserSocketIds(userId)
-		if (userSockets.length > 0) {
-			this.controleur.envoie(this, {
-				session_pending: { requestId, requesterInfo: `${user.firstname} ${user.lastname}`, deviceInfo: AuthService.parseDeviceInfo(deviceInfo) },
-				id: userSockets,
-			})
-		}
+		const expiresAt = AuthService.bindSession(socketId, userId)
+		this.send(socketId, "login_response", { status: "success", user: userDetails, expiresAt })
 	}
 
-	private static parseDeviceInfo(ua: string): string {
-		const browser =
-			/Edg\//i.test(ua) ? "Edge" :
-			/OPR|Opera/i.test(ua) ? "Opera" :
-			/Chrome/i.test(ua) ? "Chrome" :
-			/Firefox/i.test(ua) ? "Firefox" :
-			/Safari/i.test(ua) ? "Safari" :
-			"Inconnu"
+	private authenticate = async (socketId: string) => {
 
-		const os =
-			/Windows/i.test(ua) ? "Windows" :
-			/Mac OS/i.test(ua) ? "macOS" :
-			/Android/i.test(ua) ? "Android" :
-			/iPhone|iPad/i.test(ua) ? "iOS" :
-			/Linux/i.test(ua) ? "Linux" :
-			"Inconnu"
+		const userId = SessionManager.getUserId(socketId)
+		if (!userId) return this.send(socketId, "authenticate_response", { status: "failure", reason: "session_expired" })
 
-		return `${browser} sur ${os}`
+		const user = await User.model.findById(userId).select("-password").lean()
+		if (!user) return this.send(socketId, "authenticate_response", { status: "failure", reason: "user_not_found" })
+
+		const expiresAt = AuthService.bindSession(socketId, userId)
+		this.send(socketId, "authenticate_response", { status: "success", user, expiresAt })
 	}
 
-	private resendPendingRequests(userId: string, socketId: string) {
-		for (const [requestId, pending] of this.pendingRequests) {
-			if (pending.userId !== userId) continue
-			this.controleur.envoie(this, {
-				session_pending: {
-					requestId,
-					requesterInfo: `${pending.user.firstname} ${pending.user.lastname}`,
-					deviceInfo: AuthService.parseDeviceInfo(pending.deviceInfo),
-				},
-				id: [socketId],
-			})
-		}
-	}
-
-	private async succeedManualSessionValidationByUser(requestId: string) {
-
-		const pending = this.pendingRequests.get(requestId)
-		if (!pending) return
-
-		clearTimeout(pending.timeout)
-		this.pendingRequests.delete(requestId)
-
-		const { sessionId, expiresAt } = await this.createSession(pending.socketId, pending.userId)
-
-		this.controleur.envoie(this, {
-			login_success: { user: pending.user, expiresAt, sessionId },
-			id: [pending.socketId],
-		})
-
-		const userSockets = await Session.getUserSocketIds(pending.userId)
-		if (userSockets.length > 0) {
-			this.controleur.envoie(this, { session_pending_accepted: { requestId }, id: userSockets })
-		}
-	}
-
-	private async rejectManualSessionValidationByUser(requestId: string, reason: string) {
-
-		const pending = this.pendingRequests.get(requestId)
-		if (!pending) return
-
-		clearTimeout(pending.timeout)
-		this.pendingRequests.delete(requestId)
-
-		this.controleur.envoie(this, { login_failure: { reason }, id: [pending.socketId] })
-
-		const userSockets = await Session.getUserSocketIds(pending.userId)
-		if (userSockets.length > 0) {
-			this.controleur.envoie(this, { session_pending_rejected: { requestId }, id: userSockets })
-		}
-	}
-
-	private async authenticate(socketId: string, payload: { sessionId: string }) {
-
-		const { sessionId } = payload
-
-		if (!sessionId) return this.controleur.envoie(this, { auth_failure: { reason: "session_id_required" }, id: [socketId] })
-
-		const session = await Session.getSession(sessionId)
-		if (!session) return this.controleur.envoie(this, { auth_failure: { reason: "session_no_longer_exists" }, id: [socketId] })
-
-		if (new Date(session.expiresAt).getTime() <= Date.now()) return this.controleur.envoie(this, { auth_failure: { reason: "session_expired" }, id: [socketId] })
-
-		const user = await User.model.findById(session.userId).select('-password').lean()
-		if (!user) return this.controleur.envoie(this, { auth_failure: { reason: "user_not_found" }, id: [socketId] })
-
-		const userSockets = await Session.getUserSocketIds(session.userId.toString())
-
-		if (userSockets.length > 0) {
-
-			this.createManualSessionValidationByUser(socketId, user, session.deviceInfo)
-
-		} else {
-
-			await Session.bindSocket(sessionId, socketId)
-			this.controleur.envoie(this, {
-				auth_success: { user, expiresAt: new Date(session.expiresAt).getTime() },
-				id: [socketId],
-			})
-			this.resendPendingRequests(session.userId.toString(), socketId)
-		}
-	}
-
-	private async register(socketId: string, payload: { password: string, firstname: string, lastname: string, email: string, phone: string }) {
+	private handleRegister = async (socketId: string, payload: { password: string, firstname: string, lastname: string, email: string, phone: string }) => {
 
 		const { password, firstname, lastname, email, phone } = payload
 
 		const existingUser = await User.getUser(email)
-		if (existingUser) return this.controleur.envoie(this, { registration_failure: { reason: "email_already_exists" }, id: [socketId] })
+		if (existingUser) return this.send(socketId, "register_response", { status: "failure", reason: "email_already_exists" })
 
 		try {
-
 			const newUser = new User({
 				firstname, lastname, email, phone,
-				password: this.hashPassword(password),
-			})
+				password: AuthService.hashPassword(password),
+				roles: ["user"],
+			} as any)
 			await newUser.save()
 
-			const { sessionId, expiresAt } = await this.createSession(socketId, newUser.modelInstance._id!.toString())
-			const userDetails = newUser.modelInstance.toObject()
-			delete userDetails.password
+			const userId = newUser.modelInstance._id!.toString()
+			const expiresAt = AuthService.bindSession(socketId, userId)
+			const userDetails = AuthService.sanitizeUser(newUser.modelInstance.toObject())
 
-			this.controleur.envoie(this, {
-				registration_success: { user: userDetails, expiresAt, sessionId },
-				id: [socketId],
-			})
-
-		} catch (err: any) {
-
-			this.controleur.envoie(this, { registration_failure: { reason: err.message }, id: [socketId] })
+			this.send(socketId, "register_response", { status: "success", user: userDetails, expiresAt })
+		} catch (error: any) {
+			this.send(socketId, "register_response", { status: "failure", reason: error.message })
 		}
 	}
 
-	private async user_disconnect(socketId: string) {
+	private socketDisconnect = async (socketId: string) => {
 
-		const session = await Session.getSessionBySocket(socketId)
-		if (!session) return this.controleur.envoie(this, { auth_failure: { reason: "not_authenticated" }, id: [socketId] })
+		const userId = SessionManager.getUserId(socketId)
+		SessionManager.unbind(socketId)
 
-		await Session.deleteSession(session._id!.toString())
-		this.controleur.envoie(this, { user_disconnect_success: {}, id: [socketId] })
-	}
-
-	private async session_refresh(socketId: string) {
-
-		const session = await Session.getSessionBySocket(socketId)
-		if (!session) return this.controleur.envoie(this, { session_expired: {}, id: [socketId] })
-
-		const sessionId = session._id!.toString()
-		const expiresAt = Date.now() + Session.getSessionDurationMs()
-		await Session.refreshSession(sessionId, new Date(expiresAt))
-
-		this.controleur.envoie(this, { session_refreshed: { expiresAt }, id: [socketId] })
-	}
-
-	private resultManualSessionValidationByUser(socketId: string, payload: { requestId: string, accepted: boolean }) {
-
-		const { requestId, accepted } = payload
-
-		if (accepted) {
-			this.succeedManualSessionValidationByUser(requestId)
-		} else {
-			this.rejectManualSessionValidationByUser(requestId, "rejected")
+		if (userId && !SessionManager.hasActiveSessions(userId)) {
+			await User.model.updateOne({ _id: userId }, { is_online: false })
 		}
 	}
 
-	private async client_deconnexion(socketId: string) {
-
-		await Session.clearSocket(socketId)
+	private static bindSession(socketId: string, userId: string): number {
+		const expiresAt = Date.now() + SessionManager.getSessionDurationMs()
+		SessionManager.bind(socketId, userId)
+		User.model.updateOne({ _id: userId }, { is_online: true }).catch(() => {})
+		return expiresAt
 	}
 
-	private async createSession(socketId: string, userId: string): Promise<{ sessionId: string, expiresAt: number }> {
-
-		const expiresAt = Date.now() + Session.getSessionDurationMs()
-		const session = await Session.createSession(userId, socketId, "web", new Date(expiresAt))
-
-		return { sessionId: session._id!.toString(), expiresAt }
+	private static sanitizeUser(user: Record<string, any>) {
+		const { password, ...sanitized } = user
+		return sanitized
 	}
 
-	private hashPassword(password: string): string {
+	private static hashPassword(password: string): string {
 		return sha256(password)
 	}
 
-	private verifyPassword(password: string, hash: string): boolean {
+	private static verifyPassword(password: string, hash: string): boolean {
 		return sha256(password) === hash
 	}
 }

@@ -23,23 +23,6 @@ export type FolderType = {
     files?: FileType[],
 }
 
-/**
- * @extends Collection
- * 
- * Folder est une sous classe -> elle hérite des propriétés et des méthodes de la classe Collection.
- * Chaque dossier est une nouvelle entrée de la collection "Files".
- *
- * @param {FolderType} dataToConstruct - Chaque dossier créé attend des paramètres bien définies pour être valides à l'ajout dans la DB.
- * 
- * La classe Collection est une template que chaque "Collection like" va hériter pour n'avoir à gérer que ses propres propriétés/méthodes personnalisées.
- * 
- * Sur ce point la majorité des propriétés et méthodes des collections sont statiques pour travailler plus facilement avec leurs models.
- * Néanmoins ce ne sont pas des singletons statiques puisque les informations d'instanciation sont stockées dans la propriété "modelInstance" si besoin.
- * 
- * Une fois que toutes les informations sont renseignées et vérifiées, on peut appeller .save() pour envoyer la collection dans la DB.
- * 
- * @see {@link Collection}
- */
 export class Folder extends Collection {
 
     protected static schema = new Schema({
@@ -62,7 +45,7 @@ export class Folder extends Collection {
             type: String,
             required: true,
             description: "UUID of the user who owns this file/folder",
-        },
+        } as any,
         shared: {
             type: Boolean,
             required: true,
@@ -129,11 +112,10 @@ export class Folder extends Collection {
                 console.error(error);
             }
 
-            //if (process.env.VERBOSE) console.log("💾 Folder collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -166,23 +148,6 @@ export type FileType = {
     deletedAt?: Date,
 }
 
-/**
- * @extends Collection
- * 
- * File est une sous classe -> elle hérite des propriétés et des méthodes de la classe Collection.
- * Chaque fichier est une nouvelle entrée de la collection "Files".
- *
- * @param {FileType} dataToConstruct - Chaque fichier créé attend des paramètres bien définies pour être valides à l'ajout dans la DB.
- * 
- * La classe Collection est une template que chaque "Collection like" va hériter pour n'avoir à gérer que ses propres propriétés/méthodes personnalisées.
- * 
- * Sur ce point la majorité des propriétés et méthodes des collections sont statiques pour travailler plus facilement avec leurs models.
- * Néanmoins ce ne sont pas des singletons statiques puisque les informations d'instanciation sont stockées dans la propriété "modelInstance" si besoin.
- * 
- * Une fois que toutes les informations sont renseignées et vérifiées, on peut appeller .save() pour envoyer la collection dans la DB.
- * 
- * @see {@link Collection}
- */
 export class File extends Collection {
 
     protected static schema = new Schema<FileType>({
@@ -220,7 +185,7 @@ export class File extends Collection {
             type: String,
             required: true,
             description: "UUID of the user who owns this file/folder",
-        },
+        } as any,
         shared: {
             type: Boolean,
             required: true,
@@ -259,14 +224,12 @@ export class File extends Collection {
 
     private static areVirtualsInitialized = (() => {
 
-        //Virtual for file's URL
         this.schema.virtual("url").get(function () {
 
             return "/file/" + this.id;
         })
 
-        //Virtual for file's full info
-        this.schema.virtual("info").get(function ( this: HydratedDocument<FileType>): FileType {
+        this.schema.virtual("info").get(function ( this: HydratedDocument<FileType>): any {
             return {
                 id: this.id,
                 name: this.name,
@@ -304,11 +267,10 @@ export class File extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE) console.log("💾 File collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -326,7 +288,7 @@ export default class FileSystem {
 
 		storage: this.defStorage(),
 		limits: {
-			fileSize: 50 * 1024 * 1024, // 50MB limit
+			fileSize: 50 * 1024 * 1024,
 		},
 		fileFilter: this.defFilter(),
 	});
@@ -354,9 +316,9 @@ export default class FileSystem {
                 console.groupEnd();
             }
             
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("testFilesCopying", err.message);
+            throw new TracedError("testFilesCopying", error.message);
         }
 		
 	}
@@ -367,9 +329,9 @@ export default class FileSystem {
             
 			return fs.statSync(filePath).size;
 
-        } catch (err: any) {
+        } catch (error: any) {
          
-			throw new TracedError("getFileSize", err.message);
+			throw new TracedError("getFileSize", error.message);
         }			
 	}
 
@@ -382,9 +344,9 @@ export default class FileSystem {
 
 			if (process.env.VERBOSE === "true") console.log("✅ Local upload dir flushed successfully");
 
-        } catch (err: any) {
+        } catch (error: any) {
 
-            throw new Error("Error while flushing the upload directory. : " + err.message);
+            throw new Error("Error while flushing the upload directory. : " + error.message);
 
         }
     }
@@ -395,12 +357,10 @@ export default class FileSystem {
 
 			destination: (req, file, integrityStatus) => {
 
-				const userId = req.user.uuid;
+				const userId = (req as any).user.uuid;
 				const fileId = req.body.fileId || crypto.randomUUID();
 
-				//req.fileId = fileId // Store for later use
-		
-				const userDir = path.join(FileSystem.filesDir, userId);
+					const userDir = path.join(FileSystem.filesDir, userId);
 				const fileDir = path.join(userDir, fileId);
 		
 				integrityStatus(null, fileDir);
@@ -415,7 +375,7 @@ export default class FileSystem {
 
 	private static defFilter(){
 
-		return (req, file, integrityStatus) => {
+		return (req: any, file: any, integrityStatus: any) => {
 
 			const allowedMimes = [
 				"image/jpeg",

@@ -75,10 +75,9 @@ export default class Team extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE === "true") console.log("💾 User collection created and saved");
 
-        } catch (err: any) {
-            throw new TracedError("collectionSaving", err.message);
+        } catch (error: any) {
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -182,9 +181,9 @@ export default class Team extends Collection {
                 console.log("");
             }
 
-        } catch (err: any) {
+        } catch (error: any) {
 
-            console.trace(err);
+            console.trace(error);
         }
     }
 

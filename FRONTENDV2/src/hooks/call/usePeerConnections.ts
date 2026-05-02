@@ -1,6 +1,6 @@
 import { useRef, useCallback } from "react";
 import type { MutableRefObject } from "react";
-import type { Socket } from "socket.io-client";
+import type MessageClientAdapter from "services/MessageClientAdapter";
 import type { MediaConstraints, SdpPayload, IceCandidatePayload } from "types/Call";
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -12,7 +12,7 @@ const ICE_SERVERS: RTCConfiguration = {
 
 interface PeerConnectionsOptions {
     currentUserId: string | undefined;
-    getSocket: () => Socket;
+    getSocket: () => MessageClientAdapter | null;
     mediaConstraints: MediaConstraints;
     onRemoteTrackReceived: (remoteUserId: string, stream: MediaStream) => void;
     onParticipantConnectionChanged: (remoteUserId: string, connected: boolean) => void;
@@ -61,7 +61,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
 
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
-                    socket.emit("call:ice-candidate", {
+                    socket?.send("call:ice-candidate", {
                         callId,
                         fromUserId: options.currentUserId,
                         toUserId: remoteUserId,
@@ -101,7 +101,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
 
-            options.getSocket().emit("call:offer", {
+            options.getSocket()?.send("call:offer", {
                 callId,
                 fromUserId: options.currentUserId,
                 toUserId: remoteUserId,
@@ -127,7 +127,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
 
-            options.getSocket().emit("call:answer", {
+            options.getSocket()?.send("call:answer", {
                 callId: payload.callId,
                 fromUserId: options.currentUserId,
                 toUserId: payload.fromUserId,

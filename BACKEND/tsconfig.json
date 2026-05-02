@@ -1,22 +1,23 @@
 {
-  "compilerOptions": {
-    "rootDir": "./src",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "target": "esnext",
-    "moduleDetection": "force",
-    "allowImportingTsExtensions": true,
+	"compilerOptions": {
 
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
+		"rootDir": "./src",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"target": "esnext",
+		"moduleDetection": "force",
+		"allowImportingTsExtensions": true,
 
-    "moduleResolution": "bundler",
-    "module": "esnext",
-    "noEmit": true,
-    "outDir": null,
-    "sourceMap": false,
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
 
-    "lib": ["ESNext"]
-  },
-  "include": ["src/**/*.ts", "src/Controller.js"]
+		"moduleResolution": "bundler",
+		"module": "esnext",
+		"noEmit": true,
+		"outDir": null,
+		"sourceMap": false,
+
+		"lib": ["ESNext"],
+	},
+	"include": ["src/**/*.ts"],
 }
