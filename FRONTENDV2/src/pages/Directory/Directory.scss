@@ -1,63 +1,155 @@
 @use "../../design-system/scss/global.scss" as *;
 
 #directoryPage {
-  padding: 32px;
+  padding: 40px;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  background: #f8fafc;
+  min-height: 100vh;
+
+  .directoryContainer {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
 
   .pageHeader {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 40px;
-    gap: 20px;
+    align-items: center;
+    margin-bottom: 32px;
 
     .pageTitle {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 1.75rem;
-      color: $primary;
+      font-size: 2.5rem;
       font-weight: 800;
+      color: #1e293b;
       margin-bottom: 4px;
-
-      svg {
-        color: $link;
-      }
     }
 
-    .pageSubtitle {
-      color: $text-subtle;
+    .memberCount {
+      color: #64748b;
       font-size: 1rem;
+      font-weight: 500;
     }
 
     .searchWrapper {
       position: relative;
-      width: 320px;
+      width: 340px;
 
       .searchIcon {
         position: absolute;
-        left: 14px;
+        left: 16px;
         top: 50%;
         transform: translateY(-50%);
-        color: $text-placeholder;
+        color: #94a3b8;
       }
 
       input {
         width: 100%;
-        padding: 12px 12px 12px 42px;
-        border-radius: 12px;
-        border: 1px solid $bg-divider;
+        padding: 14px 16px 14px 48px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
         background: white;
         font-family: inherit;
-        font-size: 0.95rem;
+        font-size: 1rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         transition: all 0.2s ease;
 
         &:focus {
           outline: none;
-          border-color: $primary;
-          box-shadow: 0 0 0 4px rgba(30, 54, 100, 0.05);
+          border-color: #334155;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+      }
+    }
+  }
+
+  .filterTabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 40px;
+
+    .filterTab {
+      padding: 8px 24px;
+      border-radius: 12px;
+      border: none;
+      background: white;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+
+      &:hover {
+        background: #f1f5f9;
+      }
+
+      &.active {
+        background: #1e293b;
+        color: white;
+        box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
+      }
+    }
+  }
+
+  .myProfileSection {
+    margin-bottom: 40px;
+
+    .myProfileCard {
+      display: flex;
+      align-items: center;
+      padding: 32px;
+      border-radius: 24px;
+      background: white;
+      border: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+
+      .profileIconLarge {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 24px;
+        flex-shrink: 0;
+      }
+
+      .profileInfo {
+        flex: 1;
+
+        .profileMeta {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 8px;
+
+          .profileName {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+          }
+        }
+
+        .profileBio {
+          color: #64748b;
+          font-size: 1rem;
+        }
+      }
+
+      .manageProfileBtn {
+        padding: 12px 28px;
+        border-radius: 14px;
+        border: none;
+        background: #1e293b;
+        color: white;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #0f172a;
+          transform: translateY(-2px);
         }
       }
     }
@@ -65,87 +157,120 @@
 
   .usersGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 24px;
 
     .userCard {
-      height: 100%;
+      padding: 24px;
+      border-radius: 24px;
+      background: white;
+      border: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+      transition: all 0.3s ease;
       display: flex;
       flex-direction: column;
-      padding: 24px;
-      border-radius: 20px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      gap: 24px;
 
       &:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.05);
       }
 
-      .userCardMain {
+      .cardHeader {
         display: flex;
         align-items: center;
         gap: 16px;
-        margin-bottom: 20px;
 
-        .statusIndicator {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
+        .userIconSmall {
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
           flex-shrink: 0;
 
-          &.online { background: $success; box-shadow: 0 0 0 4px rgba($success, 0.1); }
-          &.offline { background: $bg-skeleton-dark; }
+          .statusDot {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 3px solid white;
+
+            &.online { background: #22c55e; }
+            &.offline { background: #94a3b8; }
+          }
         }
 
-        .userName {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: $primary;
-          margin-bottom: 2px;
-        }
+        .userBasic {
+          .userName {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 2px;
+          }
 
-        .userRoleLabel {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.8rem;
-          color: $text-subtle;
-          font-weight: 500;
-
-          svg { color: $purple; }
+          .userEmail {
+            font-size: 0.85rem;
+            color: #64748b;
+          }
         }
       }
 
-      .userCardDetails {
-        flex: 1;
+      .cardFooter {
         display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-bottom: 20px;
-        padding: 16px;
-        background: $bg-light;
-        border-radius: 12px;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: auto;
 
-        .detailItem {
-          display: flex;
-          align-items: center;
-          gap: 10px;
+        .useProfileBtn {
+          background: none;
+          border: none;
+          color: #64748b;
+          font-weight: 600;
           font-size: 0.85rem;
-          color: $text-body;
-          overflow: hidden;
-          
-          span {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 6px;
 
-          svg {
-            color: $text-placeholder;
-            flex-shrink: 0;
+          &:hover {
+            color: #1e293b;
+            background: #f1f5f9;
           }
         }
       }
+    }
+  }
+
+  .roleBadge {
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+
+    &.badge-admin {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
+    &.badge-student {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+
+    &.badge-teacher {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    &.badge-user {
+      background: #f8fafc;
+      color: #475569;
     }
   }
 
@@ -155,17 +280,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 80px 0;
-    color: $empty-text;
+    padding: 100px 0;
+    color: #94a3b8;
 
-    svg {
-      margin-bottom: 16px;
-      color: $empty-icon;
-    }
-
-    h3 {
-      font-size: 1.25rem;
-      margin-bottom: 8px;
-    }
+    svg { margin-bottom: 20px; }
+    h3 { color: #1e293b; margin-bottom: 8px; }
   }
 }
