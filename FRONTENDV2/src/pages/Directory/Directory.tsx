@@ -9,6 +9,7 @@ import {
   User as UserIcon,
   Circle
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useSocket } from "../../hooks/useSocket";
 import { useAuth } from "../../hooks/useAuth";
 import { Card } from "../../design-system/components/Card/Card";
@@ -28,6 +29,7 @@ interface DirectoryUser {
 export const Directory: FC = () => {
   const { controleur, isReady } = useSocket();
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("Tous");
@@ -139,7 +141,7 @@ export const Directory: FC = () => {
                 </div>
                 <p className="profileBio">Salut c'est moi</p>
               </div>
-              <button className="manageProfileBtn">Gérer mon profil</button>
+              <button className="manageProfileBtn" onClick={() => navigate('/profile')}>Gérer mon profil</button>
             </Card>
           </section>
         )}
@@ -163,15 +165,22 @@ export const Directory: FC = () => {
                     </div>
                     <div className="userBasic">
                       <h3 className="userName">{user.firstname} {user.lastname}</h3>
-                      <span className="userEmail">{user.email}</span>
+                      <div className="cardDetails">
+                        <div className="detailItem">
+                          <Mail size={14} /> <span>{user.email}</span>
+                        </div>
+                        {user.phone && (
+                          <div className="detailItem">
+                            <Phone size={14} /> <span>{user.phone}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
                   <div className="cardFooter">
                     <span className={`roleBadge ${getRoleBadgeClass(user.roles?.[0]?.label || "Utilisateur")}`}>
                       {user.roles?.[0]?.label || "Utilisateur"}
                     </span>
-                    <button className="useProfileBtn">Utiliser ce profil</button>
                   </div>
                 </Card>
               </motion.div>

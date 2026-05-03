@@ -18,6 +18,7 @@ export const App = () => {
               <Route path="/home" element={<Home />} />
               <Route path="/directory" element={<Directory />} />
               <Route path="/files" element={<Files />} />
+              <Route path="/profile" element={<Profile />} />
 
               <Route element={<AdminAuth />}>
                 <Route path="/admin" element={<AdminPanel />} />

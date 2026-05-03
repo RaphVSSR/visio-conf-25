@@ -44,6 +44,9 @@ export default class AuthService extends ControllerService {
 
 			case "client_deconnexion":
 				this.client_deconnexion(mesg[action] as string); break
+
+			case "update_user_request":
+				this.update_user(socketId!, mesg[action] as { userId: string, updates: any }); break
 		}
 	}
 
@@ -279,5 +282,28 @@ export default class AuthService extends ControllerService {
 
 	private verifyPassword(password: string, hash: string): boolean {
 		return sha256(password) === hash
+	}
+
+	private async update_user(socketId: string, payload: { userId: string, updates: any }) {
+		const { userId, updates } = payload;
+		try {
+			const updatedUser = await User.model.findByIdAndUpdate(userId, updates, { new: true }).select('-password').lean();
+			if (!updatedUser) {
+				return this.controleur.envoie(this, { 
+					update_user_response: { success: false, error: "Utilisateur non trouvé" }, 
+					id: [socketId] 
+				});
+			}
+
+			this.controleur.envoie(this, { 
+				update_user_response: { success: true, user: updatedUser }, 
+				id: [socketId] 
+			});
+		} catch (err: any) {
+			this.controleur.envoie(this, { 
+				update_user_response: { success: false, error: err.message }, 
+				id: [socketId] 
+			});
+		}
 	}
 }
