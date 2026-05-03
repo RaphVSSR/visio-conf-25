@@ -50,7 +50,10 @@ export const Files: FC = () => {
     };
   }, [controleur, isReady, user, currentSpaceId]);
 
-  const isAdmin = user?.roles?.some((r: any) => r.label?.toLowerCase() === "admin") || false;
+  const isAdmin = user?.roles?.some((r: any) => {
+    if (typeof r === 'string') return r === '69f7b60fa6342ec024f615df'; // Admin ID
+    return r.label?.toLowerCase() === "admin";
+  }) || false;
 
   const handleCreateFolder = () => {
     const name = prompt("Nom du nouveau dossier :");

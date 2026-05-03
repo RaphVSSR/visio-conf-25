@@ -55,7 +55,7 @@ export const Sidebar: FC = () => {
           </div>
           <div className="userInfo">
             <span className="userName">{user?.firstname} {user?.lastname}</span>
-            <span className="userRole">{user?.roles?.[0] ? "Admin" : "Membre"}</span>
+            <span className="userRole">{user?.roles?.[0]?.label || (user?.roles?.[0] === '69f7b60fa6342ec024f615df' ? "Admin" : "Membre")}</span>
           </div>
         </div>
         
