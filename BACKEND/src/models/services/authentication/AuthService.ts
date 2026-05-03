@@ -54,7 +54,7 @@ export default class AuthService extends ControllerService {
 
 		const { email, password, deviceInfo } = payload
 
-		const user = await User.getUser(email)
+		const user = await User.model.findOne({ email }).populate('roles')
 		if (!user) return this.controleur.envoie(this, { login_failure: { reason: "user_not_found" }, id: [socketId] })
 
 		if (!this.verifyPassword(password, user.password)) return this.controleur.envoie(this, { login_failure: { reason: "wrong_password" }, id: [socketId] })
@@ -181,7 +181,7 @@ export default class AuthService extends ControllerService {
 
 		if (new Date(session.expiresAt).getTime() <= Date.now()) return this.controleur.envoie(this, { auth_failure: { reason: "session_expired" }, id: [socketId] })
 
-		const user = await User.model.findById(session.userId).select('-password').lean()
+		const user = await User.model.findById(session.userId).populate('roles').select('-password').lean()
 		if (!user) return this.controleur.envoie(this, { auth_failure: { reason: "user_not_found" }, id: [socketId] })
 
 		const userSockets = await Session.getUserSocketIds(session.userId.toString())
@@ -217,8 +217,8 @@ export default class AuthService extends ControllerService {
 			await newUser.save()
 
 			const { sessionId, expiresAt } = await this.createSession(socketId, newUser.modelInstance._id!.toString())
-			const userDetails = newUser.modelInstance.toObject()
-			delete userDetails.password
+			const userDetails = await User.model.findById(newUser.modelInstance._id).populate('roles').lean()
+			if (userDetails) delete (userDetails as any).password
 
 			this.controleur.envoie(this, {
 				registration_success: { user: userDetails, expiresAt, sessionId },
