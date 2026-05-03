@@ -45,13 +45,13 @@ export const Directory: FC = () => {
       }
     };
 
-    controleur.inscription(emetteur, [], ['directory']);
+    controleur.inscription(emetteur, ['get_directory'], ['directory']);
 
     // Demander la liste des utilisateurs
     controleur.envoie(emetteur, { get_directory: true });
 
     return () => {
-      controleur.desincription(emetteur, [], ['directory']);
+      controleur.desincription(emetteur, ['get_directory'], ['directory']);
     };
   }, [controleur, isReady]);
 
