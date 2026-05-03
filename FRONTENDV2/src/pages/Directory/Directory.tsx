@@ -36,20 +36,22 @@ export const Directory: FC = () => {
   useEffect(() => {
     if (!controleur || !isReady) return;
 
-    const handleMessage = (mesg: any) => {
-      if (mesg.directory && mesg.directory.success) {
-        setUsers(mesg.directory.users);
+    const emetteur = {
+      nomDInstance: comp,
+      traitementMessage: (mesg: any) => {
+        if (mesg.directory && mesg.directory.success) {
+          setUsers(mesg.directory.users);
+        }
       }
     };
 
-    controleur.inscription(comp, [], ['directory']);
-    controleur.setcallback(comp, handleMessage);
+    controleur.inscription(emetteur, [], ['directory']);
 
     // Demander la liste des utilisateurs
-    controleur.envoie(comp, { get_directory: true });
+    controleur.envoie(emetteur, { get_directory: true });
 
     return () => {
-      controleur.desinscription(comp);
+      controleur.desincription(emetteur, [], ['directory']);
     };
   }, [controleur, isReady]);
 
