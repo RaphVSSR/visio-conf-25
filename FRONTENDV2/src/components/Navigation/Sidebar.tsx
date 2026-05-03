@@ -20,7 +20,6 @@ export const Sidebar: FC = () => {
     { name: "Dashboard", path: "/home", icon: <LayoutDashboard size={20} /> },
     { name: "Annuaire", path: "/directory", icon: <Users size={20} /> },
     { name: "Fichiers", path: "/files", icon: <Files size={20} /> },
-    { name: "Paramètres", path: "/settings", icon: <Settings size={20} /> },
   ];
 
   return (
