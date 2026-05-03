@@ -46,6 +46,7 @@ export const Profile: FC = () => {
 
   const componentRef = React.useRef({
     nomDInstance: "ProfilePage",
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     traitementMessage: (msg: any) => {}
   });
 
