@@ -44,29 +44,29 @@ export const Profile: FC = () => {
     }
   }, [user]);
 
+  const componentRef = React.useRef({
+    nomDInstance: "ProfilePage",
+    traitementMessage: (msg: any) => {}
+  });
+
   useEffect(() => {
     if (!controleur || !isReady) return;
 
-    const comp = {
-      nomDInstance: "ProfilePage",
-      traitementMessage: (msg: any) => {
-        if (msg.update_user_response) {
-          setIsSaving(false);
-          if (msg.update_user_response.success) {
-            addToast({ message: "Profil mis à jour avec succès !", variant: "success" });
-            // Mettre à jour le contexte Auth localement si nécessaire
-            // login(msg.update_user_response.user, ...); 
-          } else {
-            addToast({ message: msg.update_user_response.error || "Erreur lors de la mise à jour", variant: "danger" });
-          }
+    componentRef.current.traitementMessage = (msg: any) => {
+      if (msg.update_user_response) {
+        setIsSaving(false);
+        if (msg.update_user_response.success) {
+          addToast({ message: "Profil mis à jour avec succès !", variant: "success" });
+        } else {
+          addToast({ message: msg.update_user_response.error || "Erreur lors de la mise à jour", variant: "danger" });
         }
       }
     };
 
-    controleur.inscription(comp, ["update_user_request"], ["update_user_response"]);
+    controleur.inscription(componentRef.current, ["update_user_request"], ["update_user_response"]);
 
     return () => {
-      controleur.desincription(comp, ["update_user_request"], ["update_user_response"]);
+      controleur.desincription(componentRef.current, ["update_user_request"], ["update_user_response"]);
     };
   }, [controleur, isReady, addToast]);
 
@@ -75,7 +75,7 @@ export const Profile: FC = () => {
     if (!controleur || !isReady || !user) return;
 
     setIsSaving(true);
-    controleur.envoie("ProfilePage", {
+    controleur.envoie(componentRef.current, {
       update_user_request: {
         userId: user._id,
         updates: formData
