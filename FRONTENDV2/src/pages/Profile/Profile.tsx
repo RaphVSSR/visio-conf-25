@@ -57,7 +57,7 @@ export const Profile: FC = () => {
             // Mettre à jour le contexte Auth localement si nécessaire
             // login(msg.update_user_response.user, ...); 
           } else {
-            addToast({ message: msg.update_user_response.error || "Erreur lors de la mise à jour", variant: "error" });
+            addToast({ message: msg.update_user_response.error || "Erreur lors de la mise à jour", variant: "danger" });
           }
         }
       }
