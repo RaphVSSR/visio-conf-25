@@ -23,14 +23,6 @@ export const Home: FC = () => {
         <span id="topBarGreeting">
           {user?.firstname && `Bonjour, ${user.firstname}`}
         </span>
-        <Button
-          id="disconnectBtn"
-          text="Déconnexion"
-          icon="LogOut"
-          iconPosition="left"
-          iconSize={16}
-          onClick={logout}
-        />
       </motion.nav>
 
       <Dashboard />

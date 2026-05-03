@@ -2,6 +2,8 @@ import Controller from "./controleur.js"
 import CanalSocketio from "../canalsocketio.js"
 import SocketIO from "../models/services/SocketIO.ts"
 import AuthService from "../models/services/authentication/AuthService.ts"
+import DirectoryService from "../models/services/DirectoryService.ts"
+import FilesService from "../models/services/FilesService.ts"
 
 export function init() {
 
@@ -20,6 +22,9 @@ export function init() {
 		["authenticate", "login", "register", "user_disconnect", "session_refresh",
 			"session_pending_choice", "client_deconnexion"]
 	)
+
+	new DirectoryService(controleur, SocketIO.server, "DirectoryService")
+	new FilesService(controleur, SocketIO.server, "FilesService")
 
 	if (process.env.VERBOSE === "true") {
 		console.log("✅ Controller initialized")

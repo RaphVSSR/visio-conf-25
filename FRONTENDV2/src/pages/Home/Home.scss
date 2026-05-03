@@ -2,12 +2,11 @@
 
 #homePage {
   @extend %flex-col;
-  height: 100vh;
-  padding: 2%;
-  gap: 20px;
+  min-height: 100%;
+  padding: 32px;
+  gap: 24px;
   color: $text;
-  overflow: hidden;
-  background-color: $bg-page;
+  background-color: transparent;
 
   #topBar {
     display: flex;

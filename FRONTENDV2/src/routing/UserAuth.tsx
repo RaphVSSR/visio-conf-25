@@ -9,6 +9,8 @@ import { AudioCallOverlay, IncomingCallModal } from "components/call";
 import { PhoneOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./CallEndedToast.scss";
+import { Sidebar } from "components/Navigation/Sidebar";
+import "./UserAuth.scss";
 
 const CallEndedToast: FC = () => {
   const { callEndedNotice, dismissCallEndedNotice } = useAudioCall();
@@ -51,7 +53,12 @@ export const UserAuth: FC = () => {
 
   return (
     <AudioCallProvider>
-      <Outlet />
+      <div id="authenticatedLayout">
+        <Sidebar />
+        <main id="mainContent">
+          <Outlet />
+        </main>
+      </div>
       <AudioCallOverlay />
       <IncomingCallModal />
       <CallEndedToast />

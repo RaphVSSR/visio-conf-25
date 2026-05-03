@@ -68,6 +68,19 @@ export const ListeMessagesEmis = [
     "team_add_member_request",
     "team_remove_member_request",
     "all_teams_request",
+    //---- DIRECTORY ----
+    "get_directory",
+    //---- NEW FILES ----
+    "get_files",
+    "upload_file",
+    "update_file",
+    "delete_file",
+    "create_space",
+    "get_spaces",
+    "delete_space",
+    "rename_space",
+    "resolve_path",
+    "update_space_members",
 ]
 
 /**
@@ -148,4 +161,17 @@ export const ListeMessagesRecus = [
     "team_add_member_response",
     "team_remove_member_response",
     "all_teams_response",
+    //---- DIRECTORY ----
+    "directory",
+    //---- NEW FILES ----
+    "files",
+    "file_uploading_status",
+    "file_updating_status",
+    "file_deleting_status",
+    "spaces",
+    "space_creating_status",
+    "space_deleting_status",
+    "space_renaming_status",
+    "resolved_path",
+    "space_members_updating_status",
 ]

@@ -1,5 +1,5 @@
 import { AuthProvider } from "contexts/AuthContext";
-import { AdminPanel, Home, Login, Signup } from "pages";
+import { AdminPanel, Home, Login, Signup, Directory, Files } from "pages";
 import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { UserAuth } from "routing/UserAuth";
@@ -16,6 +16,8 @@ export const App = () => {
             <Route element={<UserAuth />}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/home" element={<Home />} />
+              <Route path="/directory" element={<Directory />} />
+              <Route path="/files" element={<Files />} />
 
               <Route element={<AdminAuth />}>
                 <Route path="/admin" element={<AdminPanel />} />
