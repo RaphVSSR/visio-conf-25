@@ -1,5 +1,5 @@
 import { AuthProvider } from "contexts/AuthContext";
-import { AdminPanel, Home, Login, Signup, Directory, Files } from "pages";
+import { AdminPanel, Home, Login, Signup, Directory, Files, Profile } from "pages";
 import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { UserAuth } from "routing/UserAuth";

@@ -176,6 +176,7 @@ export const Directory: FC = () => {
                         )}
                       </div>
                     </div>
+                  </div>
 
                   <div className="cardFooter">
                     <span className={`roleBadge ${getRoleBadgeClass(user.roles?.[0]?.label || "Utilisateur")}`}>

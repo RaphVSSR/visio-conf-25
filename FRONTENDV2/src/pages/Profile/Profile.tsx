@@ -53,11 +53,11 @@ export const Profile: FC = () => {
         if (msg.update_user_response) {
           setIsSaving(false);
           if (msg.update_user_response.success) {
-            addToast("Profil mis à jour avec succès !", "success");
+            addToast({ message: "Profil mis à jour avec succès !", variant: "success" });
             // Mettre à jour le contexte Auth localement si nécessaire
             // login(msg.update_user_response.user, ...); 
           } else {
-            addToast(msg.update_user_response.error || "Erreur lors de la mise à jour", "error");
+            addToast({ message: msg.update_user_response.error || "Erreur lors de la mise à jour", variant: "error" });
           }
         }
       }
