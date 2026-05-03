@@ -50,6 +50,31 @@ export const Files: FC = () => {
     };
   }, [controleur, isReady, user, currentSpaceId]);
 
+  const isAdmin = user?.roles?.some((r: any) => r.label?.toLowerCase() === "admin") || false;
+
+  const handleCreateFolder = () => {
+    const name = prompt("Nom du nouveau dossier :");
+    if (name && controleur && isReady) {
+      controleur.envoie("FilesPage", {
+        create_space: {
+          name,
+          userId: user?._id,
+          parentId: currentSpaceId,
+          category: 'personal'
+        }
+      });
+    }
+  };
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && controleur && isReady) {
+      // In a real scenario, we'd use a FormData or a specialized message
+      // Here we'll simulate the call
+      alert("L'upload est prêt à être implémenté via stream ou base64.");
+    }
+  };
+
   return (
     <motion.section 
       id="filesPage"
@@ -65,14 +90,17 @@ export const Files: FC = () => {
           <p className="pageSubtitle">Stockez et partagez vos documents en toute sécurité</p>
         </div>
         
-        <div className="headerActions">
-          <button className="actionBtn secondary">
-            <FolderPlus size={18} /> Nouveau dossier
-          </button>
-          <button className="actionBtn primary">
-            <FilePlus size={18} /> Importer
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="headerActions">
+            <button className="actionBtn secondary" onClick={handleCreateFolder}>
+              <FolderPlus size={18} /> Nouveau dossier
+            </button>
+            <label className="actionBtn primary">
+              <FilePlus size={18} /> Importer
+              <input type="file" style={{ display: 'none' }} onChange={handleUpload} />
+            </label>
+          </div>
+        )}
       </header>
 
       <div className="filesBrowser">

@@ -41,6 +41,12 @@ export default class FilesService extends ControllerService {
         else if (mesg.update_space_members) await this.handleUpdateSpaceMembers(socketId!, mesg.update_space_members);
     }
 
+    private async isAdmin(userId: string): Promise<boolean> {
+        const user = await User.model.findById(userId).populate('roles');
+        if (!user) return false;
+        return (user.roles as any[]).some((role: any) => role.label && role.label.toLowerCase() === 'admin');
+    }
+
     // --- Helper: check access for team/personal/global ---
     async checkSpaceAccess(space: any, userId: string) {
         const isOwner = space.owner.toString() === userId;
@@ -153,9 +159,16 @@ export default class FilesService extends ControllerService {
                 if (space) effectiveCategory = space.category;
             }
 
-            const isAdminOrTeacher = true; // Placeholder
+            const isAdmin = await this.isAdmin(userId);
 
-            if (effectiveCategory === 'global' && !isAdminOrTeacher) {
+            if (!isAdmin) {
+                return this.controleur.envoie(this, {
+                    file_uploading_status: { success: false, error: 'Seuls les administrateurs peuvent ajouter des fichiers' },
+                    id: [socketId]
+                });
+            }
+
+            if (effectiveCategory === 'global' && !isAdmin) {
                 return this.controleur.envoie(this, {
                     file_uploading_status: { success: false, error: 'Permission refusée pour le silo Commun' },
                     id: [socketId]
@@ -328,9 +341,16 @@ export default class FilesService extends ControllerService {
                 if (parent) effectiveCategory = parent.category;
             }
 
-            const isStaff = true; // Placeholder
+            const isAdmin = await this.isAdmin(userId);
 
-            if (effectiveCategory === 'global' && !isStaff) {
+            if (!isAdmin) {
+                return this.controleur.envoie(this, {
+                    space_creating_status: { success: false, error: 'Seuls les administrateurs peuvent créer des dossiers' },
+                    id: [socketId]
+                });
+            }
+
+            if (effectiveCategory === 'global' && !isAdmin) {
                 return this.controleur.envoie(this, {
                     space_creating_status: { success: false, error: 'Permission refusée' },
                     id: [socketId]
