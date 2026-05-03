@@ -3,6 +3,17 @@ import ReactDOM from "react-dom/client";
 import reportWebVitals from "./reportWebVitals";
 import { App } from "core/App";
 
+// Suppress ResizeObserver loop limit exceeded error which is non-critical
+window.addEventListener('error', e => {
+  if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+    const resizeObserverErrGuidance = document.getElementById('webpack-dev-server-client-overlay-div');
+    const resizeObserverErr = document.getElementById('webpack-dev-server-client-overlay');
+    if (resizeObserverErr) resizeObserverErr.setAttribute('style', 'display: none');
+    if (resizeObserverErrGuidance) resizeObserverErrGuidance.setAttribute('style', 'display: none');
+    e.stopImmediatePropagation();
+  }
+});
+
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element not found");
 
