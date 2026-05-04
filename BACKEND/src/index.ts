@@ -16,16 +16,18 @@ import TeamService from "./models/services/TeamService.ts"
 import UserService from "./models/services/UserService.ts"
 import CallSignaling from "./models/services/CallSignaling.ts"
 import ContactsService from "./models/services/ContactsService.ts"
+import FilesService from "./models/services/FilesService.ts"
 
 dotenv.config()
 
-function registerServices(controleur: any) {
+function registerServices(controleur: any, io: any) {
 	new AuthService(controleur, "AuthService").register()
 	new ChannelService(controleur, "ChannelService").register()
 	new TeamService(controleur, "TeamService").register()
 	new UserService(controleur, "UserService").register()
 	new CallSignaling(controleur, "CallSignaling").register()
 	new ContactsService(controleur, "ContactsService").register()
+	new FilesService(controleur, io, "FilesService").register()
 }
 
 try {
@@ -47,7 +49,7 @@ try {
 
 	const socketServer = new Server(HTTPServer.server, {
 		cors: {
-			origin: process.env.FRONTEND_URL || "http://localhost:3000",
+			origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"],
 			methods: ["GET", "POST"],
 			credentials: true,
 		}
@@ -58,7 +60,7 @@ try {
 	const controleur = new Controleur()
 	new CanalSocketIO(socketServer, controleur, "canalsocketio")
 
-	registerServices(controleur)
+	registerServices(controleur, socketServer)
 
 	HTTPServer.listen()
 

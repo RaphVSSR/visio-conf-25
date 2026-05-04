@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, type FC } from "react"
 import { motion } from "framer-motion"
 import "./PostItem.scss"
 import { MessageCircle, Send } from "lucide-react"
-import PostResponseItem from "../PostResponseItem/PostResponseItem"
+import PostResponseItem from "../PostResponseItem"
 import formatRelativeDate from "utils/formatRelativeDate"
 
 interface PostItemProps {

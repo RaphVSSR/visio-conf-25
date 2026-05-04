@@ -54,7 +54,7 @@ export default class Permission extends Collection {
 
     static async inject(){
 
-        [
+        const perms = [
             {
                 uuid: "naviguer_vers",
                 label: "Naviguer vers",
@@ -285,12 +285,12 @@ export default class Permission extends Collection {
                 label: "Utilisateurs connectés",
                 default: true,
             },
+        ];
 
-        ].forEach(perm => {
-
-            const newPerm = new Permission(perm);
-            newPerm.save();
-        })
+        for (const perm of perms) {
+            const newPerm = new Permission(perm as any);
+            await newPerm.save();
+        }
     }
 
     async save(){

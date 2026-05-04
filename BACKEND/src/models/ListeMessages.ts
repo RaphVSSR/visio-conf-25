@@ -47,6 +47,22 @@ const MessageRegistry: Record<string, MessageDomain> = {
 		emitted: ["contacts:list"],
 		received: ["contacts:list:response"],
 	},
+	files: {
+		emitted: [
+			"get_files", "upload_file", "update_file", "delete_file",
+			"create_space", "get_spaces", "delete_space", "rename_space",
+			"resolve_path", "update_space_members"
+		],
+		received: [
+			"files", "file_uploading_status", "file_updating_status", "file_deleting_status",
+			"spaces", "space_creating_status", "space_deleting_status", "space_renaming_status",
+			"resolved_path", "space_members_updating_status"
+		],
+	},
+	directory: {
+		emitted: ["get_directory"],
+		received: ["directory"],
+	},
 }
 
 export function getMessagesByDomain(domain: string): MessageDomain {

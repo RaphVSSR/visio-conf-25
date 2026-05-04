@@ -11,7 +11,12 @@ export default class MessageClientAdapter {
 
 	constructor(url: string) {
 
-		this.socket = socketClient(url, { autoConnect: true, reconnection: true, withCredentials: true })
+		this.socket = socketClient(url, { 
+			autoConnect: true, 
+			reconnection: true, 
+			withCredentials: true,
+			transports: ["websocket", "polling"]
+		})
 
 		this.socket.on("message", (raw: string) => {
 			const parsed = JSON.parse(raw)
