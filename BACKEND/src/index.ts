@@ -11,6 +11,7 @@ import User from "./models/User.ts"
 import Permission from "./models/Permission.ts"
 import Role from "./models/Role.ts"
 import AuthService from "./models/services/authentication/AuthService.ts"
+import RoleService from "./models/services/RoleService.ts"
 import ChannelService from "./models/services/ChannelService.ts"
 import TeamService from "./models/services/TeamService.ts"
 import UserService from "./models/services/UserService.ts"
@@ -22,6 +23,7 @@ dotenv.config()
 
 function registerServices(controleur: any, io: any) {
 	new AuthService(controleur, "AuthService").register()
+	new RoleService(controleur, "RoleService").register()
 	new ChannelService(controleur, "ChannelService").register()
 	new TeamService(controleur, "TeamService").register()
 	new UserService(controleur, "UserService").register()
