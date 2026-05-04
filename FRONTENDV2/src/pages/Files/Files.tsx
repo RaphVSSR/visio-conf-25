@@ -8,7 +8,13 @@ import {
   Trash2,
   Folder,
   ArrowLeft,
-  Download
+  Download,
+  Eye,
+  X,
+  FileText,
+  Image as ImageIcon,
+  Film,
+  Music
 } from "lucide-react";
 import { useAuth } from "hooks/useAuth";
 import { Card } from "design-system/components";
@@ -20,6 +26,7 @@ export const Files: FC = () => {
   const [spaces, setSpaces] = useState<any[]>([]);
   const [currentSpaceId, setCurrentSpaceId] = useState<string | null>(null);
   const [currentPath, setCurrentPath] = useState<any[]>([]);
+  const [previewFile, setPreviewFile] = useState<any | null>(null);
 
   useEffect(() => {
     if (!socket || !user) return;
@@ -92,12 +99,21 @@ export const Files: FC = () => {
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && socket) {
+    if (!file) return;
+
+    // 500MB Limit
+    const MAX_SIZE = 500 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      alert("Le fichier est trop volumineux (max 500 MO)");
+      return;
+    }
+
+    if (socket) {
       socket.send("upload_file", {
         name: file.name,
         size: file.size,
         type: file.type,
-        url: "https://example.com/" + file.name, // Mock URL
+        url: URL.createObjectURL(file), // Using local URL for preview in this demo
         userId: user?._id,
         spaceId: currentSpaceId,
         category: 'personal'
@@ -110,6 +126,22 @@ export const Files: FC = () => {
     setCurrentSpaceId(space._id);
   };
 
+  const handleDownload = (file: any) => {
+    const link = document.createElement("a");
+    link.href = file.url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const getFileIcon = (type: string) => {
+    if (type.startsWith("image/")) return <ImageIcon size={24} />;
+    if (type.startsWith("video/")) return <Film size={24} />;
+    if (type.startsWith("audio/")) return <Music size={24} />;
+    if (type.includes("pdf") || type.includes("text")) return <FileText size={24} />;
+    return <FilesIcon size={24} />;
+  };
   const handleGoBack = () => {
     const newPath = [...currentPath];
     newPath.pop();
@@ -179,13 +211,16 @@ export const Files: FC = () => {
           {/* Files */}
           {files.map(file => (
             <Card key={file._id} className="itemCard file">
-              <div className="itemIcon"><FilesIcon size={24} /></div>
-              <div className="itemInfo">
+              <div className="itemIcon" onClick={() => setPreviewFile(file)}>
+                {getFileIcon(file.type)}
+              </div>
+              <div className="itemInfo" onClick={() => setPreviewFile(file)}>
                 <span className="itemName">{file.name}</span>
-                <span className="itemMeta">{(file.size / 1024).toFixed(1)} KB • {new Date(file.createdAt).toLocaleDateString()}</span>
+                <span className="itemMeta">{(file.size / (1024 * 1024)).toFixed(2)} MB • {new Date(file.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="itemActions">
-                <button title="Télécharger"><Download size={16} /></button>
+                <button title="Prévisualiser" onClick={() => setPreviewFile(file)}><Eye size={16} /></button>
+                <button title="Télécharger" onClick={() => handleDownload(file)}><Download size={16} /></button>
                 <button title="Supprimer" className="danger" onClick={() => handleDeleteFile(file._id)}>
                   <Trash2 size={16} />
                 </button>
@@ -193,6 +228,34 @@ export const Files: FC = () => {
             </Card>
           ))}
         </div>
+
+        {/* Preview Modal */}
+        {previewFile && (
+          <div className="previewModal" onClick={() => setPreviewFile(null)}>
+            <div className="modalContent" onClick={e => e.stopPropagation()}>
+              <button className="closeBtn" onClick={() => setPreviewFile(null)}><X size={24} /></button>
+              <div className="previewHeader">
+                <h2>{previewFile.name}</h2>
+                <p>{(previewFile.size / (1024 * 1024)).toFixed(2)} MB • {previewFile.type}</p>
+              </div>
+              <div className="previewBody">
+                {previewFile.type.startsWith("image/") ? (
+                  <img src={previewFile.url} alt={previewFile.name} />
+                ) : (
+                  <div className="noPreview">
+                    {getFileIcon(previewFile.type)}
+                    <p>Aucun aperçu disponible pour ce type de fichier</p>
+                  </div>
+                )}
+              </div>
+              <div className="previewFooter">
+                <button className="actionBtn primary" onClick={() => handleDownload(previewFile)}>
+                  <Download size={18} /> Télécharger
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
 
         {spaces.length === 0 && files.length === 0 && (
