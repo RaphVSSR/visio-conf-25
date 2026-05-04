@@ -34,7 +34,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 	{ label: "Discussions", path: "/discussions", icon: "MessageSquare" },
 	{ label: "Equipes",     path: "/equipes",     icon: "Users" },
 	{ label: "Drive",       path: "/drive",       icon: "FolderOpen" },
-	{ label: "Annuaire",    path: "/annuaire",    icon: "BookOpen" },
+	{ label: "Annuaire",    path: "/annuaire",    icon: "Users" },
 	{ label: "Admin",       path: "/admin",       icon: "UserRoundCog", requiresRole: "admin" },
 ];
 

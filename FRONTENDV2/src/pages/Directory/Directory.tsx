@@ -10,13 +10,12 @@ import {
   Circle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useSocket } from "../../hooks/useSocket";
 import { useAuth } from "../../hooks/useAuth";
 import { Card } from "../../design-system/components/Card/Card";
 import "./Directory.scss";
 
 interface DirectoryUser {
-  _id: string;
+  id: string;
   firstname: string;
   lastname: string;
   email: string;
@@ -27,52 +26,39 @@ interface DirectoryUser {
 }
 
 export const Directory: FC = () => {
-  const { controleur, isReady } = useSocket();
-  const { user: currentUser } = useAuth();
+  const { socket, user: currentUser } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState("Tous");
-  const comp = "Directory";
 
   useEffect(() => {
-    if (!controleur || !isReady) return;
+    if (!socket) return;
 
-    const emetteur = {
-      nomDInstance: comp,
-      traitementMessage: (mesg: any) => {
-        if (mesg.directory && mesg.directory.success) {
-          setUsers(mesg.directory.users);
-        }
+    const handleUserGet = (mesg: any) => {
+      if (mesg.type === 'list' && mesg.etat) {
+        setUsers(mesg.users);
       }
     };
 
-    controleur.inscription(emetteur, ['get_directory'], ['directory']);
+    socket.on("user_get_response", handleUserGet);
 
-    // Demander la liste des utilisateurs
-    controleur.envoie(emetteur, { get_directory: true });
+    socket.onReady(() => {
+        socket.send("user_get", { type: 'list' });
+    });
 
     return () => {
-      controleur.desincription(emetteur, ['get_directory'], ['directory']);
+      socket.off("user_get_response", handleUserGet);
     };
-  }, [controleur, isReady]);
+  }, [socket]);
+
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       const fullName = `${user.firstname} ${user.lastname}`.toLowerCase();
-      const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || 
-                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      if (activeFilter === "Tous") return matchesSearch;
-      
-      const roleLabel = user.roles?.[0]?.label || "Utilisateur";
-      if (activeFilter === "Admins") return matchesSearch && roleLabel.toLowerCase().includes("admin");
-      if (activeFilter === "Étudiants") return matchesSearch && roleLabel.toLowerCase().includes("etudiant");
-      if (activeFilter === "Enseignants") return matchesSearch && roleLabel.toLowerCase().includes("enseignant");
-      
-      return matchesSearch;
+      return fullName.includes(searchTerm.toLowerCase()) || 
+             user.email.toLowerCase().includes(searchTerm.toLowerCase());
     });
-  }, [users, searchTerm, activeFilter]);
+  }, [users, searchTerm]);
 
   const getRoleBadgeClass = (roleLabel: string) => {
     const label = roleLabel.toLowerCase();
@@ -88,10 +74,8 @@ export const Directory: FC = () => {
     return colors[index];
   };
 
-  const me = users.find(u => u._id === currentUser?._id);
-  const others = filteredUsers.filter(u => u._id !== currentUser?._id);
-
-  const filters = ["Tous", "Étudiants", "Enseignants", "Admins"];
+  const me = users.find(u => u.id === currentUser?._id);
+  const others = filteredUsers.filter(u => u.id !== currentUser?._id);
 
   return (
     <div id="directoryPage">
@@ -113,30 +97,18 @@ export const Directory: FC = () => {
           </div>
         </header>
 
-        <div className="filterTabs">
-          {filters.map(filter => (
-            <button 
-              key={filter}
-              className={`filterTab ${activeFilter === filter ? 'active' : ''}`}
-              onClick={() => setActiveFilter(filter)}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
-
         {/* My Profile Card (like in the example) */}
-        {me && activeFilter === "Tous" && !searchTerm && (
+        {me && !searchTerm && (
           <section className="myProfileSection">
             <Card className="myProfileCard">
-              <div className="profileIconLarge" style={{ background: getAbstractColor(me._id) }}>
+              <div className="profileIconLarge" style={{ background: getAbstractColor(me.id) }}>
                 <UserIcon size={40} color="white" />
               </div>
               <div className="profileInfo">
                 <div className="profileMeta">
                   <h2 className="profileName">{me.firstname} {me.lastname}</h2>
-                  <span className={`roleBadge ${getRoleBadgeClass(me.roles?.[0]?.label || "Utilisateur")}`}>
-                    {me.roles?.[0]?.label || "Utilisateur"}
+                  <span className={`roleBadge ${getRoleBadgeClass(typeof me.roles?.[0] === 'string' ? me.roles[0] : (me.roles?.[0]?.label || "Utilisateur"))}`}>
+                    {typeof me.roles?.[0] === 'string' ? me.roles[0] : (me.roles?.[0]?.label || "Utilisateur")}
                   </span>
                 </div>
                 <p className="profileBio">Salut c'est moi</p>
@@ -150,7 +122,7 @@ export const Directory: FC = () => {
           <AnimatePresence>
             {others.map((user) => (
               <motion.div
-                key={user._id}
+                key={user.id}
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -159,7 +131,7 @@ export const Directory: FC = () => {
               >
                 <Card className="userCard">
                   <div className="cardHeader">
-                    <div className="userIconSmall" style={{ background: getAbstractColor(user._id) }}>
+                    <div className="userIconSmall" style={{ background: getAbstractColor(user.id) }}>
                        <UserIcon size={24} color="white" />
                        <div className={`statusDot ${user.is_online ? 'online' : 'offline'}`} />
                     </div>
@@ -179,8 +151,8 @@ export const Directory: FC = () => {
                   </div>
 
                   <div className="cardFooter">
-                    <span className={`roleBadge ${getRoleBadgeClass(user.roles?.[0]?.label || "Utilisateur")}`}>
-                      {user.roles?.[0]?.label || "Utilisateur"}
+                    <span className={`roleBadge ${getRoleBadgeClass(typeof user.roles?.[0] === 'string' ? user.roles[0] : (user.roles?.[0]?.label || "Utilisateur"))}`}>
+                      {typeof user.roles?.[0] === 'string' ? user.roles[0] : (user.roles?.[0]?.label || "Utilisateur")}
                     </span>
                   </div>
                 </Card>

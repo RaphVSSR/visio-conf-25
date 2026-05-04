@@ -11,14 +11,12 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { useSocket } from "../../hooks/useSocket";
 import { Card } from "../../design-system/components/Card/Card";
 import { useToast } from "../../contexts/ToastContext";
 import "./Profile.scss";
 
 export const Profile: FC = () => {
-  const { user, login } = useAuth();
-  const { controleur, isReady } = useSocket();
+  const { user, login, socket } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
   
@@ -44,45 +42,38 @@ export const Profile: FC = () => {
     }
   }, [user]);
 
-  const componentRef = React.useRef({
-    nomDInstance: "ProfilePage",
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    traitementMessage: (msg: any) => {}
-  });
-
   useEffect(() => {
-    if (!controleur || !isReady) return;
+    if (!socket) return;
 
-    componentRef.current.traitementMessage = (msg: any) => {
-      if (msg.update_user_response) {
+    const handleUpdateResponse = (msg: any) => {
+      if (msg.type === 'profile') {
         setIsSaving(false);
-        if (msg.update_user_response.success) {
+        if (msg.etat) {
           addToast({ message: "Profil mis à jour avec succès !", variant: "success" });
         } else {
-          addToast({ message: msg.update_user_response.error || "Erreur lors de la mise à jour", variant: "danger" });
+          addToast({ message: msg.error || "Erreur lors de la mise à jour", variant: "danger" });
         }
       }
     };
 
-    controleur.inscription(componentRef.current, ["update_user_request"], ["update_user_response"]);
+    socket.on("user_update_response", handleUpdateResponse);
 
     return () => {
-      controleur.desincription(componentRef.current, ["update_user_request"], ["update_user_response"]);
+      socket.off("user_update_response", handleUpdateResponse);
     };
-  }, [controleur, isReady, addToast]);
+  }, [socket, addToast]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!controleur || !isReady || !user) return;
+    if (!socket || !user) return;
 
     setIsSaving(true);
-    controleur.envoie(componentRef.current, {
-      update_user_request: {
-        userId: user._id,
-        updates: formData
-      }
+    socket.send("user_update", {
+        type: 'profile',
+        ...formData
     });
   };
+
 
   return (
     <div id="profilePage">

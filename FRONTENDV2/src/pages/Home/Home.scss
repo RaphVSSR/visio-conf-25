@@ -2,21 +2,12 @@
 @use "../../design-system/scss/global.scss" as *;
 
 #homePage {
-<<<<<<< HEAD
-  @extend %flex-col;
-  min-height: 100%;
-  padding: 32px;
-  gap: 24px;
-  color: $text;
-  background-color: transparent;
-=======
 	@extend %flex-col;
 	height: 100vh;
 	padding: 24px 28px;
 	gap: 20px;
 	color: $text;
 	overflow: hidden;
->>>>>>> main
 
 	#homeGreeting {
 		#greetingText {

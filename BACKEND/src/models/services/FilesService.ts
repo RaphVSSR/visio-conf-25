@@ -1,45 +1,55 @@
-import { ControllerService } from "../../Controller/Controller.service.ts";
-import { Controller, ControllerMessage } from "../../Controller/Controller.types.ts";
 import User from "../User.ts";
 import File from "../File.ts";
 import Space from "../Space.ts";
+import { getMessagesByDomain } from "../ListeMessages.ts";
 
-export default class FilesService extends ControllerService {
+type MessageHandler = (socketId: string, payload: any) => void;
+
+export default class FilesService {
+    controleur: any;
+    nomDInstance: string;
     io: any;
+    private handlers = new Map<string, MessageHandler>();
 
-    constructor(controleur: Controller, io: any, nom?: string) {
-        super(
-            controleur,
-            nom || 'FilesService',
-            [
-                'files', 'file_uploading_status', 'file_updating_status', 'file_deleting_status',
-                'spaces', 'space_creating_status', 'space_deleting_status', 'space_renaming_status',
-                'resolved_path', 'space_members_updating_status'
-            ],
-            [
-                'get_files', 'upload_file', 'update_file', 'delete_file',
-                'create_space', 'get_spaces', 'delete_space', 'rename_space',
-                'resolve_path', 'update_space_members'
-            ]
-        );
+    constructor(controleur: any, io: any, name: string = 'FilesService') {
+        this.controleur = controleur;
         this.io = io;
+        this.nomDInstance = name;
         console.log(`[${this.nomDInstance}] Service enregistré auprès du controleur`);
     }
 
-    async traitementMessage(mesg: ControllerMessage) {
-        const socketId = mesg.id;
-
-        if (mesg.get_files) await this.handleGetFiles(socketId!, mesg.get_files);
-        else if (mesg.upload_file) await this.handleUploadFile(socketId!, mesg.upload_file);
-        else if (mesg.update_file) await this.handleUpdateFile(socketId!, mesg.update_file);
-        else if (mesg.delete_file) await this.handleDeleteFile(socketId!, mesg.delete_file);
-        else if (mesg.create_space) await this.handleCreateSpace(socketId!, mesg.create_space);
-        else if (mesg.get_spaces) await this.handleGetSpaces(socketId!, mesg.get_spaces);
-        else if (mesg.delete_space) await this.handleDeleteSpace(socketId!, mesg.delete_space);
-        else if (mesg.rename_space) await this.handleRenameSpace(socketId!, mesg.rename_space);
-        else if (mesg.resolve_path) await this.handleResolvePath(socketId!, mesg.resolve_path);
-        else if (mesg.update_space_members) await this.handleUpdateSpaceMembers(socketId!, mesg.update_space_members);
+    private registerHandler(messageName: string, handler: MessageHandler) {
+        this.handlers.set(messageName, handler);
     }
+
+    private send(socketIds: string | string[], messageName: string, payload: unknown) {
+        const ids = Array.isArray(socketIds) ? socketIds : [socketIds];
+        this.controleur.envoie(this, { [messageName]: payload, id: ids });
+    }
+
+    register() {
+        this.registerHandler("get_files", this.handleGetFiles);
+        this.registerHandler("upload_file", this.handleUploadFile);
+        this.registerHandler("update_file", this.handleUpdateFile);
+        this.registerHandler("delete_file", this.handleDeleteFile);
+        this.registerHandler("create_space", this.handleCreateSpace);
+        this.registerHandler("get_spaces", this.handleGetSpaces);
+        this.registerHandler("delete_space", this.handleDeleteSpace);
+        this.registerHandler("rename_space", this.handleRenameSpace);
+        this.registerHandler("resolve_path", this.handleResolvePath);
+        this.registerHandler("update_space_members", this.handleUpdateSpaceMembers);
+
+        const outgoing = getMessagesByDomain("files").received;
+        this.controleur.inscription(this, outgoing, [...this.handlers.keys()]);
+    }
+
+    traitementMessage(msg: any) {
+        const action = Object.keys(msg).find(prop => prop !== "id");
+        if (!action) return;
+        const handler = this.handlers.get(action);
+        if (handler) handler(msg.id, msg[action]);
+    }
+
 
     private async isAdmin(userId: string): Promise<boolean> {
         const user = await User.model.findById(userId).populate('roles');
@@ -159,21 +169,9 @@ export default class FilesService extends ControllerService {
                 if (space) effectiveCategory = space.category;
             }
 
-            const isAdmin = await this.isAdmin(userId);
+            // Removed admin check to allow everyone to upload files
 
-            if (!isAdmin) {
-                return this.controleur.envoie(this, {
-                    file_uploading_status: { success: false, error: 'Seuls les administrateurs peuvent ajouter des fichiers' },
-                    id: [socketId]
-                });
-            }
-
-            if (effectiveCategory === 'global' && !isAdmin) {
-                return this.controleur.envoie(this, {
-                    file_uploading_status: { success: false, error: 'Permission refusée pour le silo Commun' },
-                    id: [socketId]
-                });
-            }
+            // Allowed global upload for everyone
 
             if (spaceId) {
                 const space = await Space.model.findById(spaceId);
@@ -341,21 +339,9 @@ export default class FilesService extends ControllerService {
                 if (parent) effectiveCategory = parent.category;
             }
 
-            const isAdmin = await this.isAdmin(userId);
+            // Removed admin check to allow everyone to create folders
 
-            if (!isAdmin) {
-                return this.controleur.envoie(this, {
-                    space_creating_status: { success: false, error: 'Seuls les administrateurs peuvent créer des dossiers' },
-                    id: [socketId]
-                });
-            }
-
-            if (effectiveCategory === 'global' && !isAdmin) {
-                return this.controleur.envoie(this, {
-                    space_creating_status: { success: false, error: 'Permission refusée' },
-                    id: [socketId]
-                });
-            }
+            // Allowed global space creation for everyone
 
             if (parentId) {
                 const parentSpace = await Space.model.findById(parentId);

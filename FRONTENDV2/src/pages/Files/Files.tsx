@@ -11,72 +11,100 @@ import {
   Trash2,
   Folder
 } from "lucide-react";
-import { useSocket } from "../../hooks/useSocket";
 import { useAuth } from "hooks/useAuth";
 import { Card } from "design-system/components";
 import "./Files.tsx.scss";
 
 export const Files: FC = () => {
-  const { controleur, isReady } = useSocket();
-  const { user } = useAuth();
+  const { socket, user } = useAuth();
   const [files, setFiles] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [currentSpaceId, setCurrentSpaceId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!controleur || !isReady || !user) return;
+    if (!socket || !user) return;
 
-    const comp = {
-      nomDInstance: "FilesPage",
-      traitementMessage: (msg: any) => {
-        if (msg.files && msg.files.success) setFiles(msg.files.files);
-        if (msg.spaces && msg.spaces.success) setSpaces(msg.spaces.spaces);
-      }
+    const handleFiles = (data: any) => {
+      if (data.success) setFiles(data.files);
+    };
+    const handleSpaces = (data: any) => {
+      if (data.success) setSpaces(data.spaces);
+    };
+    const handleFileUploadStatus = (data: any) => {
+      if (data.success) setFiles(prev => [data.file, ...prev]);
+    };
+    const handleSpaceCreatingStatus = (data: any) => {
+      if (data.success) setSpaces(prev => [...prev, data.space]);
+    };
+    const handleFileDeletingStatus = (data: any) => {
+      if (data.success) setFiles(prev => prev.filter(f => f._id !== data.fileId));
+    };
+    const handleSpaceDeletingStatus = (data: any) => {
+      if (data.success) setSpaces(prev => prev.filter(s => s._id !== data.spaceId));
     };
 
-    const sentMessages = ['get_files', 'get_spaces'];
-    const returnedMessages = ['files', 'spaces'];
+    socket.on("files", handleFiles);
+    socket.on("spaces", handleSpaces);
+    socket.on("file_uploading_status", handleFileUploadStatus);
+    socket.on("space_creating_status", handleSpaceCreatingStatus);
+    socket.on("file_deleting_status", handleFileDeletingStatus);
+    socket.on("space_deleting_status", handleSpaceDeletingStatus);
 
-    controleur.inscription(comp, sentMessages, returnedMessages);
-    
-    // Initial fetch
-    controleur.envoie(comp, { 
-      get_files: { userId: user._id, spaceId: currentSpaceId, category: 'personal' },
-      get_spaces: { userId: user._id, parentId: currentSpaceId, category: 'personal' }
+    socket.onReady(() => {
+      socket.send("get_files", { userId: user._id, spaceId: currentSpaceId, category: 'personal' });
+      socket.send("get_spaces", { userId: user._id, parentId: currentSpaceId, category: 'personal' });
     });
 
     return () => {
-      controleur.desincription(comp, sentMessages, returnedMessages);
+      socket.off("files", handleFiles);
+      socket.off("spaces", handleSpaces);
+      socket.off("file_uploading_status", handleFileUploadStatus);
+      socket.off("space_creating_status", handleSpaceCreatingStatus);
+      socket.off("file_deleting_status", handleFileDeletingStatus);
+      socket.off("space_deleting_status", handleSpaceDeletingStatus);
     };
-  }, [controleur, isReady, user, currentSpaceId]);
-
-  const isAdmin = user?.roles?.some((r: any) => {
-    if (typeof r === 'string') return r === '69f7b60fa6342ec024f615df'; // Admin ID
-    return r.label?.toLowerCase() === "admin";
-  }) || false;
+  }, [socket, user, currentSpaceId]);
 
   const handleCreateFolder = () => {
     const name = prompt("Nom du nouveau dossier :");
-    if (name && controleur && isReady) {
-      controleur.envoie("FilesPage", {
-        create_space: {
-          name,
-          userId: user?._id,
-          parentId: currentSpaceId,
-          category: 'personal'
-        }
+    if (name && socket) {
+      socket.send("create_space", {
+        name,
+        userId: user?._id,
+        parentId: currentSpaceId,
+        category: 'personal'
       });
+    }
+  };
+
+  const handleDeleteSpace = (e: React.MouseEvent, spaceId: string) => {
+    e.stopPropagation();
+    if (confirm("Supprimer ce dossier ?") && socket) {
+      socket.send("delete_space", { spaceId, userId: user?._id });
+    }
+  };
+
+  const handleDeleteFile = (fileId: string) => {
+    if (confirm("Supprimer ce fichier ?") && socket) {
+      socket.send("delete_file", { fileId, userId: user?._id });
     }
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && controleur && isReady) {
-      // In a real scenario, we'd use a FormData or a specialized message
-      // Here we'll simulate the call
-      alert("L'upload est prêt à être implémenté via stream ou base64.");
+    if (file && socket) {
+      socket.send("upload_file", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: "https://example.com/" + file.name, // Mock URL
+        userId: user?._id,
+        spaceId: currentSpaceId,
+        category: 'personal'
+      });
     }
   };
+
 
   return (
     <motion.section 
@@ -93,7 +121,7 @@ export const Files: FC = () => {
           <p className="pageSubtitle">Stockez et partagez vos documents en toute sécurité</p>
         </div>
         
-        {isAdmin && (
+        {user && (
           <div className="headerActions">
             <button className="actionBtn secondary" onClick={handleCreateFolder}>
               <FolderPlus size={18} /> Nouveau dossier
@@ -116,7 +144,11 @@ export const Files: FC = () => {
                 <span className="itemName">{space.name}</span>
                 <span className="itemMeta">Dossier</span>
               </div>
-              <button className="itemOptions"><MoreVertical size={16} /></button>
+              <div className="itemActions">
+                <button title="Supprimer" className="danger" onClick={(e) => handleDeleteSpace(e, space._id)}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </Card>
           ))}
 
@@ -130,11 +162,14 @@ export const Files: FC = () => {
               </div>
               <div className="itemActions">
                 <button title="Télécharger"><Download size={16} /></button>
-                <button title="Supprimer" className="danger"><Trash2 size={16} /></button>
+                <button title="Supprimer" className="danger" onClick={() => handleDeleteFile(file._id)}>
+                  <Trash2 size={16} />
+                </button>
               </div>
             </Card>
           ))}
         </div>
+
 
         {spaces.length === 0 && files.length === 0 && (
           <div className="emptyState">
