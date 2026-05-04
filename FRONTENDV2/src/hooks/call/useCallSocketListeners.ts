@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Socket } from "socket.io-client";
+import type MessageClientAdapter from "services/MessageClientAdapter";
 import type {
     ActiveCallState,
     IncomingCallInfo,
@@ -8,7 +8,7 @@ import type {
 } from "types/Call";
 
 interface CallSocketListenersOptions {
-    getSocket: () => Socket;
+    getSocket: () => MessageClientAdapter | null;
     callState: ActiveCallState | null;
 
     sendOfferToRemoteUser: (remoteUserId: string, callId: string) => Promise<void>;
@@ -44,6 +44,7 @@ export function useCallSocketListeners({
 }: CallSocketListenersOptions): void {
     useEffect(() => {
         const socket = getSocket();
+        if (!socket) return;
 
         const handleParticipantsList = (payload: { callId: string; participants: any[] }) => {
             for (const participant of payload.participants) {

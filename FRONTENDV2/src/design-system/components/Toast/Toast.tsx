@@ -9,6 +9,7 @@ export type ToastAction = {
 	label: string
 	onClick: () => void
 	variant?: "primary" | "ghost"
+	disabled?: boolean
 }
 
 export type ToastProps = {
@@ -48,6 +49,7 @@ export const Toast: FC<ToastProps> = ({ message, variant = "info", onDismiss, ac
 								key={i}
 								className={`toast__action toast__action--${action.variant || "primary"}`}
 								onClick={action.onClick}
+								disabled={action.disabled}
 							>
 								{action.label}
 							</button>

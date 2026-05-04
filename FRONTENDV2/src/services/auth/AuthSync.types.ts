@@ -1,3 +1,5 @@
+import type MessageClientAdapter from "services/MessageClientAdapter"
+
 export type AuthUser = {
 	_id: string,
 	firstname: string,
@@ -13,20 +15,12 @@ export type AuthUser = {
 	roles: string[],
 }
 
-export type PendingSessionRequest = {
-	requestId: string,
-	deviceInfo: string,
-	requesterInfo: string,
-}
-
 export type AuthState = {
 	user: AuthUser | null,
 	isAuthenticated: boolean,
 	isLoading: boolean,
+	isRefreshing: boolean,
 	expiresAt: number | null,
-	sessionId: string | null,
-	pendingLoginRequestId: string | null,
-	pendingSessionRequests: PendingSessionRequest[],
 	showExpiryWarning: boolean,
 	loginRejected: boolean,
 }
@@ -36,8 +30,7 @@ export type AuthActions = {
 	register: (data: { password: string, firstname: string, lastname: string, email: string, phone: string }) => void,
 	logout: () => void,
 	refreshSession: () => void,
-	respondToPendingSession: (requestId: string, accepted: boolean) => void,
 	dismissExpiryWarning: () => void,
 }
 
-export type AuthContextType = AuthState & AuthActions
+export type AuthContextType = AuthState & AuthActions & { socket: MessageClientAdapter | null }

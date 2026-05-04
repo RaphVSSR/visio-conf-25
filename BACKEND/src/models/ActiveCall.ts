@@ -70,6 +70,18 @@ export default class ActiveCallStore {
         return this.calls.get(callId);
     }
 
+    static getCallAndUserBySocketId(socketId: string): { call: ServerActiveCall, userId: string } | null {
+
+        for (const call of this.calls.values()) {
+            for (const participant of call.participants.values()) {
+                if (participant.socketId === socketId) {
+                    return { call, userId: participant.userId };
+                }
+            }
+        }
+        return null;
+    }
+
     static deleteCall(callId: string): void {
 
         const call = this.calls.get(callId);
