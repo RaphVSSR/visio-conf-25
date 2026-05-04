@@ -38,7 +38,11 @@ export const Files: FC = () => {
       if (data.success) setSpaces(data.spaces);
     };
     const handleFileUploadStatus = (data: any) => {
-      if (data.success) setFiles(prev => [data.file, ...prev]);
+      if (data.success) {
+        setFiles(prev => [data.file, ...prev]);
+      } else {
+        alert("Erreur lors de l'import : " + (data.error || "inconnue"));
+      }
     };
     const handleSpaceCreatingStatus = (data: any) => {
       if (data.success) setSpaces(prev => [...prev, data.space]);
@@ -142,6 +146,7 @@ export const Files: FC = () => {
     if (type.includes("pdf") || type.includes("text")) return <FileText size={24} />;
     return <FilesIcon size={24} />;
   };
+
   const handleGoBack = () => {
     const newPath = [...currentPath];
     newPath.pop();
