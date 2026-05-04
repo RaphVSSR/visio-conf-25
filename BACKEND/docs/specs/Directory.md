@@ -11,6 +11,15 @@ Composant logique gérant la récupération de la liste des membres depuis Mongo
 
 ---
 
+## Synthèse des messages
+
+| Message | Sens | Payload | Description |
+| :--- | :--- | :--- | :--- |
+| `get_directory` | 📥 Entrant | `{}` | Demande la liste complète des membres de la plateforme. |
+| `directory` | 📤 Sortant | `{ success: boolean, users: User[] }` | Renvoie la liste filtrée et sécurisée des membres. |
+
+---
+
 ## 1. FLUX SORTANTS (MESSAGES À ÉMETTRE)
 
 ### 📤 MESSAGE : `directory`
