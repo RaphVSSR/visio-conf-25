@@ -21,7 +21,7 @@ interface PeerConnectionsOptions {
 interface PeerConnectionsReturn {
     localMediaStream: MutableRefObject<MediaStream | null>;
     peerConnectionsByUserId: MutableRefObject<Map<string, RTCPeerConnection>>;
-    getLocalMediasStream: () => Promise<MediaStream>;
+    getLocalMediasStream: (overrideConstraints?: MediaConstraints) => Promise<MediaStream>;
     createMediasStreamRemoteConnection: (remoteUserId: string, callId: string) => RTCPeerConnection;
     sendOfferToRemoteUser: (remoteUserId: string, callId: string) => Promise<void>;
     processOffer: (payload: SdpPayload) => Promise<void>;
@@ -36,10 +36,13 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     const localMediaStream = useRef<MediaStream | null>(null);
     const pendingIceCandidatesByUserId = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
 
-    const getLocalMediasStream = useCallback(async (): Promise<MediaStream> => {
+    const getLocalMediasStream = useCallback(async (
+        overrideConstraints?: MediaConstraints,
+    ): Promise<MediaStream> => {
+        const constraints = overrideConstraints || options.mediaConstraints;
         const stream = await navigator.mediaDevices.getUserMedia({
-            audio: options.mediaConstraints.audio,
-            video: options.mediaConstraints.video,
+            audio: constraints.audio,
+            video: constraints.video,
         });
         localMediaStream.current = stream;
         return stream;

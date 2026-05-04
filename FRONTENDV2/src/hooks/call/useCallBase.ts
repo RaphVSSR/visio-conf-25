@@ -14,8 +14,6 @@ import { usePeerConnections } from "./usePeerConnections";
 import { useCallSocketListeners } from "./useCallSocketListeners";
 
 interface CallBaseHookOptions {
-    callType: CallType;
-    mediaConstraints: MediaConstraints;
     onRemoteTrackReceived: (remoteUserId: string, stream: MediaStream) => void;
     onRemoteTrackRemoved: (remoteUserId: string) => void;
     onCleanupRemoteMedia: () => void;
@@ -26,11 +24,12 @@ interface CallBaseHookReturn {
     incomingCall: IncomingCallInfo | null;
     callEndedNotice: string | null;
     localMediaStream: React.MutableRefObject<MediaStream | null>;
-    initiateCall: (targetUsers: TargetUser[]) => void;
+    initiateCall: (targetUsers: TargetUser[], callType: CallType) => void;
     acceptCall: () => void;
     rejectCall: () => void;
     hangUp: () => void;
     toggleMute: () => void;
+    toggleCamera: () => void;
     dismissCallEndedNotice: () => void;
     setCallState: React.Dispatch<React.SetStateAction<ActiveCallState | null>>;
 }
@@ -73,7 +72,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
     } = usePeerConnections({
         currentUserId: user?._id,
         getSocket,
-        mediaConstraints: options.mediaConstraints,
+        mediaConstraints: { audio: true, video: false },
         onRemoteTrackReceived: options.onRemoteTrackReceived,
         onParticipantConnectionChanged,
     });
@@ -119,7 +118,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
                               lastname: p.lastname,
                               picture: p.picture,
                               isMuted: false,
-                              isCameraOn: false,
+                              isCameraOn: prev.callType === "video",
                               isConnected: false,
                           })),
                       }
@@ -148,7 +147,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
                             lastname: payload.userName.split(" ").slice(1).join(" "),
                             picture: payload.userPicture,
                             isMuted: false,
-                            isCameraOn: false,
+                            isCameraOn: prev.callType === "video",
                             isConnected: false,
                         },
                     ],
@@ -221,6 +220,23 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
         [],
     );
 
+    const onCameraToggle = useCallback(
+        (payload: { callId: string; userId: string; isCameraOn: boolean }) => {
+            setCallState((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    participants: prev.participants.map((p) =>
+                        p.userId === payload.userId
+                            ? { ...p, isCameraOn: payload.isCameraOn }
+                            : p,
+                    ),
+                };
+            });
+        },
+        [],
+    );
+
     useCallSocketListeners({
         getSocket,
         callState,
@@ -236,27 +252,36 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
         onCallEnded,
         onCallError,
         onMuteToggle,
+        onCameraToggle,
     });
 
     // --- Public actions ---
 
     const initiateCall = useCallback(
-        async (targetUsers: TargetUser[]) => {
+        async (targetUsers: TargetUser[], callType: CallType = "audio") => {
             if (!user) return;
 
             const callId = uuidv4();
             const isGroupCall = targetUsers.length > 1;
+            const constraints: MediaConstraints = {
+                audio: true,
+                video: callType === "video",
+            };
 
             try {
-                await getLocalMediasStream();
+                await getLocalMediasStream(constraints);
             } catch {
-                setCallEndedNotice("Accès au micro refusé");
+                setCallEndedNotice(
+                    callType === "video"
+                        ? "Accès à la caméra/micro refusé"
+                        : "Accès au micro refusé",
+                );
                 return;
             }
 
             setCallState({
                 callId,
-                callType: options.callType,
+                callType,
                 status: "outgoing",
                 isGroupCall,
                 participants: targetUsers.map((u) => ({
@@ -266,34 +291,43 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
                     lastname: u.lastname,
                     picture: u.picture,
                     isMuted: false,
-                    isCameraOn: options.callType === "video",
+                    isCameraOn: callType === "video",
                     isConnected: false,
                 })),
                 initiatorId: user._id,
                 startTime: null,
                 isMuted: false,
-                isCameraOn: options.callType === "video",
+                isCameraOn: callType === "video",
             });
 
             getSocket()?.send("call:initiate", {
                 callId,
-                callType: options.callType,
+                callType,
                 targetUserIds: targetUsers.map((u) => u.userId),
                 callerName: `${user.firstname} ${user.lastname}`,
                 callerPicture: user.picture || "",
                 isGroupCall,
             });
         },
-        [user, getLocalMediasStream, getSocket, options.callType],
+        [user, getLocalMediasStream, getSocket],
     );
 
     const acceptCall = useCallback(async () => {
         if (!incomingCall || !user) return;
 
+        const constraints: MediaConstraints = {
+            audio: true,
+            video: incomingCall.callType === "video",
+        };
+
         try {
-            await getLocalMediasStream();
+            await getLocalMediasStream(constraints);
         } catch {
-            setCallEndedNotice("Accès au micro refusé");
+            setCallEndedNotice(
+                incomingCall.callType === "video"
+                    ? "Accès à la caméra/micro refusé"
+                    : "Accès au micro refusé",
+            );
             getSocket()?.send("call:reject", { callId: incomingCall.callId });
             setIncomingCall(null);
             return;
@@ -354,6 +388,24 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
         }
     }, [callState, getSocket]);
 
+    const toggleCamera = useCallback(() => {
+        if (!localMediaStream.current) return;
+        const videoTrack = localMediaStream.current.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = !videoTrack.enabled;
+            setCallState((prev) =>
+                prev ? { ...prev, isCameraOn: videoTrack.enabled } : prev,
+            );
+
+            if (callState) {
+                getSocket()?.send("call:camera-toggle", {
+                    callId: callState.callId,
+                    isCameraOn: videoTrack.enabled,
+                });
+            }
+        }
+    }, [callState, getSocket]);
+
     return {
         callState,
         incomingCall,
@@ -364,6 +416,7 @@ export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
         rejectCall,
         hangUp,
         toggleMute,
+        toggleCamera,
         dismissCallEndedNotice,
         setCallState,
     };

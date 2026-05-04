@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from "react"
-import { Phone, X } from "lucide-react"
+import { Phone, Video, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useAudioCall } from "contexts/call/AudioCallContext"
+import { useCall } from "contexts/call/CallContext"
 import { useAuth } from "hooks/useAuth"
 import "./ContactPickerModal.scss"
 
@@ -19,7 +19,7 @@ interface ContactPickerModalProps {
 }
 
 export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClose }) => {
-    const { initiateCall } = useAudioCall()
+    const { initiateCall } = useCall()
     const { user, socket } = useAuth()
     const [contacts, setContacts] = useState<Contact[]>([])
     const [loading, setLoading] = useState(false)
@@ -42,13 +42,23 @@ export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClos
         }
     }, [isOpen, user, socket])
 
-    const handleSelectContact = (contact: Contact) => {
+    const handleAudioCall = (contact: Contact) => {
         initiateCall([{
             userId: contact.id,
             firstname: contact.firstname,
             lastname: contact.lastname,
             picture: contact.picture
-        }])
+        }], "audio")
+        onClose()
+    }
+
+    const handleVideoCall = (contact: Contact) => {
+        initiateCall([{
+            userId: contact.id,
+            firstname: contact.firstname,
+            lastname: contact.lastname,
+            picture: contact.picture
+        }], "video")
         onClose()
     }
 
@@ -87,11 +97,7 @@ export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClos
                                 </div>
                             ) : (
                                 contacts.map((contact) => (
-                                    <button
-                                        key={contact.id}
-                                        className="contactItem"
-                                        onClick={() => handleSelectContact(contact)}
-                                    >
+                                    <div key={contact.id} className="contactItem">
                                         <div className="contactAvatar">
                                             <img
                                                 src={
@@ -111,8 +117,23 @@ export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClos
                                                 {contact.is_online ? "En ligne" : "Hors ligne"}
                                             </span>
                                         </div>
-                                        <Phone size={18} className="callIcon" />
-                                    </button>
+                                        <div className="callActions">
+                                            <button
+                                                className="callIconBtn"
+                                                onClick={() => handleAudioCall(contact)}
+                                                title="Appel audio"
+                                            >
+                                                <Phone size={18} />
+                                            </button>
+                                            <button
+                                                className="callIconBtn videoBtn"
+                                                onClick={() => handleVideoCall(contact)}
+                                                title="Appel vidéo"
+                                            >
+                                                <Video size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
                                 ))
                             )}
                         </div>

@@ -34,12 +34,12 @@ const MessageRegistry: Record<string, MessageDomain> = {
 	call: {
 		emitted: [
 			"call:initiate", "call:accept", "call:reject", "call:hangup",
-			"call:mute-toggle", "call:offer", "call:answer", "call:ice-candidate",
+			"call:mute-toggle", "call:camera-toggle", "call:offer", "call:answer", "call:ice-candidate",
 		],
 		received: [
 			"call:incoming", "call:user-joined", "call:user-left", "call:user-rejected",
 			"call:participants-list", "call:offer", "call:answer", "call:ice-candidate",
-			"call:mute-toggle", "call:ended", "call:error",
+			"call:mute-toggle", "call:camera-toggle", "call:ended", "call:error",
 		],
 	},
 

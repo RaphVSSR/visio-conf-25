@@ -1,11 +1,11 @@
 import { FC, useEffect } from "react"
-import { Phone, PhoneOff } from "lucide-react"
+import { Phone, PhoneOff, Video } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useAudioCall } from "contexts/call/AudioCallContext"
+import { useCall } from "contexts/call/CallContext"
 import "./IncomingCallModal.scss"
 
 export const IncomingCallModal: FC = () => {
-    const { incomingCall, acceptCall, rejectCall } = useAudioCall()
+    const { incomingCall, acceptCall, rejectCall } = useCall()
 
     useEffect(() => {
         if (!incomingCall) return
@@ -50,14 +50,20 @@ export const IncomingCallModal: FC = () => {
                     </div>
                     <h3 className="callerName">{incomingCall.callerName}</h3>
                     <p className="callType">
-                        {incomingCall.isGroupCall ? "Appel de groupe" : "Appel audio"}
+                        {incomingCall.isGroupCall
+                            ? "Appel de groupe"
+                            : incomingCall.callType === "video"
+                                ? "Appel vidéo"
+                                : "Appel audio"}
                     </p>
                     <div className="callActions">
                         <button className="rejectBtn" onClick={rejectCall}>
                             <PhoneOff size={24} />
                         </button>
                         <button className="acceptBtn" onClick={acceptCall}>
-                            <Phone size={24} />
+                            {incomingCall.callType === "video"
+                                ? <Video size={24} />
+                                : <Phone size={24} />}
                         </button>
                     </div>
                 </motion.div>
