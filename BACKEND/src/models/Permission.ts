@@ -54,7 +54,7 @@ export default class Permission extends Collection {
 
     static async inject(){
 
-        [
+        const perms = [
             {
                 uuid: "naviguer_vers",
                 label: "Naviguer vers",
@@ -285,12 +285,12 @@ export default class Permission extends Collection {
                 label: "Utilisateurs connectés",
                 default: true,
             },
+        ];
 
-        ].forEach(perm => {
-
-            const newPerm = new Permission(perm);
-            newPerm.save();
-        })
+        for (const perm of perms) {
+            const newPerm = new Permission(perm as any);
+            await newPerm.save();
+        }
     }
 
     async save(){
@@ -298,11 +298,10 @@ export default class Permission extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -337,7 +336,8 @@ export default class Permission extends Collection {
     }
 
     static async flushAll() {
-        
+
         return this.model.deleteMany({});
     }
+
 }

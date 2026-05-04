@@ -4,93 +4,107 @@
 #homePage {
 	@extend %flex-col;
 	height: 100vh;
-	padding: 2%;
+	padding: 24px 28px;
 	gap: 20px;
-	color: #060d19;
+	color: $text;
 	overflow: hidden;
-	background-color: #f5f7fa;
 
-	&::-webkit-scrollbar {
-		width: 6px;
-	}
-
-	&::-webkit-scrollbar-track {
-		background: #f1f5f9;
-		border-radius: 10px;
-	}
-
-	&::-webkit-scrollbar-thumb {
-		background: #cbd5e1;
-		border-radius: 10px;
-
-		&:hover {
-			background: #94a3b8;
+	#homeGreeting {
+		#greetingText {
+			font-size: 1.5rem;
+			font-weight: 700;
+			color: $primary;
+			letter-spacing: -0.02em;
 		}
 	}
 
 	.sectionTitle {
 		font-size: 1.25rem;
 		margin: 0 0 10px 0;
-		color: $primaryCol;
+		color: $primary;
 		display: flex;
 		align-items: center;
 		gap: 10px;
 		font-weight: 600;
 
 		svg {
-			color: $primaryCol;
+			color: $primary;
 		}
 	}
 
-	#homeDash {
-
+	#homeContent {
+		display: flex;
 		flex: 1;
+		gap: 20px;
+		overflow: hidden;
 	}
 
-	#friendsSection {
-		@extend %flex-col;
+	#mainColumn {
 		flex: 1;
-		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		overflow-y: auto;
+		padding-right: 10px;
+		@extend %custom-scrollbar;
+	}
+
+	#contactsSidebar {
+		@extend %flex-col;
+		width: 380px;
+		min-width: 320px;
+		height: 100%;
 		padding: 20px;
 		gap: 20px;
-		color: var(--Texte, #060d19);
+		color: $text;
 		border-radius: 16px;
-		background: #fff;
+		background: $bg-white;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+		overflow-y: auto;
+		@extend %custom-scrollbar;
 
-		#friendsHeader{
-
-			display: flex;
-			justify-content: space-between;
+		#contactsHeader {
+			@extend %flex-col;
 			width: 100%;
+			gap: 16px;
 
-			.sectionTitle{
+			.searchBar {
+				width: 100%;
+				border: 2px solid $bg-divider;
+				border-radius: 12px;
+				background-color: $bg-light;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+				transition: all 0.3s ease;
 
-				display: flex;
-				align-items: center;
+				&:focus-within {
+					border-color: $primary;
+					background-color: $bg-white;
+					box-shadow: 0 4px 8px rgba(30, 54, 100, 0.1);
+				}
 			}
 		}
 
-		#noFriends {
+		#noContacts {
 			@extend %flex-col-centered;
 			padding: 40px 20px;
 			text-align: center;
-			color: #6b7280;
+			color: $text-subtle;
 			height: 100%;
 			flex: 1;
 
 			svg {
-				color: #9ca3af;
+				color: $text-placeholder;
 				margin-bottom: 16px;
 				width: 48px;
 				height: 48px;
 			}
-	
+
 			h3 {
 				margin: 0 0 8px 0;
 				font-size: 1.1rem;
-				color: #4b5563;
+				color: $text-body;
 			}
-	
+
 			p {
 				margin: 0 0 16px 0;
 				font-size: 0.9rem;
@@ -98,113 +112,38 @@
 			}
 		}
 
-
 		.resetButton {
 			margin-top: 16px;
 			padding: 8px 16px;
-			background-color: #f3f4f6;
+			background-color: $bg-muted;
 			border: none;
 			border-radius: 8px;
-			color: $primaryCol;
+			color: $primary;
 			font-size: 0.9rem;
 			cursor: pointer;
 			transition: all 0.2s ease;
 
 			&:hover {
-				background-color: #e5e7eb;
+				background-color: $bg-divider;
 			}
 		}
-
 	}
 }
 
-.contentColumns {
-  display: flex;
-  gap: 20px;
-  width: 100%;
-  overflow: hidden;
-  gap: 20px;
-}
-
-.section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: #fff;
-  border-radius: 16px;
-  margin-bottom: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  color: #060d19;
-  position: relative;
-  overflow: hidden;
-  gap: 16px;
-}
-
-.section:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
-}
-
-.section h1 {
-  font-size: 1.5rem;
-  margin-bottom: 16px;
-  color: $primaryCol;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-@media (max-width: 1400px) {
-  .summary_cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 1200px) {
-  .contentColumns {
-    flex-direction: column;
-  }
-
-  .leftColumn,
-  .rightColumn {
-    width: 100%;
-  }
-}
-
 @media (max-width: 1024px) {
-  .main {
-    flex-direction: column;
-    overflow-y: auto;
-    height: auto;
-  }
+	#homePage #homeContent {
+		flex-direction: column;
+		overflow-y: auto;
+	}
 
-  .mainColumn,
-  .contactsColumn {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-  }
+	#homePage #mainColumn {
+		overflow-y: visible;
+		padding-right: 0;
+	}
 
-  .contactsColumn {
-    height: auto;
-  }
-
-  .notification,
-  .amis {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 768px) {
-  .summary_cards {
-    grid-template-columns: 1fr;
-  }
-
-  .quick_actions {
-    justify-content: center;
-  }
+	#homePage #contactsSidebar {
+		width: 100%;
+		min-width: 0;
+		height: auto;
+	}
 }

@@ -39,7 +39,6 @@ export default class Role extends Collection {
             required: true,
             default: false 
         },
-        //TODO: have to implement default permissions for default role user
     });
     
     static model: Model<RoleType> = models.Role || model<RoleType>("Role", this.schema);
@@ -67,7 +66,7 @@ export default class Role extends Collection {
             {
                 uuid: "admin",
                 label: "Administrateur",
-                permissions: (await Permission.model.find({default: true}, {_id: 1}).lean()).map(permObj => permObj._id),
+                permissions: (await Permission.model.find({}, {_id: 1}).lean()).map(permObj => permObj._id),
                 default: true,
             },
             {
@@ -107,11 +106,10 @@ export default class Role extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE) console.log("💾 User collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -127,12 +125,12 @@ export default class Role extends Collection {
 
     static async updateRole(label: string, newData: Partial<RoleType>) {
 
-        return this.model.updateOne({email: label}, { $set: newData });
+        return this.model.updateOne({label: label}, { $set: newData });
     }
 
     static async updateRoles(labels: string[], newData: Partial<RoleType>) {
 
-        return this.model.updateMany({ email: {$in: labels}}, { $set: newData });
+        return this.model.updateMany({ label: {$in: labels}}, { $set: newData });
     }
 
     static async deleteRole(label: string) {
@@ -146,7 +144,8 @@ export default class Role extends Collection {
     }
 
     static async flushAll() {
-            
+
         return this.model.deleteMany({});
     }
+
 }

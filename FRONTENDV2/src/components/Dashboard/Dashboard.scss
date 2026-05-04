@@ -5,28 +5,37 @@
   @extend %flex-col;
   gap: 16px;
   width: 100%;
+  flex: 1;
 
   #summaryCards {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     width: 100%;
     gap: 16px;
-  
-    .card{
-  
-      flex: 4;
+
+    .card {
 
       h3 {
         margin: 0;
         font-size: 0.9rem;
-        color: #4b5563;
+        color: $text-body;
       }
-      
-      p {
+
+      .cardValue {
         margin: 0;
         font-size: 1.5rem;
         font-weight: 600;
-        color: $primaryCol;
+        color: $primary;
+      }
+
+      .cardIconBox {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        margin-bottom: 8px;
       }
     }
   }
@@ -37,47 +46,51 @@
     gap: 12px;
     margin-top: 8px;
 
-    #dashQuickAction {
+    .quickAction {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       padding: 10px 16px;
-      background-color: #f7faff;
+      background-color: $bg-accent;
       border-radius: 8px;
-      border: 1px solid rgba(30, 54, 100, 0.1);
+      border: none;
       cursor: pointer;
       transition: all 0.2s ease;
       text-decoration: none;
-      border: none;
       font-family: inherit;
 
       &:hover {
-        background-color: #eaf1fb;
+        background-color: $bg-accent-hover;
         transform: translateY(-2px);
         box-shadow: 0 2px 8px rgba(30, 54, 100, 0.1);
       }
-    
+
       span {
         font-size: 0.9rem;
         font-weight: 500;
-        color: $primaryCol;
+        color: $primary;
       }
-    
+
       svg {
-        color: $primaryCol;
+        color: $primary;
         width: 18px;
         height: 18px;
       }
     }
-  
   }
 
-  #recentActivity{
-
+  #recentActivity {
     padding: 20px;
-    border-radius: 15px;
-    background-color: white;
+    border-radius: 16px;
+    background-color: $bg-white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
 
     #activitiesList {
       @extend %flex-col;
@@ -89,12 +102,12 @@
       display: flex;
       align-items: center;
       padding: 12px;
-      background-color: #f9fafb;
+      background-color: $bg-light;
       border-radius: 10px;
       transition: all .2s ease;
-    
+
       &:hover {
-        background-color: #f1f5f9;
+        background-color: $bg-hover;
         transform: translateY(-2px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       }
@@ -126,26 +139,26 @@
 
           .activityUser {
             font-weight: 600;
-            color: #1e3664;
+            color: $primary;
             font-size: 0.95rem;
           }
 
           .activityTime {
             font-size: 0.8rem;
-            color: #6b7280;
+            color: $text-subtle;
           }
         }
 
         .activityText {
           margin: 0;
           font-size: 0.9rem;
-          color: #4b5563;
+          color: $text-body;
         }
       }
 
       .activityIcon {
         margin-left: 12px;
-        color: #1e3664;
+        color: $primary;
         background-color: rgba(30, 54, 100, 0.1);
         width: 32px;
         height: 32px;
@@ -155,54 +168,34 @@
         justify-content: center;
         flex-shrink: 0;
       }
-
     }
 
     .emptyActivities {
       @extend %flex-col-centered;
       padding: 30px;
-      color: #9ca3af;
+      color: $empty-text;
       text-align: center;
 
       svg {
         margin-bottom: 12px;
-        color: #cbd5e1;
+        color: $empty-icon;
       }
     }
-
-  }
-
-  .clearButton {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-  }
-
-  .clearButton:hover {
-    background-color: #f3f4f6;
-    color: #1e3664;
   }
 }
 
+@media (max-width: 1400px) {
+  #homeDash #summaryCards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
-//.summary_card_icon {
-//  display: flex;
-//  align-items: center;
-//  justify-content: center;
-//  width: 40px;
-//  height: 40px;
-//  border-radius: 8px;
-//  background-color: rgba(30, 54, 100, 0.1);
-//  margin-bottom: 8px;
-//}
+@media (max-width: 768px) {
+  #homeDash #summaryCards {
+    grid-template-columns: 1fr;
+  }
+
+  #homeDash #dashQuickActions {
+    justify-content: center;
+  }
+}

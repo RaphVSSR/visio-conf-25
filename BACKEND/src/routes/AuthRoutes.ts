@@ -1,34 +1,42 @@
-import express, { Router } from "express"
-import multer from "multer"
-import path from "path"
-import fs from "fs"
-import { fileURLToPath } from "url"
-import { File } from "../models/services/FileSystem.ts"
-import { v4 as uuidv4 } from "uuid"
+import express from "express"
+import SessionManager from "../models/services/authentication/SessionManager.ts"
 
-import FileSystem from "../models/services/FileSystem.ts"
-import { toNodeHandler } from "better-auth/node"
-import Database from "../models/services/Database.ts"
-import Auth from "../models/services/Auth.ts"
+const router = express.Router()
 
-const router = express.Router();
+router.post("/refresh", (request, response) => {
 
-router.all("/*", toNodeHandler(Auth.betterAuthClient));
-router.use(express.json());
+	const sess = request.session as any
+	if (!sess?.userId) return response.json({ status: "failure", reason: "not_authenticated" })
 
-//router.post("/login", authenticateToken,
+	sess.cookie.maxAge = SessionManager.getSessionDurationMs()
+	sess.save((error: Error) => {
+		if (error) return response.json({ status: "failure", reason: "session_save_error" })
 
-//    //Aller rechercher les données dans la DB
-//    //Comparer ces données avec celles enregiestrées
-//	//Changer le status de la personne si besoin
-//    //Retourner une réponse en fonction de l'intégrité de ces données
-//)
+		for (const socketId of SessionManager.getUserSocketIds(sess.userId)) {
+			SessionManager.refreshSession(socketId)
+		}
 
-//router.post("/logout", authenticateToken,
+		const expiresAt = Date.now() + SessionManager.getSessionDurationMs()
+		response.json({ status: "refreshed", expiresAt })
+	})
+})
 
-//    //Aller rechercher les données dans la DB
-//    //Changer le status de la personne
-//    //Retourner une réponse
-//)
+router.post("/logout", (request, response) => {
 
-export default router;
+	const sess = request.session as any
+	if (!sess?.userId) return response.json({ status: "disconnected" })
+
+	const socketIds = SessionManager.getUserSocketIds(sess.userId)
+	for (const socketId of socketIds) {
+		SessionManager.unbind(socketId)
+	}
+
+	request.session.destroy((error: Error) => {
+		if (error) return response.json({ status: "failure", reason: "session_destroy_error" })
+
+		response.clearCookie("visioconf_session")
+		response.json({ status: "disconnected" })
+	})
+})
+
+export default router

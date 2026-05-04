@@ -1,4 +1,4 @@
-import React, { FC, HTMLAttributes, useRef, useState } from 'react'
+import React, { HTMLAttributes } from 'react'
 import { Search } from 'lucide-react'
 import "./SearchBar.scss"
 
@@ -25,14 +25,10 @@ export type SearchBarProps<suggestingType> = {
 export const SearchBar = <suggestingTypeFromParent,>({
 
 	dDownNeeded,
-	suggestingList,
 	placeholder,
 	...props
 
 }: SearchBarProps<suggestingTypeFromParent>) => {
-
-	const [filteredValue, setFilteredValue] = useState<typeof suggestingList | null>(null);
-	const suggestingData = useRef<typeof suggestingList | null>(null);
 
 	return (
 
@@ -44,17 +40,7 @@ export const SearchBar = <suggestingTypeFromParent,>({
 					className="searchInput"
 					type="text"
 					placeholder={placeholder}
-					//value={searchQuery}
-					//onChange={handleSearch}
 				/>
-				{/*{searchQuery && (
-					<button
-						onClick={clearSearch}
-						className="clearButton"
-					>
-						<X size={16} />
-					</button>
-				)}*/}
 			</div>
 			{dDownNeeded === "true" && <div className="searchSuggestions">
 

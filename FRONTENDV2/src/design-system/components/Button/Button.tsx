@@ -1,4 +1,4 @@
-import { FC, PropsWithChildren } from 'react'
+import { FC } from 'react'
 import { HTMLMotionProps, motion } from 'framer-motion';
 import "./Button.scss"
 import {LucideIcons} from '../LucideIcons/LucideIcons';

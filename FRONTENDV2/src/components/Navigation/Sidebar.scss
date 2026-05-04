@@ -1,0 +1,197 @@
+@use "../../design-system/scss/global.scss" as *;
+
+#mainSidebar {
+  width: 260px;
+  height: 100vh;
+  background: $bg-white;
+  border-right: 1px solid $bg-divider;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+
+  .sidebarLogo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px 32px;
+    
+    .logoIcon {
+      width: 36px;
+      height: 36px;
+      background: $primary;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(30, 54, 100, 0.2);
+    }
+
+    .logoText {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: $primary;
+      letter-spacing: -0.5px;
+
+      span {
+        color: $link;
+      }
+    }
+  }
+
+  .sidebarNav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .navItem {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: $text-subtle;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+
+      .itemIcon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        transition: transform 0.2s ease;
+      }
+
+      .itemName {
+        font-size: 0.95rem;
+        font-weight: 500;
+        flex: 1;
+      }
+
+      .itemArrow {
+        opacity: 0;
+        transform: translateX(-10px);
+        transition: all 0.25s ease;
+      }
+
+      &:hover {
+        background: $bg-accent;
+        color: $primary;
+
+        .itemIcon {
+          transform: scale(1.1);
+        }
+
+        .itemArrow {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      &.active {
+        background: $primary;
+        color: white;
+        box-shadow: 0 4px 12px rgba(30, 54, 100, 0.15);
+
+        .itemIcon {
+          color: white;
+        }
+
+        .itemName {
+          font-weight: 600;
+        }
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: -16px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 24px;
+          background: $primary;
+          border-radius: 0 4px 4px 0;
+        }
+      }
+    }
+  }
+
+  .sidebarFooter {
+    border-top: 1px solid $bg-divider;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .userProfile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px;
+
+      .userAvatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: $purple-light;
+        color: $purple;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .userInfo {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+
+        .userName {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: $text;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .userRole {
+          font-size: 0.75rem;
+          color: $text-subtle;
+        }
+      }
+    }
+
+    .logoutBtn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: none;
+      border: 1px solid $bg-divider;
+      border-radius: 10px;
+      color: $danger;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: $danger;
+        color: white;
+        border-color: $danger;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+      }
+    }
+  }
+}

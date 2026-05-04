@@ -1,5 +1,5 @@
 import mongoose, { type HydratedDocument, model, Schema, Types } from "mongoose"
-import { v4 as uuidv4 } from "uuid"
+import crypto from "crypto"
 import Collection from "./core/Collection.ts"
 import { Model } from "mongoose"
 import TracedError from "./core/TracedError.ts"
@@ -120,8 +120,6 @@ export default class Discussion extends Collection {
                 type: this.type,
                 members: this.members,
                 date_created: this.date_created,
-                //members_count: this.members_count,
-                //messages_count: this.messages_count,
             }
         });
 
@@ -154,11 +152,10 @@ export default class Discussion extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE === "true") console.log("💾 User collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -191,19 +188,19 @@ export default class Discussion extends Collection {
 
         const discussionsToInsert = [
             {
-                uuid: uuidv4(),
+                uuid: crypto.randomUUID(),
                 creator: users.find(user => user.firstname === "John")!._id,
                 members: [users.find(user => user.firstname === "John")!._id, users.find(user => user.firstname === "Janny")!._id],
                 name: "Discussion John et Janny",
                 messages: [
                     {
-                        uuid: uuidv4(),
+                        uuid: crypto.randomUUID(),
                         content: "Salut Janny, comment vas-tu ?",
                         sender: users.find(user => user.firstname === "John")!._id,
                         date_created: new Date(),
                     },
                     {
-                        uuid: uuidv4(),
+                        uuid: crypto.randomUUID(),
                         content: "Très bien John, merci !",
                         sender: users.find(user => user.firstname === "John")!._id,
                         date_created: new Date(),
@@ -211,19 +208,19 @@ export default class Discussion extends Collection {
                 ],
             },
             {
-                uuid: uuidv4(),
+                uuid: crypto.randomUUID(),
                 creator: users.find(user => user.firstname === "Jean")!._id,
                 members: [users.find(user => user.firstname === "Jean")!._id, users.find(user => user.firstname === "Hélios")!._id],
                 name: "Discussion Jean et Hélios",
                 messages: [
                     {
-                        uuid: uuidv4(),
+                        uuid: crypto.randomUUID(),
                         content: "Hélios, tu as avancé sur le projet ?",
                         sender: users.find(user => user.firstname === "Jean")!._id,
                         date_created: new Date(),
                     },
                     {
-                        uuid: uuidv4(),
+                        uuid: crypto.randomUUID(),
                         content: "Oui Jean, je t'envoie ça ce soir.",
                         sender: users.find(user => user.firstname === "Hélios")!._id,
                         date_created: new Date(),
@@ -231,14 +228,14 @@ export default class Discussion extends Collection {
                 ],
             },
             {
-                uuid: uuidv4(),
+                uuid: crypto.randomUUID(),
                 creator: users.find(user => user.firstname === "John")!._id,
                 members: [users.find(user => user.firstname === "John")!._id, users.find(user => user.firstname === "Jean")!._id, users.find(user => user.firstname === "Sophie")!._id],
                 name: "Équipe pédagogique",
                 type: "group",
                 messages: [
                     {
-                        uuid: uuidv4(),
+                        uuid: crypto.randomUUID(),
                         content: "Réunion demain à 10h.",
                         sender: users.find(user => user.firstname === "John")!._id,
                         date_created: new Date(),
@@ -246,14 +243,14 @@ export default class Discussion extends Collection {
                 ],
             },
             {
-                uuid: uuidv4(),
+                uuid: crypto.randomUUID(),
                 creator: users.find(user => user.firstname === "Hélios")!._id,
                 members: [users.find(user => user.firstname === "Hélios")!._id, users[5]!._id],
                 name: "Projet étudiant",
                 type: "group",
                 messages: [
                     {
-                        uuid: uuidv4(),
+                        uuid: crypto.randomUUID(),
                         content: "On commence le projet aujourd'hui !",
                         sender: users.find(user => user.firstname === "Hélios")!._id,
                         date_created: new Date(),
@@ -261,13 +258,13 @@ export default class Discussion extends Collection {
                 ],
             },
             {
-                uuid: uuidv4(),
+                uuid: crypto.randomUUID(),
                 creator: users.find(user => user.firstname === "Sophie")!._id,
                 members: [users.find(user => user.firstname === "Sophie")!._id, users.find(user => user.firstname === "Marie")!._id],
                 name: "Discussion Sophie et Marie",
                 messages: [
                     {
-                        uuid: uuidv4(),
+                        uuid: crypto.randomUUID(),
                         content: "Marie, peux-tu m'envoyer le planning ?",
                         sender: users.find(user => user.firstname === "Sophie")!._id,
                         date_created: new Date(),
@@ -334,4 +331,5 @@ export default class Discussion extends Collection {
                 select: "firstname lastname picture socket_id uuid is_online",
             })
     }
+
 }

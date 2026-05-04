@@ -1,11 +1,15 @@
 
 import path from "path"
 import { fileURLToPath } from "url"
-import express, { type Express, Router, type Request, type Response, type NextFunction  } from "express"
+import express, { type Express, Router, type Request, type Response, type NextFunction, type RequestHandler } from "express"
+import session from "express-session"
+import ConnectMongoDBSession from "connect-mongodb-session"
 import cors from "cors"
-import FileRoutes from "../../routes/FileRoutes.ts"
+import AuthRoutes from "../../routes/AuthRoutes.ts"
 import TracedError from "../core/TracedError.ts";
+import SessionManager from "./authentication/SessionManager.ts";
 
+const MongoDBStore = ConnectMongoDBSession(session)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,20 +18,22 @@ const __dirname = path.dirname(__filename);
 export default class RestService {
 
 	private static server: Express = express();
+	static sessionMiddleware: RequestHandler;
 
 	static async implement(){
 
-		if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL >= "2") console.group("⚙️ Implementing Express server..");
-		
+		if (process.env.VERBOSE === "true" && (process.env.VERBOSE_LVL ?? "0") >= "2") console.group("⚙️ Implementing Express server..");
+
 		this.server.use(express.json());
 		this.corsDef();
+		this.sessionDef();
 
 		this.server.use(express.static(path.join(__dirname, "..", "..", "public")));
 
 		await this.routesDef();
 
-		if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL >= "2") {
-			
+		if (process.env.VERBOSE === "true" && (process.env.VERBOSE_LVL ?? "0") >= "2") {
+
 			console.log("✅ Success");
 			console.groupEnd();
 		}
@@ -36,29 +42,51 @@ export default class RestService {
 
 	}
 
+	private static sessionDef() {
+
+		const store = new MongoDBStore({
+			uri: process.env.MONGO_URI || "mongodb://localhost:27017/visioconf",
+			collection: "sessions",
+		})
+
+		store.on("error", (error: Error) => {
+			console.error("Session store error:", error)
+		})
+
+		this.sessionMiddleware = session({
+			name: "visioconf_session",
+			secret: process.env.SESSION_SECRET || "visioconf-session-secret",
+			resave: false,
+			saveUninitialized: true,
+			store,
+			cookie: {
+				maxAge: SessionManager.getSessionDurationMs(),
+				httpOnly: true,
+				sameSite: "lax",
+				secure: process.env.NODE_ENV === "prod",
+			},
+		})
+
+		this.server.use(this.sessionMiddleware)
+
+		if (process.env.VERBOSE === "true") console.log("✅ Session middleware configured (connect-mongodb-session)")
+	}
+
 	private static corsDef(){
 
 		try {
 
 			this.server.use(
-			
+
 				cors({
 
 					origin: (origin, callback) => {
-				
-						// Autoriser les requêtes sans origin (applications mobiles, Postman, etc.)
-						if (!origin) return callback(null, true) // Liste des origines autorisées
-
 						const allowedOrigins = [
-							process.env.FRONTEND_URL ?? "http://localhost:3000",
+							process.env.FRONTEND_URL || "http://localhost:3000",
 							"http://127.0.0.1:3000",
+							"http://localhost:3001"
 						]
-				
-						// Permettre toute adresse IP locale sur le port 3000
-						const ipPattern =
-							/^http:\/\/((192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|127\.0\.0\.1)\d{1,3}\.\d{1,3}|localhost):3000$/
-				
-						if (allowedOrigins.includes(origin) || ipPattern.test(origin)) {
+						if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)) {
 							callback(null, true)
 						} else {
 							console.log(`CORS: Origin ${origin} not allowed`)
@@ -73,10 +101,10 @@ export default class RestService {
 			);
 
 			if (process.env.VERBOSE === "true") console.log(`✅ CORS fully defined`);
-			
-		} catch (err: any) {
-			
-			throw new TracedError("restCorsDef", err.message);
+
+		} catch (error: any) {
+
+			throw new TracedError("restCorsDef", error.message);
 		}
 
 	}
@@ -85,27 +113,19 @@ export default class RestService {
 
 		try {
 
-			const AuthRoutes = (await import("../../routes/AuthRoutes.ts")).default;
-						
 			const coreRouter = Router();
 
 			coreRouter.use("/auth", AuthRoutes);
-			coreRouter.use("/files", FileRoutes);
 
 			this.server.use(process.env.API_BASE_PREFIX?.startsWith("/") ? process.env.API_BASE_PREFIX : "/", coreRouter);
 
 			if (process.env.VERBOSE === "true") console.log(`✅ Routes fully initialized\n`);
 
-		} catch (err: any) {
-			
-			throw new TracedError("restRoutesDef", err.message);
+		} catch (error: any) {
+
+			throw new TracedError("restRoutesDef", error.message);
 
 		}
 
 	}
-
-	//fileUpload(){
-
-		
-	//}
 }

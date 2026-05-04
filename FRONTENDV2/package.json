@@ -8,7 +8,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
-    "better-auth": "^1.3.34",
     "framer-motion": "^12.6.3",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.475.0",
@@ -17,6 +16,7 @@
     "react-router-dom": "^7.9.5",
     "react-scripts": "5.0.1",
     "socket.io-client": "^4.8.1",
+    "uuid": "^13.0.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -49,6 +49,7 @@
     "@types/node": "^16.18.126",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/parser": "^5.62.0",
     "sass": "^1.93.3",
     "typescript": "^4.9.5"

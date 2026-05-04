@@ -1,46 +1,51 @@
-import { SessionContext } from 'contexts/SessionContext';
-import { AdminPanel, Home, Login, Signup } from 'pages';
-import React, { useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from 'contexts/AuthContext';
+import { AdminPanel, Home, Login, Signup, TeamsPage, Files, Directory, Profile } from 'pages';
+import React from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { UserAuth } from 'routing/UserAuth';
-import { useSession } from './AuthClient';
+import { AdminAuth } from 'routing/AdminAuth';
+import { AuthToasts } from 'components/AuthToasts/AuthToasts';
+import { ToastProvider } from 'contexts/ToastContext';
 
 export const App = () => {
 
-	const [theme, setTheme] = useState<"light" | "dark">("light");
-	const [isLoading, setIsLoading]= useState<boolean>(true);
-	const session = useSession();
-
-	useEffect(() => {
-
-		session.isPending === false && setIsLoading(false);
-
-	}, [session])
-
-
 	return (
 
-		<SessionContext.Provider value={{currentUser: session, theme, setTheme, isLoading}}>
+		<AuthProvider>
+			<ToastProvider>
 
-			<BrowserRouter>
+				<BrowserRouter>
 
-				<Routes>
+					<Routes>
 
-					<Route element={ <UserAuth/> }>
+						<Route element={ <UserAuth/> }>
 
-						<Route path="/" element={ <Home /> }/>
-						<Route path="/home" element={ <Home /> }/>
-						<Route path='/admin' element={ <AdminPanel /> } />
-					
-					</Route>
-					<Route path="/login" element={ <Login /> }/>
-					<Route path='/signup' element={ <Signup /> } />
+							<Route path="/" element={ <Navigate to="/home" replace /> }/>
+							<Route path="/home" element={ <Home /> }/>
+							<Route path="/discussions" element={ <Home /> }/>
+							<Route path="/equipes" element={ <TeamsPage /> }/>
+							<Route path="/drive" element={ <Files /> }/>
+							<Route path="/files" element={ <Files /> }/>
+							<Route path="/directory" element={ <Directory /> }/>
+							<Route path="/annuaire" element={ <Directory /> }/>
+							<Route path="/profile" element={ <Profile /> }/>
 
-				</Routes>
+							<Route element={ <AdminAuth /> }>
+								<Route path='/admin' element={ <AdminPanel /> } />
+							</Route>
 
-			</BrowserRouter>
+						</Route>
+						<Route path="/login" element={ <Login /> }/>
+						<Route path='/signup' element={ <Signup /> } />
 
-		</SessionContext.Provider>
+					</Routes>
+
+				</BrowserRouter>
+
+				<AuthToasts />
+
+			</ToastProvider>
+		</AuthProvider>
 
 	)
 }

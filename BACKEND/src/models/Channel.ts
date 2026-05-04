@@ -53,7 +53,7 @@ export default class Channel extends Collection {
         members: [{
             
             type: Schema.Types.ObjectId,
-            ref: "Channelmember",
+            ref: "ChannelMember",
         }],
     });
     
@@ -74,11 +74,10 @@ export default class Channel extends Collection {
         try {
             
             await this.modelInstance.save();
-            //if (process.env.VERBOSE === "true") console.log("💾 User collection created and saved");
 
-        } catch (err: any) {
+        } catch (error: any) {
             
-            throw new TracedError("collectionSaving", err.message);
+            throw new TracedError("collectionSaving", error.message);
         }
     }
 
@@ -262,10 +261,11 @@ export default class Channel extends Collection {
                 console.log("");
             }
 
-        } catch (err: any) {
-            
-            console.trace(err);
-            throw new Error(err.message);
+        } catch (error: any) {
+
+            console.trace(error);
+            throw new Error(error.message);
         }
     }
+
 }

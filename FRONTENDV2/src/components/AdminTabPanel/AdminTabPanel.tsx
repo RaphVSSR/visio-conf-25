@@ -4,8 +4,8 @@ import { Drama, ListChecks, LucideIcon, MessagesSquare, UsersRound, X } from 'lu
 
 export type AdminTabType = {
 
-	name : string, 
-	icon : LucideIcon, 
+	name : string,
+	icon : LucideIcon,
 	subOption : {
 
 		label: string,
@@ -29,106 +29,90 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 
 	const tabsData = [
         {
-            name : "Utilisateurs", 
-            icon : <UsersRound size={40} />, 
+            name : "Utilisateurs",
+            icon : <UsersRound size={40} />,
             subOption : [
-                { 
+                {
 					label: "Lister",
-					//condition: userPerms.includes("admin_demande_liste_utilisateurs")
 				},
-                { 
+                {
 					label: "Modifier",
-					//condition: userPerms.includes("admin_modifier_utilisateur")
 				},
-                { 
+                {
 					label: "Valider",
-					//condition: userPerms.includes("admin_ajouter_utilisateur")
 				},
-                { 
+                {
 					label: "Désactiver",
-					//condition: userPerms.includes("admin_desactiver_utilisateur")
 				},
-                { 
+                {
 					label: "Bannir",
-					//condition: userPerms.includes("admin_supprimer_utilisateur")
 				},
             ],
         },
         {
-            name : "Rôles", 
-            icon : <Drama size={40} />, 
+            name : "Rôles",
+            icon : <Drama size={40} />,
             subOption :[
-                { 
+                {
 					label: "Lister",
-					//condition: userPerms.includes("admin_demande_liste_roles")
 				},
-                { 
+                {
 					label: "Créer",
-					//condition: userPerms.includes("admin_ajouter_role")
 				},
-                { 
+                {
 					label: "Dupliquer",
-					//condition: userPerms.includes("admin_dupliquer_role")
 				},
-                { 
+                {
 					label: "Modifier",
-					//condition: userPerms.includes("admin_modifier_role")
 				},
-                { 
+                {
 					label: "Supprimer",
-					//condition: userPerms.includes("admin_supprimer_role")
 				},
             ],
         },
         {
-            name : "Permissions", 
-            icon : <ListChecks size={40} />, 
+            name : "Permissions",
+            icon : <ListChecks size={40} />,
             subOption : [
-                { 
+                {
 					label: "Lister",
-					//condition: userPerms.includes("admin_demande_liste_permissions")
 				},
-                { 
+                {
 					label: "Créer",
-					//condition: userPerms.includes("admin_ajouter_permission")
 				},
-                { 
+                {
 					label: "Modifier",
-					//condition: userPerms.includes("admin_modifier_permission")
 				},
             ],
         },
         {
-            name : "Equipes", 
-            icon : <MessagesSquare size={40} />, 
+            name : "Equipes",
+            icon : <MessagesSquare size={40} />,
             subOption : [
-                { 
+                {
 					label: "Lister",
-					//condition: userPerms.includes("admin_demande_liste_equipes")
 				},
-                { 
+                {
 					label: "Créer",
-					//condition: userPerms.includes("admin_ajouter_equipe")
 				},
-                { 
+                {
 					label: "Modifier",
-					//condition: userPerms.includes("admin_modifier_equipe")
 				},
-                { 
+                {
 					label: "Supprimer",
-					//condition: userPerms.includes("admin_supprimer_equipe")
 				},
             ],
         },
 	];
 
-	const tabDataSelected = tabsData.find(tab => tab.name === tabSelected)!;
+	const tabDataSelected = tabsData.find(tab => tab.name === tabSelected);
+
+	if (!tabDataSelected) return null;
 
   return (
 
-	<section 
+	<section
 		id="adminTab"
-		//onClick={setTabSelected(tab)}
 	>
 		<section id="tabHeader">
 
@@ -148,7 +132,7 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 
 			</div>
 			<ul id="tabOptions">
-				{tabDataSelected.subOption.map((option, index) => 
+				{tabDataSelected.subOption.map((option, index) =>
 
 					<li key={index} className='option'>
 						<p className="optionLabel">{option.label}</p>
@@ -157,7 +141,7 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 			</ul>
 
 
-		</section>                           
+		</section>
 	</section>
   )
 }
