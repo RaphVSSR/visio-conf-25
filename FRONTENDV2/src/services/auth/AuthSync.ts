@@ -1,292 +1,204 @@
-import { ControllerService } from "Controller/Controller.service"
-import type { Controller, ControllerMessage } from "Controller/Controller.types"
-import { SocketIO } from "services/SocketIO"
-import type { AuthState, PendingSessionRequest } from "./AuthSync.types"
+import type MessageClientAdapter from "services/MessageClientAdapter"
+import type { AuthState } from "./AuthSync.types"
 
 type StateUpdater = (updater: (prev: AuthState) => AuthState) => void
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:3220"
+const WARNING_MS = Number(process.env.REACT_APP_SESSION_EXPIRY_WARNING_MS) || 60_000
 
-const MESSAGES_EMITTED = [
-	"authenticate",
-	"login",
-	"register",
-	"user_disconnect",
-	"session_refresh",
-	"session_pending_choice",
-]
+export class AuthSync {
 
-const MESSAGES_RECEIVED = [
-	"auth_success",
-	"auth_failure",
-	"login_success",
-	"login_failure",
-	"login_pending",
-	"registration_success",
-	"registration_failure",
-	"user_disconnect_success",
-	"session_refreshed",
-	"session_expired",
-	"session_pending",
-	"session_pending_accepted",
-	"session_pending_rejected",
-]
-
-function getSessionId(): string | null {
-	return sessionStorage.getItem(process.env.REACT_APP_SESSION_STORAGE_KEY!)
-}
-
-function setSessionId(value: string): void {
-	sessionStorage.setItem(process.env.REACT_APP_SESSION_STORAGE_KEY!, value)
-}
-
-function clearSessionId(): void {
-	sessionStorage.removeItem(process.env.REACT_APP_SESSION_STORAGE_KEY!)
-}
-
-export class AuthSync extends ControllerService {
-
+	private socket: MessageClientAdapter
 	private onStateChange: StateUpdater
-	private expiryTimer: ReturnType<typeof setTimeout> | null = null
+	private warningTimer: ReturnType<typeof setTimeout> | null = null
+	private logoutTimer: ReturnType<typeof setTimeout> | null = null
+	private refreshing = false
 
-	constructor(controleur: Controller, onStateChange: StateUpdater) {
-		super(controleur, "AuthSync", MESSAGES_EMITTED, MESSAGES_RECEIVED)
+	private handleLoginResponse = (data: { status: string, [key: string]: any }) => {
 
+		switch (data.status) {
+			case "success":
+				this.startExpiryTimer(data.expiresAt)
+				this.onStateChange(prev => ({
+					...prev,
+					user: data.user,
+					isAuthenticated: true,
+					isLoading: false,
+					expiresAt: data.expiresAt,
+				}))
+				break
+
+			case "failure":
+				this.onStateChange(prev => ({
+					...prev,
+					isLoading: false,
+					loginRejected: true,
+				}))
+				break
+		}
+	}
+
+	private handleAuthenticateResponse = (data: { status: string, [key: string]: any }) => {
+
+		switch (data.status) {
+			case "success":
+				this.startExpiryTimer(data.expiresAt)
+				this.onStateChange(prev => ({
+					...prev,
+					user: data.user,
+					isAuthenticated: true,
+					isLoading: false,
+					expiresAt: data.expiresAt,
+				}))
+				break
+
+			case "failure":
+				this.onStateChange(prev => ({
+					...prev,
+					user: null,
+					isAuthenticated: false,
+					isLoading: false,
+					expiresAt: null,
+				}))
+				break
+		}
+	}
+
+	private handleRegisterResponse = (data: { status: string, [key: string]: any }) => {
+
+		switch (data.status) {
+			case "success":
+				this.startExpiryTimer(data.expiresAt)
+				this.onStateChange(prev => ({
+					...prev,
+					user: data.user,
+					isAuthenticated: true,
+					isLoading: false,
+					expiresAt: data.expiresAt,
+				}))
+				break
+
+			case "failure":
+				this.onStateChange(prev => ({
+					...prev,
+					isLoading: false,
+				}))
+				break
+		}
+	}
+
+	constructor(socket: MessageClientAdapter, onStateChange: StateUpdater) {
+		this.socket = socket
 		this.onStateChange = onStateChange
 
-		const initialSessionId = getSessionId()
+		this.socket.on("login_response", this.handleLoginResponse)
+		this.socket.on("authenticate_response", this.handleAuthenticateResponse)
+		this.socket.on("register_response", this.handleRegisterResponse)
 
-		if (initialSessionId) {
-
-			SocketIO.onReady(() => {
-				SocketIO.canal.socket.io.on("reconnect", () => this.reconnect())
-				this.sendMessage({ authenticate: { sessionId: initialSessionId } })
-			})
-
-		} else {
-
-			this.onStateChange(prev => ({ ...prev, isLoading: false }))
-		}
-	}
-
-	traitementMessage(mesg: ControllerMessage): void {
-		const action = Object.keys(mesg)[0]
-
-		switch (action) {
-			
-			case "login_success": {
-				const { user, expiresAt, sessionId } = mesg[action] as { user: AuthState["user"], expiresAt: number, sessionId: string }
-				setSessionId(sessionId)
-				this.startExpiryTimer(expiresAt)
-				this.onStateChange(prev => ({
-					...prev,
-					user,
-					isAuthenticated: true,
-					isLoading: false,
-					expiresAt,
-					sessionId,
-					pendingLoginRequestId: null,
-				}))
-				break
-			}
-
-			case "login_failure":
-				clearSessionId()
-				this.onStateChange(prev => ({
-					...prev,
-					isLoading: false,
-					loginRejected: prev.pendingLoginRequestId !== null,
-					pendingLoginRequestId: null,
-				}))
-				break
-
-			case "login_pending": {
-				const { requestId } = mesg[action] as { requestId: string }
-				this.onStateChange(prev => ({
-					...prev,
-					isLoading: false,
-					pendingLoginRequestId: requestId,
-				}))
-				break
-			}
-
-			case "auth_success": {
-				const { user, expiresAt } = mesg[action] as { user: AuthState["user"], expiresAt: number }
-				this.startExpiryTimer(expiresAt)
-				this.onStateChange(prev => ({
-					...prev,
-					user,
-					isAuthenticated: true,
-					isLoading: false,
-					expiresAt,
-				}))
-				break
-			}
-
-			case "auth_failure":
-				clearSessionId()
-				this.onStateChange(prev => ({
-					...prev,
-					user: null,
-					isAuthenticated: false,
-					isLoading: false,
-					expiresAt: null,
-					sessionId: null,
-				}))
-				break
-
-			case "registration_success": {
-				const { user, expiresAt, sessionId } = mesg[action] as { user: AuthState["user"], expiresAt: number, sessionId: string }
-				setSessionId(sessionId)
-				this.startExpiryTimer(expiresAt)
-				this.onStateChange(prev => ({
-					...prev,
-					user,
-					isAuthenticated: true,
-					isLoading: false,
-					expiresAt,
-					sessionId,
-				}))
-				break
-			}
-
-			case "registration_failure":
-				this.onStateChange(prev => ({
-					...prev,
-					isLoading: false,
-				}))
-				break
-
-			case "user_disconnect_success":
-				this.clearExpiryTimer()
-				clearSessionId()
-				this.onStateChange(prev => ({
-					...prev,
-					user: null,
-					isAuthenticated: false,
-					isLoading: false,
-					expiresAt: null,
-					sessionId: null,
-					pendingSessionRequests: [],
-					showExpiryWarning: false,
-				}))
-				break
-
-			case "session_refreshed": {
-				const { expiresAt } = mesg[action] as { expiresAt: number }
-				this.onStateChange(prev => ({
-					...prev,
-					expiresAt,
-					showExpiryWarning: false,
-				}))
-				this.startExpiryTimer(expiresAt)
-				break
-			}
-
-			case "session_expired":
-				this.clearExpiryTimer()
-				clearSessionId()
-				this.onStateChange(prev => ({
-					...prev,
-					user: null,
-					isAuthenticated: false,
-					isLoading: false,
-					expiresAt: null,
-					sessionId: null,
-					showExpiryWarning: false,
-				}))
-				break
-
-			case "session_pending": {
-				const request = mesg[action] as PendingSessionRequest
-				this.onStateChange(prev => ({
-					...prev,
-					pendingSessionRequests: [...prev.pendingSessionRequests, request],
-				}))
-				break
-			}
-
-			case "session_pending_accepted": {
-				const { requestId } = mesg[action] as { requestId: string }
-				this.onStateChange(prev => ({
-					...prev,
-					pendingSessionRequests: prev.pendingSessionRequests.filter(
-						r => r.requestId !== requestId
-					),
-				}))
-				break
-			}
-
-			case "session_pending_rejected": {
-				const { requestId } = mesg[action] as { requestId: string }
-				this.onStateChange(prev => ({
-					...prev,
-					pendingSessionRequests: prev.pendingSessionRequests.filter(
-						r => r.requestId !== requestId
-					),
-				}))
-				break
-			}
-		}
-	}
-
-	private reconnect(): void {
-		const sessionId = getSessionId()
-		if (sessionId) this.sendMessage({ authenticate: { sessionId } })
+		this.socket.onReady(() => {
+			this.socket.onReconnect(() => this.socket.send("authenticate", {}))
+			this.socket.send("authenticate", {})
+		})
 	}
 
 	login(email: string, password: string): void {
 		this.onStateChange(prev => ({ ...prev, isLoading: true, loginRejected: false }))
-		this.sendMessage({ login: { email, password, deviceInfo: navigator.userAgent } })
+		this.socket.send("login", { email, password })
 	}
 
 	register(data: { password: string, firstname: string, lastname: string, email: string, phone: string }): void {
 		this.onStateChange(prev => ({ ...prev, isLoading: true }))
-		this.sendMessage({ register: data })
+		this.socket.send("register", data)
 	}
 
-	logout(): void {
-		this.sendMessage({ user_disconnect: {} })
-		clearSessionId()
-	}
+	async logout(): Promise<void> {
+		try {
+			await fetch(`${BACKEND_URL}${process.env.REACT_APP_BACKEND_API_PREFIX || ""}/auth/logout`, {
+				method: "POST",
+				credentials: "include",
+			})
+		} catch (error) {
+			console.error("Logout request failed:", error)
+		}
 
-	refreshSession(): void {
-		this.sendMessage({ session_refresh: {} })
-	}
-
-	respondToPendingSession(requestId: string, accepted: boolean): void {
-		this.sendMessage({ session_pending_choice: { requestId, accepted } })
-	}
-
-	override destroy(): void {
 		this.clearExpiryTimer()
-		super.destroy()
+		this.onStateChange(prev => ({
+			...prev,
+			user: null,
+			isAuthenticated: false,
+			isLoading: false,
+			expiresAt: null,
+			showExpiryWarning: false,
+		}))
+	}
+
+	async refreshSession(): Promise<void> {
+		if (this.refreshing) return
+		this.refreshing = true
+		this.onStateChange(prev => ({ ...prev, isRefreshing: true }))
+
+		try {
+			const resp = await fetch(`${BACKEND_URL}${process.env.REACT_APP_BACKEND_API_PREFIX || ""}/auth/refresh`, {
+				method: "POST",
+				credentials: "include",
+			})
+			const data = await resp.json()
+
+			if (data.status === "refreshed") {
+				this.startExpiryTimer(data.expiresAt)
+				this.onStateChange(prev => ({
+					...prev,
+					expiresAt: data.expiresAt,
+					showExpiryWarning: false,
+					isRefreshing: false,
+				}))
+			} else {
+				this.expireSession()
+				this.onStateChange(prev => ({ ...prev, isRefreshing: false }))
+			}
+		} catch (error) {
+			console.error("Refresh request failed:", error)
+			this.onStateChange(prev => ({ ...prev, isRefreshing: false }))
+		} finally {
+			this.refreshing = false
+		}
+	}
+
+	destroy(): void {
+		this.clearExpiryTimer()
+		this.socket.off("login_response", this.handleLoginResponse)
+		this.socket.off("authenticate_response", this.handleAuthenticateResponse)
+		this.socket.off("register_response", this.handleRegisterResponse)
 	}
 
 	private startExpiryTimer(expiresAt: number): void {
 		this.clearExpiryTimer()
 
-		this.expiryTimer = setTimeout(() => {
-			this.onStateChange(prev => ({ ...prev, showExpiryWarning: true }))
+		const logoutDelay = expiresAt - Date.now()
+		if (logoutDelay <= 0) { this.expireSession(); return }
 
-			this.expiryTimer = setTimeout(() => {
-				clearSessionId()
-				this.onStateChange(prev => ({
-					...prev,
-					user: null,
-					isAuthenticated: false,
-					isLoading: false,
-					expiresAt: null,
-					sessionId: null,
-					showExpiryWarning: false,
-				}))
-			}, expiresAt - Date.now())
-		}, expiresAt - Date.now() - Number(process.env.REACT_APP_SESSION_EXPIRY_WARNING_MS))
+		const warningDelay = Math.max(0, logoutDelay - WARNING_MS)
+		this.warningTimer = setTimeout(() => {
+			this.onStateChange(prev => ({ ...prev, showExpiryWarning: true }))
+		}, warningDelay)
+
+		this.logoutTimer = setTimeout(() => this.expireSession(), logoutDelay)
 	}
 
 	private clearExpiryTimer(): void {
-		if (this.expiryTimer) {
-			clearTimeout(this.expiryTimer)
-			this.expiryTimer = null
-		}
+		if (this.warningTimer) { clearTimeout(this.warningTimer); this.warningTimer = null }
+		if (this.logoutTimer) { clearTimeout(this.logoutTimer); this.logoutTimer = null }
+	}
+
+	private expireSession(): void {
+		this.clearExpiryTimer()
+		this.onStateChange(prev => ({
+			...prev,
+			user: null,
+			isAuthenticated: false,
+			isLoading: false,
+			expiresAt: null,
+			showExpiryWarning: false,
+		}))
 	}
 }

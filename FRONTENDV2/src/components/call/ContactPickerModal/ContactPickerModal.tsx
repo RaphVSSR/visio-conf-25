@@ -3,7 +3,6 @@ import { Phone, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAudioCall } from "contexts/call/AudioCallContext"
 import { useAuth } from "hooks/useAuth"
-import { SocketIO } from "services/SocketIO"
 import "./ContactPickerModal.scss"
 
 interface Contact {
@@ -21,15 +20,14 @@ interface ContactPickerModalProps {
 
 export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClose }) => {
     const { initiateCall } = useAudioCall()
-    const { user } = useAuth()
+    const { user, socket } = useAuth()
     const [contacts, setContacts] = useState<Contact[]>([])
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        if (!isOpen) return
+        if (!isOpen || !socket) return
 
         setLoading(true)
-        const socket = SocketIO.canal.socket
 
         const handleResponse = (data: Contact[]) => {
             setContacts(data)
@@ -37,12 +35,12 @@ export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClos
         }
 
         socket.on("contacts:list:response", handleResponse)
-        socket.emit("contacts:list", { excludeEmail: user?.email })
+        socket.send("contacts:list", { excludeEmail: user?.email })
 
         return () => {
             socket.off("contacts:list:response", handleResponse)
         }
-    }, [isOpen, user])
+    }, [isOpen, user, socket])
 
     const handleSelectContact = (contact: Contact) => {
         initiateCall([{

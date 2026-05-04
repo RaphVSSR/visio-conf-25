@@ -5,6 +5,7 @@
 		"moduleResolution": "nodenext",
 		"module": "nodenext",
 		"noEmit": false,
+		"rewriteRelativeImportExtensions": true,
 		"outDir": "./dist",
 		"sourceMap": true,
 

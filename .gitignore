@@ -14,6 +14,7 @@ package-lock.json
 
 # production
 **/build
+**/dist
 
 # uploads (ignore contents, keep .gitkeep)
 BACKEND/uploads/**
@@ -30,6 +31,7 @@ BACKEND/uploads/**
 # misc
 .DS_Store
 *.pem
+temp/
 
 # debug
 npm-debug.log*

@@ -1,6 +1,6 @@
 import { useRef, useCallback } from "react";
 import type { MutableRefObject } from "react";
-import type { Socket } from "socket.io-client";
+import type MessageClientAdapter from "services/MessageClientAdapter";
 import type { MediaConstraints, SdpPayload, IceCandidatePayload } from "types/Call";
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -12,7 +12,7 @@ const ICE_SERVERS: RTCConfiguration = {
 
 interface PeerConnectionsOptions {
     currentUserId: string | undefined;
-    getSocket: () => Socket;
+    getSocket: () => MessageClientAdapter | null;
     mediaConstraints: MediaConstraints;
     onRemoteTrackReceived: (remoteUserId: string, stream: MediaStream) => void;
     onParticipantConnectionChanged: (remoteUserId: string, connected: boolean) => void;
@@ -61,7 +61,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
 
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
-                    socket.emit("call:ice-candidate", {
+                    socket?.send("call:ice-candidate", {
                         callId,
                         fromUserId: options.currentUserId,
                         toUserId: remoteUserId,
@@ -98,10 +98,12 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     const sendOfferToRemoteUser = useCallback(
         async (remoteUserId: string, callId: string) => {
             const peerConnection = createMediasStreamRemoteConnection(remoteUserId, callId);
+            if (peerConnection.signalingState !== "stable") return;
+
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
 
-            options.getSocket().emit("call:offer", {
+            options.getSocket()?.send("call:offer", {
                 callId,
                 fromUserId: options.currentUserId,
                 toUserId: remoteUserId,
@@ -114,6 +116,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     const processOffer = useCallback(
         async (payload: SdpPayload) => {
             const peerConnection = createMediasStreamRemoteConnection(payload.fromUserId, payload.callId);
+            if (peerConnection.signalingState !== "stable") return;
             await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
 
             const buffered = pendingIceCandidatesByUserId.current.get(payload.fromUserId);
@@ -127,7 +130,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
 
-            options.getSocket().emit("call:answer", {
+            options.getSocket()?.send("call:answer", {
                 callId: payload.callId,
                 fromUserId: options.currentUserId,
                 toUserId: payload.fromUserId,
@@ -140,16 +143,17 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     const processAnswer = useCallback(
         async (payload: SdpPayload) => {
             const peerConnection = peerConnectionsByUserId.current.get(payload.fromUserId);
-            if (peerConnection) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+            if (!peerConnection) return;
+            if (peerConnection.signalingState !== "have-local-offer") return;
 
-                const buffered = pendingIceCandidatesByUserId.current.get(payload.fromUserId);
-                if (buffered) {
-                    for (const candidate of buffered) {
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                    }
-                    pendingIceCandidatesByUserId.current.delete(payload.fromUserId);
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+
+            const buffered = pendingIceCandidatesByUserId.current.get(payload.fromUserId);
+            if (buffered) {
+                for (const candidate of buffered) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                 }
+                pendingIceCandidatesByUserId.current.delete(payload.fromUserId);
             }
         },
         [],
@@ -159,7 +163,11 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
         async (payload: IceCandidatePayload) => {
             const peerConnection = peerConnectionsByUserId.current.get(payload.fromUserId);
             if (peerConnection && peerConnection.remoteDescription) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                } catch {
+                    return;
+                }
             } else {
                 if (!pendingIceCandidatesByUserId.current.has(payload.fromUserId)) {
                     pendingIceCandidatesByUserId.current.set(payload.fromUserId, []);

@@ -13,7 +13,7 @@ FAQ structurelle du frontend. Chaque entrée suit : question → doute → solut
 **Le controleur.js est partagé.** Le même bus pub/sub tourne côté backend et côté frontend. Les services frontend s'inscrivent au controleur exactement comme les services backend — via `inscription()`, `envoie()`, `traitementMessage()`.
 
 **Conséquence sur les dossiers :** La structure reflète une séparation par responsabilité :
-- `Controller/` = le bus pub/sub (off-limits) + types TS + classe abstraite
+- `controller/` = le bus pub/sub (off-limits) + types TS + classe abstraite
 - `services/` = les services métier inscrits au controleur (AuthService)
 - `contexts/` = les React Context providers (pont entre services et composants)
 - `hooks/` = les hooks d'accès aux contexts
@@ -28,7 +28,7 @@ src/
 ├── index.tsx                            ← Point d'entrée React
 ├── core/
 │   └── App.tsx                          ← Composant racine, routing, providers
-├── Controller/                          ← Bus pub/sub (OFF-LIMITS)
+├── controller/                          ← Bus pub/sub (OFF-LIMITS)
 │   ├── controleur.js                    ← Bus de messages (OFF-LIMITS)
 │   ├── canalsocketio.js                 ← Pont Socket.io ↔ controleur (OFF-LIMITS)
 │   ├── Controller.service.ts            ← Classe abstraite ControllerService
@@ -78,7 +78,7 @@ src/
 | Dossier | Raison d'être |
 |---------|---------------|
 | `core/` | Le composant racine `App.tsx` qui monte les providers, le router, et les routes. C'est le seul fichier qui a une vue d'ensemble de l'app. |
-| `Controller/` | Le bus pub/sub partagé avec le backend. `controleur.js` et `canalsocketio.js` sont off-limits. Les types TS et la classe abstraite `ControllerService` s'ajoutent par-dessus sans toucher au JS. |
+| `controller/` | Le bus pub/sub partagé avec le backend. `controleur.js` et `canalsocketio.js` sont off-limits. Les types TS et la classe abstraite `ControllerService` s'ajoutent par-dessus sans toucher au JS. |
 | `services/` | Les services métier inscrits au controleur. Un service écoute et émet des messages, gère du state, et expose des méthodes publiques. C'est le miroir frontend des services backend. |
 | `contexts/` | Le pont entre les services (logique métier) et les composants React (UI). Un context provider instancie un service et expose son state + actions via React Context. |
 | `hooks/` | Les custom hooks qui encapsulent `useContext()` avec le bon typage et la vérification de provider. |
@@ -121,11 +121,11 @@ React re-render → les composants voient le nouveau state
 
 ---
 
-## Pourquoi sessionStorage et pas localStorage ou cookies ?
+## Pourquoi cookie de session et pas sessionStorage ?
 
-**Raison :** Isolation par onglet. Le flux multi-session implique que chaque onglet a sa propre session. Si un onglet est rejeté, seul cet onglet perd son sessionId — les autres restent intacts.
+**Raison :** Session unique par navigateur via cookie HTTP signé (`connect-mongodb-session`). Pas de sessionStorage, pas de logique multi-session, pas de pending-approval. Le cookie est attaché automatiquement aux requêtes HTTP et au handshake socket.io — le frontend n'a aucun token à gérer.
 
-Voir `BACKEND/docs/back-decisions.md` — section "Comment le sessionId est persisté côté client ?" pour le raisonnement complet.
+**Avantage :** Moins de code, pas de divergence onglet/serveur, expiration centralisée côté serveur. Le frontend consomme `expiresAt` retourné par `login_response`/`authenticate_response` pour piloter le timer d'avertissement local.
 
 ---
 
@@ -202,9 +202,12 @@ Routes
 | Sujet | Doute | Piste |
 |-------|-------|-------|
 | ~~useAuthMessages.ts~~ | ~~Nom de fichier trompeur~~ | Renommé en `useAuth.ts` ✓ |
+| ~~sessionStorage~~ | ~~Multi-session par onglet~~ | Migré vers cookie unique (connect-mongodb-session) ✓ |
 | SearchBar dropdown | Fonctionnalité non implémentée | TODO dans le code |
 | Dashboard valeurs | Toutes les valeurs dynamiques commentées | À connecter aux services quand disponibles |
 | AdminPanel | Code ancien commenté, valeurs hardcodées | À migrer vers le pattern ControllerService |
 | dialog vs .showModal() | Les modales sont non-modales (pas de backdrop natif) | Passer à `.showModal()` si backdrop requis |
 | framer-motion poids | ~30KB gzip pour des animations | Acceptable pour une app de visioconf |
 | AdminMenu | Composant entièrement commenté | À supprimer si AdminTabPanel le remplace définitivement |
+| disturb_status drift | canalsocketio écrit "offline" sur disconnect, écrase user-set "dnd" | Compensation app-side dans AuthService.bindSession + socketDisconnect |
+| Video call UI | VideoCallProvider monté mais pas de composants UI dédiés | À construire (VideoCallOverlay, grille de tiles) en consommant `useVideoCall()` |
