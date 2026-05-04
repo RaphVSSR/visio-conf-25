@@ -3,7 +3,7 @@ import "./TeamForm.scss"
 import { useAuth } from "hooks/useAuth"
 import { Users, X, AlertCircle, Upload, Trash2 } from "lucide-react"
 import type { Team } from "pages/Teams/Teams.types"
-import MemberSelector, { type Member } from "../MemberSelector/MemberSelector"
+import MemberSelector, { type Member } from "../MemberSelector"
 
 interface TeamFormProps {
 	onTeamCreated: (team: any) => void

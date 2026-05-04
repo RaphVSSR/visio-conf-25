@@ -11,7 +11,7 @@ import {
 	Users,
 } from "lucide-react"
 import type { Team } from "pages/Teams/Teams.types"
-import MemberSelector, { type Member } from "../MemberSelector/MemberSelector"
+import MemberSelector, { type Member } from "../MemberSelector"
 
 interface ChannelFormProps {
 	onChannelCreated: (channel: any) => void

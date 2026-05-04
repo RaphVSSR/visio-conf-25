@@ -3,11 +3,13 @@ import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "hooks/useAuth"
 import { useTeamManager } from "hooks/useTeamManager"
 import { useChannelManager } from "hooks/useChannelManager"
-import { TeamsSidebar } from "components/TeamsSidebar/TeamsSidebar"
-import { ChannelTabs } from "components/ChannelTabs/ChannelTabs"
-import ChannelView from "components/ChannelView/ChannelView"
-import ChannelForm from "components/ChannelForm/ChannelForm"
-import TeamForm from "components/TeamForm/TeamForm"
+import { 
+	TeamsSidebar, 
+	ChannelTabs, 
+	ChannelView, 
+	ChannelForm, 
+	TeamForm 
+} from "components"
 import "./TeamsPage.scss"
 
 export const TeamsPage = () => {
