@@ -11,6 +11,7 @@ const INITIAL_STATE: AuthState = {
 	user: null,
 	isAuthenticated: false,
 	isLoading: true,
+	isRefreshing: false,
 	expiresAt: null,
 	showExpiryWarning: false,
 	loginRejected: false,

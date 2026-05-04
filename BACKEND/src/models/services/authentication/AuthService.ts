@@ -104,8 +104,12 @@ export default class AuthService {
 		const userId = SessionManager.getUserId(socketId)
 		SessionManager.unbind(socketId)
 
-		if (userId && !SessionManager.hasActiveSessions(userId)) {
+		if (!userId) return
+
+		if (!SessionManager.hasActiveSessions(userId)) {
 			await User.model.updateOne({ _id: userId }, { is_online: false })
+		} else {
+			await User.model.updateOne({ _id: userId, disturb_status: "offline" }, { disturb_status: "available" })
 		}
 	}
 
@@ -113,6 +117,7 @@ export default class AuthService {
 		const expiresAt = Date.now() + SessionManager.getSessionDurationMs()
 		SessionManager.bind(socketId, userId)
 		User.model.updateOne({ _id: userId }, { is_online: true }).catch(() => {})
+		User.model.updateOne({ _id: userId, disturb_status: "offline" }, { disturb_status: "available" }).catch(() => {})
 		return expiresAt
 	}
 

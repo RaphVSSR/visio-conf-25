@@ -19,6 +19,7 @@ export type AuthState = {
 	user: AuthUser | null,
 	isAuthenticated: boolean,
 	isLoading: boolean,
+	isRefreshing: boolean,
 	expiresAt: number | null,
 	showExpiryWarning: boolean,
 	loginRejected: boolean,

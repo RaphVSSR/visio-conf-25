@@ -7,7 +7,7 @@ import "./AuthToasts.scss"
 export const AuthToasts: FC = () => {
 
 	const {
-		showExpiryWarning, expiresAt, refreshSession, dismissExpiryWarning,
+		showExpiryWarning, expiresAt, isRefreshing, refreshSession, dismissExpiryWarning,
 	} = useAuth()
 
 	const [timeLeft, setTimeLeft] = useState("")
@@ -40,7 +40,7 @@ export const AuthToasts: FC = () => {
 						message="Session bientôt expirée"
 						subtitle={`Expire dans ${timeLeft}`}
 						actions={[
-							{ label: "Prolonger", onClick: refreshSession, variant: "primary" },
+							{ label: isRefreshing ? "Prolongation..." : "Prolonger", onClick: refreshSession, variant: "primary", disabled: isRefreshing },
 							{ label: "Ignorer", onClick: dismissExpiryWarning, variant: "ghost" },
 						]}
 					/>

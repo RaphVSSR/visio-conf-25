@@ -98,6 +98,8 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     const sendOfferToRemoteUser = useCallback(
         async (remoteUserId: string, callId: string) => {
             const peerConnection = createMediasStreamRemoteConnection(remoteUserId, callId);
+            if (peerConnection.signalingState !== "stable") return;
+
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
 
@@ -114,6 +116,7 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     const processOffer = useCallback(
         async (payload: SdpPayload) => {
             const peerConnection = createMediasStreamRemoteConnection(payload.fromUserId, payload.callId);
+            if (peerConnection.signalingState !== "stable") return;
             await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
 
             const buffered = pendingIceCandidatesByUserId.current.get(payload.fromUserId);
@@ -140,16 +143,17 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
     const processAnswer = useCallback(
         async (payload: SdpPayload) => {
             const peerConnection = peerConnectionsByUserId.current.get(payload.fromUserId);
-            if (peerConnection) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+            if (!peerConnection) return;
+            if (peerConnection.signalingState !== "have-local-offer") return;
 
-                const buffered = pendingIceCandidatesByUserId.current.get(payload.fromUserId);
-                if (buffered) {
-                    for (const candidate of buffered) {
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                    }
-                    pendingIceCandidatesByUserId.current.delete(payload.fromUserId);
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+
+            const buffered = pendingIceCandidatesByUserId.current.get(payload.fromUserId);
+            if (buffered) {
+                for (const candidate of buffered) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                 }
+                pendingIceCandidatesByUserId.current.delete(payload.fromUserId);
             }
         },
         [],
@@ -159,7 +163,11 @@ export function usePeerConnections(options: PeerConnectionsOptions): PeerConnect
         async (payload: IceCandidatePayload) => {
             const peerConnection = peerConnectionsByUserId.current.get(payload.fromUserId);
             if (peerConnection && peerConnection.remoteDescription) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                } catch {
+                    return;
+                }
             } else {
                 if (!pendingIceCandidatesByUserId.current.has(payload.fromUserId)) {
                     pendingIceCandidatesByUserId.current.set(payload.fromUserId, []);

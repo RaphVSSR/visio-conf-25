@@ -12,6 +12,10 @@ router.post("/refresh", (request, response) => {
 	sess.save((error: Error) => {
 		if (error) return response.json({ status: "failure", reason: "session_save_error" })
 
+		for (const socketId of SessionManager.getUserSocketIds(sess.userId)) {
+			SessionManager.refreshSession(socketId)
+		}
+
 		const expiresAt = Date.now() + SessionManager.getSessionDurationMs()
 		response.json({ status: "refreshed", expiresAt })
 	})

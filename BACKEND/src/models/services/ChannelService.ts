@@ -1,6 +1,7 @@
 import { type Types } from "mongoose"
 import { getMessagesByDomain } from "../ListeMessages.ts"
 import SessionManager from "./authentication/SessionManager.ts"
+import BroadcastTargets from "./BroadcastTargets.ts"
 import Channel from "../Channel.ts"
 import ChannelMember, { type ChannelMemberType } from "../ChannelMember.ts"
 import ChannelPost, { type ChannelPostType } from "../ChannelPost.ts"
@@ -48,24 +49,6 @@ export default class ChannelService {
 
 	private resolveUserId(socketId: string): string | null {
 		return SessionManager.getUserId(socketId)
-	}
-
-	private async getConnectedChannelMemberSocketIds(channelId: string): Promise<string[]> {
-		const members = await ChannelMember.model.find({ channelId }).lean()
-		const socketIds: string[] = []
-		for (const member of members) {
-			socketIds.push(...SessionManager.getUserSocketIds(member.userId.toString()))
-		}
-		return socketIds
-	}
-
-	private async getConnectedTeamMemberSocketIds(teamId: string): Promise<string[]> {
-		const members = await TeamMember.model.find({ teamId }).lean()
-		const socketIds: string[] = []
-		for (const member of members) {
-			socketIds.push(...SessionManager.getUserSocketIds(member.id.toString()))
-		}
-		return socketIds
 	}
 
 	private handleChannelQuery = (socketId: string, payload: any) => {
@@ -222,16 +205,18 @@ export default class ChannelService {
 			createdAt: newChannel.modelInstance.createdAt,
 		}
 
-		const teamSocketIds = await this.getConnectedTeamMemberSocketIds(teamId)
-		this.send(teamSocketIds.length > 0 ? teamSocketIds : socketId, "channel_action_response", { type: "create", etat: true, channel: formattedChannel })
+		const broadcastSocketIds = isPublic
+			? await BroadcastTargets.forTeam(teamId)
+			: await BroadcastTargets.forChannel(channelId.toString())
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_action_response", { type: "create", etat: true, channel: formattedChannel })
 	}
 
-	private updateChannel = async (socketId: string, payload: { id: string, name: string, isPublic: boolean, teamId: string, members?: string[] }) => {
+	private updateChannel = async (socketId: string, payload: { channelId: string, name: string, isPublic: boolean, teamId: string, members?: string[] }) => {
 
 		const userId = this.resolveUserId(socketId)
 		if (!userId) return this.send(socketId, "channel_action_response", { type: "update", etat: false, error: "not_authenticated" })
 
-		const { id: channelId, name, isPublic, teamId, members } = payload
+		const { channelId, name, isPublic, teamId, members } = payload
 
 		const channel = await Channel.model.findById(channelId)
 		if (!channel) return this.send(socketId, "channel_action_response", { type: "update", etat: false, error: "channel_not_found" })
@@ -291,8 +276,10 @@ export default class ChannelService {
 			createdAt: channel.createdAt,
 		}
 
-		const teamSocketIds = await this.getConnectedTeamMemberSocketIds(teamId)
-		this.send(teamSocketIds.length > 0 ? teamSocketIds : socketId, "channel_action_response", { type: "update", etat: true, channel: formattedChannel })
+		const broadcastSocketIds = isPublic
+			? await BroadcastTargets.forTeam(teamId)
+			: await BroadcastTargets.forChannel(channelId)
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_action_response", { type: "update", etat: true, channel: formattedChannel })
 	}
 
 	private deleteChannel = async (socketId: string, payload: { channelId: string }) => {
@@ -308,7 +295,9 @@ export default class ChannelService {
 		const adminMembership = await ChannelMember.model.findOne({ channelId, userId, role: "admin" }).lean()
 		if (!adminMembership) return this.send(socketId, "channel_action_response", { type: "delete", etat: false, error: "admin_required" })
 
-		const teamSocketIds = await this.getConnectedTeamMemberSocketIds(channel.teamId.toString())
+		const broadcastSocketIds = channel.isPublic
+			? await BroadcastTargets.forTeam(channel.teamId.toString())
+			: await BroadcastTargets.forChannel(channelId)
 
 		const posts = await ChannelPost.model.find({ channelId }).lean()
 		const postIds = posts.map((post: WithId<ChannelPostType>) => post._id)
@@ -317,7 +306,7 @@ export default class ChannelService {
 		await ChannelMember.model.deleteMany({ channelId })
 		await Channel.model.deleteOne({ _id: channelId })
 
-		this.send(teamSocketIds.length > 0 ? teamSocketIds : socketId, "channel_action_response", { type: "delete", etat: true, channelId })
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_action_response", { type: "delete", etat: true, channelId })
 	}
 
 	private getChannelMembers = async (socketId: string, payload: { channelId: string }) => {
@@ -352,7 +341,7 @@ export default class ChannelService {
 			}
 		})
 
-		this.send(socketId, "channel_member_response", { type: "list", etat: true, members: formattedMembers })
+		this.send(socketId, "channel_member_response", { type: "list", etat: true, channelId, members: formattedMembers })
 	}
 
 	private addChannelMember = async (socketId: string, payload: { channelId: string, userId: string }) => {
@@ -373,7 +362,8 @@ export default class ChannelService {
 
 		await Channel.model.updateOne({ _id: channelId }, { $push: { members: channelMember.modelInstance._id } })
 
-		this.send(socketId, "channel_member_response", { type: "add", etat: true, channelId, userId: targetUserId })
+		const broadcastSocketIds = await BroadcastTargets.forChannel(channelId)
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_member_response", { type: "add", etat: true, channelId, userId: targetUserId })
 	}
 
 	private removeChannelMember = async (socketId: string, payload: { channelId: string, userId: string }) => {
@@ -391,10 +381,14 @@ export default class ChannelService {
 
 		if (targetMembership.role === "admin") return this.send(socketId, "channel_member_response", { type: "remove", etat: false, error: "cannot_remove_admin" })
 
+		const targetSocketIds = SessionManager.getUserSocketIds(targetUserId)
+
 		await ChannelMember.model.deleteOne({ _id: targetMembership._id })
 		await Channel.model.updateOne({ _id: channelId }, { $pull: { members: targetMembership._id } })
 
-		this.send(socketId, "channel_member_response", { type: "remove", etat: true, channelId, userId: targetUserId })
+		const remainingSocketIds = await BroadcastTargets.forChannel(channelId)
+		const broadcastSocketIds = [...remainingSocketIds, ...targetSocketIds]
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_member_response", { type: "remove", etat: true, channelId, userId: targetUserId })
 	}
 
 	private leaveChannel = async (socketId: string, payload: { channelId: string }) => {
@@ -474,7 +468,7 @@ export default class ChannelService {
 			}
 		}))
 
-		this.send(socketId, "channel_post_response", { type: "list", etat: true, posts: formattedPosts })
+		this.send(socketId, "channel_post_response", { type: "list", etat: true, channelId, posts: formattedPosts })
 	}
 
 	private getUserPost = async (socketId: string, payload: { channelId: string, userId: string }) => {
@@ -550,9 +544,9 @@ export default class ChannelService {
 			responses: [],
 		}
 
-		const broadcastSocketIds = await this.getConnectedChannelMemberSocketIds(channelId)
+		const broadcastSocketIds = await BroadcastTargets.forChannel(channelId)
 
-		this.send(broadcastSocketIds.length > 0 ? broadcastSocketIds : socketId, "channel_post_response", { type: "publish", etat: true, post: formattedPost })
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_post_response", { type: "publish", etat: true, post: formattedPost })
 	}
 
 	private updatePost = async (socketId: string, payload: { postId: string, content: string }) => {
@@ -571,7 +565,8 @@ export default class ChannelService {
 		post.updatedAt = new Date()
 		await post.save()
 
-		this.send(socketId, "channel_post_response", { type: "update", etat: true, postId, content })
+		const broadcastSocketIds = await BroadcastTargets.forChannel(post.channelId.toString())
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_post_response", { type: "update", etat: true, postId, channelId: post.channelId.toString(), content, updatedAt: post.updatedAt })
 	}
 
 	private deletePost = async (socketId: string, payload: { postId: string }) => {
@@ -589,10 +584,12 @@ export default class ChannelService {
 
 		if (!isAuthor && !isAdmin) return this.send(socketId, "channel_post_response", { type: "delete", etat: false, error: "not_authorized" })
 
+		const channelId = post.channelId.toString()
 		await ChannelPostResponse.model.deleteMany({ postId })
 		await ChannelPost.model.deleteOne({ _id: postId })
 
-		this.send(socketId, "channel_post_response", { type: "delete", etat: true, postId })
+		const broadcastSocketIds = await BroadcastTargets.forChannel(channelId)
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_post_response", { type: "delete", etat: true, postId, channelId })
 	}
 
 	private answerPost = async (socketId: string, payload: { postId: string, content: string }) => {
@@ -633,8 +630,8 @@ export default class ChannelService {
 			updatedAt: populatedResponse!.updatedAt,
 		}
 
-		const broadcastSocketIds = await this.getConnectedChannelMemberSocketIds(channelId)
+		const broadcastSocketIds = await BroadcastTargets.forChannel(channelId)
 
-		this.send(broadcastSocketIds.length > 0 ? broadcastSocketIds : socketId, "channel_post_response", { type: "answer", etat: true, postId, response: formattedResponse })
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "channel_post_response", { type: "answer", etat: true, postId, response: formattedResponse })
 	}
 }

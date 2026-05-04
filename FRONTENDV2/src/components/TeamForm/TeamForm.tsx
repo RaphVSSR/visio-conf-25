@@ -87,6 +87,7 @@ const TeamForm: FC<TeamFormProps> = ({
 	const handleTeamMemberResponse = useCallback((data: any) => {
 		switch (data.type) {
 			case "list":
+				if (data.teamId !== teamToEdit?.id) return
 				setIsLoadingMembers(false)
 				if (data.etat) {
 					const teamMembersData = data.members || []
@@ -103,6 +104,7 @@ const TeamForm: FC<TeamFormProps> = ({
 				break
 
 			case "add":
+				if (data.teamId !== teamToEdit?.id) return
 				setIsLoading(false)
 				if (data.etat) {
 					if (teamToEdit) {
@@ -126,6 +128,7 @@ const TeamForm: FC<TeamFormProps> = ({
 				break
 
 			case "remove":
+				if (data.teamId !== teamToEdit?.id) return
 				setIsLoading(false)
 				if (data.etat) {
 					if (teamToEdit) {
@@ -222,7 +225,7 @@ const TeamForm: FC<TeamFormProps> = ({
 		if (isEditing && teamToEdit) {
 			socket?.send("team_action", {
 				type: "update",
-				id: teamToEdit.id,
+				teamId: teamToEdit.id,
 				name,
 				description,
 				picture: teamPicture,

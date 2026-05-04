@@ -4,12 +4,15 @@ import type { AuthState } from "./AuthSync.types"
 type StateUpdater = (updater: (prev: AuthState) => AuthState) => void
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:3220"
+const WARNING_MS = Number(process.env.REACT_APP_SESSION_EXPIRY_WARNING_MS) || 60_000
 
 export class AuthSync {
 
 	private socket: MessageClientAdapter
 	private onStateChange: StateUpdater
-	private expiryTimer: ReturnType<typeof setTimeout> | null = null
+	private warningTimer: ReturnType<typeof setTimeout> | null = null
+	private logoutTimer: ReturnType<typeof setTimeout> | null = null
+	private refreshing = false
 
 	private handleLoginResponse = (data: { status: string, [key: string]: any }) => {
 
@@ -130,6 +133,10 @@ export class AuthSync {
 	}
 
 	async refreshSession(): Promise<void> {
+		if (this.refreshing) return
+		this.refreshing = true
+		this.onStateChange(prev => ({ ...prev, isRefreshing: true }))
+
 		try {
 			const resp = await fetch(`${BACKEND_URL}${process.env.REACT_APP_BACKEND_API_PREFIX || ""}/auth/refresh`, {
 				method: "POST",
@@ -143,20 +150,17 @@ export class AuthSync {
 					...prev,
 					expiresAt: data.expiresAt,
 					showExpiryWarning: false,
+					isRefreshing: false,
 				}))
 			} else {
-				this.clearExpiryTimer()
-				this.onStateChange(prev => ({
-					...prev,
-					user: null,
-					isAuthenticated: false,
-					isLoading: false,
-					expiresAt: null,
-					showExpiryWarning: false,
-				}))
+				this.expireSession()
+				this.onStateChange(prev => ({ ...prev, isRefreshing: false }))
 			}
 		} catch (error) {
 			console.error("Refresh request failed:", error)
+			this.onStateChange(prev => ({ ...prev, isRefreshing: false }))
+		} finally {
+			this.refreshing = false
 		}
 	}
 
@@ -170,26 +174,31 @@ export class AuthSync {
 	private startExpiryTimer(expiresAt: number): void {
 		this.clearExpiryTimer()
 
-		this.expiryTimer = setTimeout(() => {
-			this.onStateChange(prev => ({ ...prev, showExpiryWarning: true }))
+		const logoutDelay = expiresAt - Date.now()
+		if (logoutDelay <= 0) { this.expireSession(); return }
 
-			this.expiryTimer = setTimeout(() => {
-				this.onStateChange(prev => ({
-					...prev,
-					user: null,
-					isAuthenticated: false,
-					isLoading: false,
-					expiresAt: null,
-					showExpiryWarning: false,
-				}))
-			}, expiresAt - Date.now())
-		}, expiresAt - Date.now() - Number(process.env.REACT_APP_SESSION_EXPIRY_WARNING_MS))
+		const warningDelay = Math.max(0, logoutDelay - WARNING_MS)
+		this.warningTimer = setTimeout(() => {
+			this.onStateChange(prev => ({ ...prev, showExpiryWarning: true }))
+		}, warningDelay)
+
+		this.logoutTimer = setTimeout(() => this.expireSession(), logoutDelay)
 	}
 
 	private clearExpiryTimer(): void {
-		if (this.expiryTimer) {
-			clearTimeout(this.expiryTimer)
-			this.expiryTimer = null
-		}
+		if (this.warningTimer) { clearTimeout(this.warningTimer); this.warningTimer = null }
+		if (this.logoutTimer) { clearTimeout(this.logoutTimer); this.logoutTimer = null }
+	}
+
+	private expireSession(): void {
+		this.clearExpiryTimer()
+		this.onStateChange(prev => ({
+			...prev,
+			user: null,
+			isAuthenticated: false,
+			isLoading: false,
+			expiresAt: null,
+			showExpiryWarning: false,
+		}))
 	}
 }

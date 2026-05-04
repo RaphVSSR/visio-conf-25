@@ -45,6 +45,7 @@ const ChannelView: FC<ChannelViewProps> = ({
 	const handleChannelPostResponse = useCallback((data: any) => {
 		switch (data.type) {
 			case "list":
+				if (data.channelId !== channelId) return
 				if (data.etat) {
 					setPosts(sortByCreatedAtAsc(data.posts || []))
 				} else {
@@ -54,13 +55,31 @@ const ChannelView: FC<ChannelViewProps> = ({
 				break
 
 			case "publish":
-				if (data.etat) {
+				if (data.etat && data.post?.channelId === channelId) {
 					const { post } = data
 					setPosts((prevPosts) => sortByCreatedAtAsc([post, ...prevPosts]))
 					setNewPostContent("")
 					if (messagesEndRef.current) {
 						messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
 					}
+				}
+				break
+
+			case "update":
+				if (data.etat && data.channelId === channelId) {
+					setPosts((prevPosts) =>
+						prevPosts.map((post) =>
+							post.id === data.postId
+								? { ...post, content: data.content, updatedAt: data.updatedAt }
+								: post
+						)
+					)
+				}
+				break
+
+			case "delete":
+				if (data.etat && data.channelId === channelId) {
+					setPosts((prevPosts) => prevPosts.filter((post) => post.id !== data.postId))
 				}
 				break
 
@@ -84,16 +103,17 @@ const ChannelView: FC<ChannelViewProps> = ({
 				}
 				break
 		}
-	}, [])
+	}, [channelId])
 
 	const handleChannelMemberResponse = useCallback((data: any) => {
 		if (data.type !== "list") return
+		if (data.channelId !== channelId) return
 		if (data.etat) {
 			setMembers(data.members || [])
 		} else {
 			console.error("Erreur lors de la recuperation des membres:", data.error)
 		}
-	}, [])
+	}, [channelId])
 
 	const handleChannelActionResponse = useCallback((data: any) => {
 		if (data.type !== "delete") return

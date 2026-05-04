@@ -1,5 +1,6 @@
 import { getMessagesByDomain } from "../ListeMessages.ts"
 import SessionManager from "./authentication/SessionManager.ts"
+import BroadcastTargets from "./BroadcastTargets.ts"
 import Team from "../Team.ts"
 import TeamMember from "../TeamMember.ts"
 import Channel from "../Channel.ts"
@@ -169,15 +170,16 @@ export default class TeamService {
 			role: "admin",
 		}
 
-		this.send(socketId, "team_action_response", { type: "create", etat: true, team: formattedTeam })
+		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId.toString())
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", { type: "create", etat: true, team: formattedTeam })
 	}
 
-	private updateTeam = async (socketId: string, payload: { id: string, name?: string, description?: string, picture?: string }) => {
+	private updateTeam = async (socketId: string, payload: { teamId: string, name?: string, description?: string, picture?: string }) => {
 
 		const userId = this.resolveUserId(socketId)
 		if (!userId) return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "not_authenticated" })
 
-		const { id: teamId, name, description, picture } = payload
+		const { teamId, name, description, picture } = payload
 
 		const team = await Team.model.findById(teamId)
 		if (!team) return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "team_not_found" })
@@ -203,7 +205,8 @@ export default class TeamService {
 			role: "admin",
 		}
 
-		this.send(socketId, "team_action_response", { type: "update", etat: true, team: formattedTeam })
+		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId)
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", { type: "update", etat: true, team: formattedTeam })
 	}
 
 	private deleteTeam = async (socketId: string, payload: { teamId: string }) => {
@@ -219,6 +222,8 @@ export default class TeamService {
 		const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean()
 		if (!adminMembership) return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "admin_required" })
 
+		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId)
+
 		const channels = await Channel.model.find({ teamId }).lean()
 		for (const channel of channels) {
 			const channelId = channel._id!.toString()
@@ -233,7 +238,7 @@ export default class TeamService {
 		await TeamMember.model.deleteMany({ teamId })
 		await Team.model.deleteOne({ _id: teamId })
 
-		this.send(socketId, "team_action_response", { type: "delete", etat: true, teamId })
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", { type: "delete", etat: true, teamId })
 	}
 
 	private leaveTeam = async (socketId: string, payload: { teamId: string }) => {
@@ -251,10 +256,14 @@ export default class TeamService {
 			if (adminCount <= 1) return this.send(socketId, "team_action_response", { type: "leave", etat: false, error: "last_admin_cannot_leave" })
 		}
 
+		const leaverSocketIds = SessionManager.getUserSocketIds(userId)
+
 		await TeamMember.model.deleteOne({ _id: membership._id })
 		await Team.model.updateOne({ _id: teamId }, { $pull: { members: membership._id } })
 
-		this.send(socketId, "team_action_response", { type: "leave", etat: true, teamId })
+		const remainingSocketIds = await BroadcastTargets.forTeam(teamId)
+		const broadcastSocketIds = [...remainingSocketIds, ...leaverSocketIds]
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", { type: "leave", etat: true, teamId, userId })
 	}
 
 	private getTeamMembers = async (socketId: string, payload: { teamId: string }) => {
@@ -284,7 +293,7 @@ export default class TeamService {
 			}
 		})
 
-		this.send(socketId, "team_member_response", { type: "list", etat: true, members: formattedMembers })
+		this.send(socketId, "team_member_response", { type: "list", etat: true, teamId, members: formattedMembers })
 	}
 
 	private addTeamMember = async (socketId: string, payload: { teamId: string, userId: string }) => {
@@ -305,7 +314,8 @@ export default class TeamService {
 
 		await Team.model.updateOne({ _id: teamId }, { $push: { members: teamMember.modelInstance._id } })
 
-		this.send(socketId, "team_member_response", { type: "add", etat: true, teamId, userId: targetUserId })
+		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId)
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_member_response", { type: "add", etat: true, teamId, userId: targetUserId })
 	}
 
 	private removeTeamMember = async (socketId: string, payload: { teamId: string, userId: string }) => {
@@ -323,9 +333,13 @@ export default class TeamService {
 
 		if (targetMembership.role === "admin") return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "cannot_remove_admin" })
 
+		const targetSocketIds = SessionManager.getUserSocketIds(targetUserId)
+
 		await TeamMember.model.deleteOne({ _id: targetMembership._id })
 		await Team.model.updateOne({ _id: teamId }, { $pull: { members: targetMembership._id } })
 
-		this.send(socketId, "team_member_response", { type: "remove", etat: true, teamId, userId: targetUserId })
+		const remainingSocketIds = await BroadcastTargets.forTeam(teamId)
+		const broadcastSocketIds = [...remainingSocketIds, ...targetSocketIds]
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_member_response", { type: "remove", etat: true, teamId, userId: targetUserId })
 	}
 }

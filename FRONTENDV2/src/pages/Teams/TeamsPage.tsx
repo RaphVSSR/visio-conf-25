@@ -53,6 +53,24 @@ export const TeamsPage = () => {
 		[teamManager.selectedTeam, socket]
 	)
 
+	const handleTeamActionResponse = useCallback(
+		(data: any) => {
+			if (!data.etat) return
+			if (data.type !== "create" && data.type !== "update" && data.type !== "delete" && data.type !== "leave") return
+			socket?.send("team_get", { type: "list" })
+		},
+		[socket]
+	)
+
+	const handleTeamMemberBroadcast = useCallback(
+		(data: any) => {
+			if (!data.etat) return
+			if (data.type !== "add" && data.type !== "remove") return
+			socket?.send("team_get", { type: "list" })
+		},
+		[socket]
+	)
+
 	useEffect(() => {
 		if (!socket) return
 		if (teamManager.selectedTeam) {
@@ -69,6 +87,8 @@ export const TeamsPage = () => {
 		socket.on("team_get_response", handleTeamQueryResponse)
 		socket.on("channel_get_response", handleChannelQueryResponse)
 		socket.on("channel_action_response", handleChannelActionResponse)
+		socket.on("team_action_response", handleTeamActionResponse)
+		socket.on("team_member_response", handleTeamMemberBroadcast)
 
 		socket.send("team_get", { type: "list" })
 
@@ -76,8 +96,10 @@ export const TeamsPage = () => {
 			socket.off("team_get_response", handleTeamQueryResponse)
 			socket.off("channel_get_response", handleChannelQueryResponse)
 			socket.off("channel_action_response", handleChannelActionResponse)
+			socket.off("team_action_response", handleTeamActionResponse)
+			socket.off("team_member_response", handleTeamMemberBroadcast)
 		}
-	}, [socket, user, handleTeamQueryResponse, handleChannelQueryResponse, handleChannelActionResponse])
+	}, [socket, user, handleTeamQueryResponse, handleChannelQueryResponse, handleChannelActionResponse, handleTeamActionResponse, handleTeamMemberBroadcast])
 
 	const { handleTeamCreated } = teamManager
 

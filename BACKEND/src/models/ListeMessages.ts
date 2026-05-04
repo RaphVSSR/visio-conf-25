@@ -4,7 +4,7 @@ const MessageRegistry: Record<string, MessageDomain> = {
 
 	socket: {
 		emitted: ["socket_disconnect"],
-		received: ["socket_disconnect"],
+		received: [],
 	},
 
 	auth: {

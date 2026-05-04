@@ -168,7 +168,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 		if (isEditing) {
 			socket?.send("channel_action", {
 				type: "update",
-				id: channelToEdit.id,
+				channelId: channelToEdit.id,
 				name,
 				isPublic,
 				teamId: team.id,
