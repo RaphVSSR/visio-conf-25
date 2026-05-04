@@ -23,6 +23,7 @@ interface DirectoryUser {
   is_online: boolean;
   disturb_status: string;
   roles: any[];
+  desc?: string;
 }
 
 export const Directory: FC = () => {
@@ -111,7 +112,7 @@ export const Directory: FC = () => {
                     {typeof me.roles?.[0] === 'string' ? me.roles[0] : (me.roles?.[0]?.label || "Utilisateur")}
                   </span>
                 </div>
-                <p className="profileBio">Salut c'est moi</p>
+                <p className="profileBio">{me.desc || "Aucune description"}</p>
               </div>
               <button className="manageProfileBtn" onClick={() => navigate('/profile')}>Gérer mon profil</button>
             </Card>
@@ -149,6 +150,12 @@ export const Directory: FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {user.desc && (
+                    <div className="userBioPreview">
+                      <p>{user.desc.length > 100 ? `${user.desc.substring(0, 100)}...` : user.desc}</p>
+                    </div>
+                  )}
 
                   <div className="cardFooter">
                     <span className={`roleBadge ${getRoleBadgeClass(typeof user.roles?.[0] === 'string' ? user.roles[0] : (user.roles?.[0]?.label || "Utilisateur"))}`}>

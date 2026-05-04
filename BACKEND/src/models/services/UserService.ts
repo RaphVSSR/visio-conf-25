@@ -71,7 +71,7 @@ export default class UserService {
 		if (!userId) return this.send(socketId, "user_get_response", { type: "list", etat: false, error: "not_authenticated" })
 
 		const users = await User.model.find({ status: "active" })
-			.select("firstname lastname email picture is_online job roles")
+			.select("firstname lastname email picture is_online job roles desc phone")
 			.lean()
 
 		const formattedUsers = users.map(user => ({
@@ -83,6 +83,8 @@ export default class UserService {
 			isOnline: user.is_online,
 			job: user.job,
 			roles: user.roles,
+			desc: user.desc,
+			phone: user.phone,
 		}))
 
 		this.send(socketId, "user_get_response", { type: "list", etat: true, users: formattedUsers })

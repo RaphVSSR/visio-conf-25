@@ -234,7 +234,25 @@
         }
       }
 
-      .cardFooter {
+      .userBioPreview {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 8px;
+      
+      p {
+        font-size: 0.85rem;
+        color: #64748b;
+        line-height: 1.4;
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    }
+
+    .cardFooter {
         display: flex;
         justify-content: space-between;
         align-items: center;
