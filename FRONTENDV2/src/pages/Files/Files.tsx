@@ -7,7 +7,8 @@ import {
   Search, 
   Trash2,
   Folder,
-  ArrowLeft
+  ArrowLeft,
+  Download
 } from "lucide-react";
 import { useAuth } from "hooks/useAuth";
 import { Card } from "design-system/components";
