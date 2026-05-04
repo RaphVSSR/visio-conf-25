@@ -115,7 +115,7 @@ export default class FilesService {
 
     // --- Handlers ---
 
-    async handleGetFiles(socketId: string, data: any) {
+    handleGetFiles = async (socketId: string, data: any) => {
         const { userId, spaceId, type, category } = data;
         try {
             let effectiveCategory = category || (['personal', 'global', 'team'].includes(type) ? type : 'global');
@@ -157,7 +157,7 @@ export default class FilesService {
         }
     }
 
-    async handleUploadFile(socketId: string, data: any) {
+    handleUploadFile = async (socketId: string, data: any) => {
         const { name, size, type, url, userId, spaceId, category } = data;
         try {
             const user = await User.model.findById(userId);
@@ -224,7 +224,7 @@ export default class FilesService {
         }
     }
 
-    async handleUpdateFile(socketId: string, data: any) {
+    handleUpdateFile = async (socketId: string, data: any) => {
         const { fileId, newName, userId } = data;
         try {
             const user = await User.model.findById(userId);
@@ -271,7 +271,7 @@ export default class FilesService {
         }
     }
 
-    async handleDeleteFile(socketId: string, data: any) {
+    handleDeleteFile = async (socketId: string, data: any) => {
         const { fileId, userId } = data;
         try {
             const user = await User.model.findById(userId);
@@ -327,7 +327,7 @@ export default class FilesService {
         }
     }
 
-    async handleCreateSpace(socketId: string, data: any) {
+    handleCreateSpace = async (socketId: string, data: any) => {
         const { name, userId, category, members, parentId } = data;
         try {
             const user = await User.model.findById(userId);
@@ -398,7 +398,7 @@ export default class FilesService {
         }
     }
 
-    async handleGetSpaces(socketId: string, data: any) {
+    handleGetSpaces = async (socketId: string, data: any) => {
         const { userId, category, type, parentId } = data;
         try {
             let query: any = { parent: parentId ? parentId : { $in: [null, undefined] } };
@@ -436,7 +436,7 @@ export default class FilesService {
         }
     }
 
-    async handleDeleteSpace(socketId: string, data: any) {
+    handleDeleteSpace = async (socketId: string, data: any) => {
         const { spaceId, userId } = data;
         try {
             const user = await User.model.findById(userId);
@@ -485,7 +485,7 @@ export default class FilesService {
         }
     }
 
-    async handleRenameSpace(socketId: string, data: any) {
+    handleRenameSpace = async (socketId: string, data: any) => {
         const { spaceId, newName, userId } = data;
         try {
             const user = await User.model.findById(userId);
@@ -524,7 +524,7 @@ export default class FilesService {
         }
     }
 
-    async handleUpdateSpaceMembers(socketId: string, data: any) {
+    handleUpdateSpaceMembers = async (socketId: string, data: any) => {
         const { spaceId, members, userId } = data;
         try {
             const user = await User.model.findById(userId);
@@ -577,7 +577,7 @@ export default class FilesService {
         }
     }
 
-    async handleResolvePath(socketId: string, data: any) {
+    handleResolvePath = async (socketId: string, data: any) => {
         const { path, category, userId } = data;
         const names = path || [];
         try {

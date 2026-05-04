@@ -5,11 +5,9 @@ import {
   FolderPlus, 
   FilePlus, 
   Search, 
-  ChevronRight,
-  MoreVertical,
-  Download,
   Trash2,
-  Folder
+  Folder,
+  ArrowLeft
 } from "lucide-react";
 import { useAuth } from "hooks/useAuth";
 import { Card } from "design-system/components";
@@ -20,6 +18,7 @@ export const Files: FC = () => {
   const [files, setFiles] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [currentSpaceId, setCurrentSpaceId] = useState<string | null>(null);
+  const [currentPath, setCurrentPath] = useState<any[]>([]);
 
   useEffect(() => {
     if (!socket || !user) return;
@@ -105,6 +104,18 @@ export const Files: FC = () => {
     }
   };
 
+  const handleNavigateTo = (space: any) => {
+    setCurrentPath(prev => [...prev, space]);
+    setCurrentSpaceId(space._id);
+  };
+
+  const handleGoBack = () => {
+    const newPath = [...currentPath];
+    newPath.pop();
+    setCurrentPath(newPath);
+    setCurrentSpaceId(newPath.length > 0 ? newPath[newPath.length - 1]._id : null);
+  };
+
 
   return (
     <motion.section 
@@ -114,11 +125,23 @@ export const Files: FC = () => {
       transition={{ duration: 0.5 }}
     >
       <header className="pageHeader">
-        <div className="headerInfo">
-          <h1 className="pageTitle">
-            <FilesIcon size={24} /> Gestion des fichiers
-          </h1>
-          <p className="pageSubtitle">Stockez et partagez vos documents en toute sécurité</p>
+        <div className="headerLeft">
+          {currentSpaceId && (
+            <button className="backButton" onClick={handleGoBack}>
+              <ArrowLeft size={20} />
+            </button>
+          )}
+          <div className="headerInfo">
+            <h1 className="pageTitle">
+              <FilesIcon size={24} /> Gestion des fichiers
+            </h1>
+            <p className="pageSubtitle">
+              {currentPath.length > 0 
+                ? currentPath.map(s => s.name).join(' / ') 
+                : "Stockez et partagez vos documents en toute sécurité"
+              }
+            </p>
+          </div>
         </div>
         
         {user && (
@@ -138,7 +161,7 @@ export const Files: FC = () => {
         <div className="browserGrid">
           {/* Folders */}
           {spaces.map(space => (
-            <Card key={space._id} className="itemCard folder" onClick={() => setCurrentSpaceId(space._id)}>
+            <Card key={space._id} className="itemCard folder" onClick={() => handleNavigateTo(space)}>
               <div className="itemIcon"><Folder size={24} /></div>
               <div className="itemInfo">
                 <span className="itemName">{space.name}</span>
