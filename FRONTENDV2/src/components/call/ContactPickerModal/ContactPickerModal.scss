@@ -87,7 +87,6 @@
         border-radius: 12px;
         border: none;
         background: transparent;
-        cursor: pointer;
         transition: background 0.2s ease;
         width: 100%;
         text-align: left;
@@ -95,9 +94,8 @@
         &:hover {
             background: rgba(255, 255, 255, 0.08);
 
-            .callIcon {
+            .callActions {
                 opacity: 1;
-                color: #22c55e;
             }
         }
 
@@ -151,11 +149,39 @@
             }
         }
 
-        .callIcon {
-            color: #94a3b8;
+        .callActions {
+            display: flex;
+            gap: 8px;
             opacity: 0;
-            transition: opacity 0.2s ease, color 0.2s ease;
+            transition: opacity 0.2s ease;
             flex-shrink: 0;
+        }
+
+        .callIconBtn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+
+            &:hover {
+                background: rgba(34, 197, 94, 0.3);
+            }
+
+            &.videoBtn {
+                background: rgba(59, 130, 246, 0.15);
+                color: #3b82f6;
+
+                &:hover {
+                    background: rgba(59, 130, 246, 0.3);
+                }
+            }
         }
     }
 }

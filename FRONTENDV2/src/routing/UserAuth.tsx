@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PhoneOff } from "lucide-react";
 import { useAuth } from "hooks/useAuth";
 import { AuthenticatedLayout } from "components/AuthenticatedLayout/AuthenticatedLayout";
-import { AudioCallProvider, useAudioCall } from "contexts/call/AudioCallContext";
-import { AudioCallOverlay, IncomingCallModal } from "components/call";
+import { CallProvider, useCall } from "contexts/call/CallContext";
+import { AudioCallOverlay, VideoCallOverlay, IncomingCallModal } from "components/call";
 import "./CallEndedToast.scss";
 
 const CallEndedToast: FC = () => {
 
-	const { callEndedNotice, dismissCallEndedNotice } = useAudioCall();
+	const { callEndedNotice, dismissCallEndedNotice } = useCall();
 
 	useEffect(() => {
 		if (!callEndedNotice) return;
@@ -45,11 +45,12 @@ export const UserAuth: FC = () => {
 	if (!isAuthenticated) return <Navigate to={"/login"} replace />;
 
 	return (
-		<AudioCallProvider>
+		<CallProvider>
 			<AuthenticatedLayout />
 			<AudioCallOverlay />
+			<VideoCallOverlay />
 			<IncomingCallModal />
 			<CallEndedToast />
-		</AudioCallProvider>
+		</CallProvider>
 	);
 }

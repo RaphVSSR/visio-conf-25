@@ -24,6 +24,7 @@ interface CallSocketListenersOptions {
     onCallEnded: () => void;
     onCallError: (message: string) => void;
     onMuteToggle: (payload: { callId: string; userId: string; isMuted: boolean }) => void;
+    onCameraToggle: (payload: { callId: string; userId: string; isCameraOn: boolean }) => void;
 }
 
 export function useCallSocketListeners({
@@ -41,6 +42,7 @@ export function useCallSocketListeners({
     onCallEnded,
     onCallError,
     onMuteToggle,
+    onCameraToggle,
 }: CallSocketListenersOptions): void {
     useEffect(() => {
         const socket = getSocket();
@@ -68,6 +70,7 @@ export function useCallSocketListeners({
         socket.on("call:ended", onCallEnded);
         socket.on("call:error", handleError);
         socket.on("call:mute-toggle", onMuteToggle);
+        socket.on("call:camera-toggle", onCameraToggle);
 
         return () => {
             socket.off("call:incoming", onIncomingCall);
@@ -81,6 +84,7 @@ export function useCallSocketListeners({
             socket.off("call:ended", onCallEnded);
             socket.off("call:error", handleError);
             socket.off("call:mute-toggle", onMuteToggle);
+            socket.off("call:camera-toggle", onCameraToggle);
         };
     }, [
         callState,
@@ -97,5 +101,6 @@ export function useCallSocketListeners({
         onCallEnded,
         onCallError,
         onMuteToggle,
+        onCameraToggle,
     ]);
 }

@@ -1,12 +1,12 @@
 import { FC, useState, useEffect } from "react"
 import { Mic, MicOff, PhoneOff, Users, Minimize2, Maximize2, Phone } from "lucide-react"
 import { motion } from "framer-motion"
-import { useAudioCall } from "contexts/call/AudioCallContext"
+import { useCall } from "contexts/call/CallContext"
 import { ParticipantBubble } from "../ParticipantBubble/ParticipantBubble"
 import "./AudioCallOverlay.scss"
 
 export const AudioCallOverlay: FC = () => {
-    const { callState, hangUp, toggleMute } = useAudioCall()
+    const { callState, hangUp, toggleMute } = useCall()
     const [minimized, setMinimized] = useState(false)
     const [elapsed, setElapsed] = useState(0)
 
@@ -22,6 +22,7 @@ export const AudioCallOverlay: FC = () => {
     }, [callState?.startTime])
 
     if (!callState || callState.status === "idle") return null
+    if (callState.callType === "video") return null
 
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, "0")

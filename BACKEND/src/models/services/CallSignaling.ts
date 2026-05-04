@@ -45,6 +45,7 @@ export default class CallSignaling {
 		this.registerHandler("call:ice-candidate", this.handleIceCandidate)
 		this.registerHandler("call:hangup", this.handleHangup)
 		this.registerHandler("call:mute-toggle", this.handleMuteToggle)
+		this.registerHandler("call:camera-toggle", this.handleCameraToggle)
 		this.registerHandler("socket_disconnect", this.handleDisconnect)
 
 		this.controleur.inscription(this, getMessagesByDomain("call").received, [...this.handlers.keys()])
@@ -246,6 +247,23 @@ export default class CallSignaling {
 				callId: payload.callId,
 				userId,
 				isMuted: payload.isMuted,
+			})
+		}
+	}
+
+	private handleCameraToggle = (socketId: string, payload: {
+		callId: string,
+		isCameraOn: boolean,
+	}) => {
+		const userId = SessionManager.getUserId(socketId)
+		if (!userId) return
+
+		const others = this.participantSocketIds(payload.callId, socketId)
+		if (others.length) {
+			this.send(others, "call:camera-toggle", {
+				callId: payload.callId,
+				userId,
+				isCameraOn: payload.isCameraOn,
 			})
 		}
 	}
