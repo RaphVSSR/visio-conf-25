@@ -77,7 +77,7 @@ export class Folder extends Collection {
         },
     });
 
-    static model: Model<FolderType> = models.Folder || model<FolderType>("File", this.schema);
+    static model: Model<FolderType> = models.Folder || model<FolderType>("Folder", this.schema);
 
     modelInstance;
     files?: File[];
@@ -251,7 +251,7 @@ export class File extends Collection {
 
     })();
 
-    static model: Model<FileType> = models.File || model<FileType>("File", this.schema);
+    static model: Model<FileType> = models.LegacyFile || model<FileType>("LegacyFile", this.schema);
     modelInstance;
 
     constructor(dataToConstruct: FileType){
