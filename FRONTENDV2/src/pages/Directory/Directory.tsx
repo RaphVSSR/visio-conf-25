@@ -1,16 +1,16 @@
-import React, { FC, useEffect, useState, useMemo } from "react";
+import React, { FC, useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, 
   Search, 
-  ShieldCheck, 
   Mail, 
   Phone, 
   User as UserIcon,
-  Circle
+  PhoneCall,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useAudioCall } from "../../contexts/call/AudioCallContext";
 import { Card } from "../../design-system/components/Card/Card";
 import "./Directory.scss";
 
@@ -20,53 +20,67 @@ interface DirectoryUser {
   lastname: string;
   email: string;
   phone?: string;
+  picture?: string;
   is_online: boolean;
-  disturb_status: string;
-  roles: any[];
+  roles?: string[];
   desc?: string;
 }
 
 export const Directory: FC = () => {
   const { socket, user: currentUser } = useAuth();
+  const { initiateCall } = useAudioCall();
   const navigate = useNavigate();
   const [users, setUsers] = useState<DirectoryUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const fetchUsers = useCallback(() => {
+    if (!socket) return;
+    
+    setLoading(true);
+    socket.send("contacts:list", { excludeEmail: currentUser?.email });
+  }, [socket, currentUser?.email]);
 
   useEffect(() => {
     if (!socket) return;
 
-    const handleUserGet = (mesg: any) => {
-      if (mesg.type === 'list' && mesg.etat) {
-        setUsers(mesg.users);
-      }
+    const handleContactsResponse = (data: DirectoryUser[]) => {
+      setUsers(data);
+      setLoading(false);
     };
 
-    socket.on("user_get_response", handleUserGet);
-
-    socket.onReady(() => {
-        socket.send("user_get", { type: 'list' });
-    });
+    socket.on("contacts:list:response", handleContactsResponse);
+    
+    socket.onReady(fetchUsers);
 
     return () => {
-      socket.off("user_get_response", handleUserGet);
+      socket.off("contacts:list:response", handleContactsResponse);
     };
-  }, [socket]);
-
+  }, [socket, fetchUsers]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       const fullName = `${user.firstname} ${user.lastname}`.toLowerCase();
       return fullName.includes(searchTerm.toLowerCase()) || 
-             user.email.toLowerCase().includes(searchTerm.toLowerCase());
+             user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     });
   }, [users, searchTerm]);
 
-  const getRoleBadgeClass = (roleLabel: string) => {
-    const label = roleLabel.toLowerCase();
+  const getRoleBadgeClass = (roles?: string[]) => {
+    if (!roles || roles.length === 0 || !roles[0]) return "badge-user";
+    const label = roles[0].toLowerCase();
     if (label.includes("admin")) return "badge-admin";
     if (label.includes("etudiant")) return "badge-student";
     if (label.includes("enseignant")) return "badge-teacher";
     return "badge-user";
+  };
+
+  const getRoleLabel = (roles?: string[]) => {
+    if (!roles || roles.length === 0 || !roles[0]) return "Membre";
+    const label = roles[0];
+    if (label.toLowerCase() === "admin") return "Administrateur";
+    if (label.toLowerCase() === "user") return "Membre";
+    return label;
   };
 
   const getAbstractColor = (id: string) => {
@@ -75,8 +89,14 @@ export const Directory: FC = () => {
     return colors[index];
   };
 
-  const me = users.find(u => u.id === currentUser?._id);
-  const others = filteredUsers.filter(u => u.id !== currentUser?._id);
+  const handleCall = (user: DirectoryUser) => {
+    initiateCall([{
+      userId: user.id,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      picture: "default_profile_picture.png"
+    }]);
+  };
 
   return (
     <div id="directoryPage">
@@ -98,84 +118,99 @@ export const Directory: FC = () => {
           </div>
         </header>
 
-        {/* My Profile Card (like in the example) */}
-        {me && !searchTerm && (
+        {/* Current User Profile Shortcut */}
+        {currentUser && !searchTerm && (
           <section className="myProfileSection">
             <Card className="myProfileCard">
-              <div className="profileIconLarge" style={{ background: getAbstractColor(me.id) }}>
+              <div className="profileIconLarge" style={{ background: getAbstractColor(currentUser._id || "me") }}>
                 <UserIcon size={40} color="white" />
+                <div className="onlineIndicator online" />
               </div>
               <div className="profileInfo">
                 <div className="profileMeta">
-                  <h2 className="profileName">{me.firstname} {me.lastname}</h2>
-                  <span className={`roleBadge ${getRoleBadgeClass(typeof me.roles?.[0] === 'string' ? me.roles[0] : (me.roles?.[0]?.label || "Utilisateur"))}`}>
-                    {typeof me.roles?.[0] === 'string' ? me.roles[0] : (me.roles?.[0]?.label || "Utilisateur")}
+                  <h2 className="profileName">{currentUser.firstname} {currentUser.lastname}</h2>
+                  <span className={`roleBadge ${getRoleBadgeClass(currentUser.roles)}`}>
+                    {getRoleLabel(currentUser.roles)} (Moi)
                   </span>
                 </div>
-                <p className="profileBio">{me.desc || "Aucune description"}</p>
+                <p className="profileBio">{currentUser.desc || "Aucune description"}</p>
               </div>
               <button className="manageProfileBtn" onClick={() => navigate('/profile')}>Gérer mon profil</button>
             </Card>
           </section>
         )}
 
-        <div className="usersGrid">
-          <AnimatePresence>
-            {others.map((user) => (
-              <motion.div
-                key={user.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="userCard">
-                  <div className="cardHeader">
-                    <div className="userIconSmall" style={{ background: getAbstractColor(user.id) }}>
-                       <UserIcon size={24} color="white" />
-                       <div className={`statusDot ${user.is_online ? 'online' : 'offline'}`} />
-                    </div>
-                    <div className="userBasic">
-                      <h3 className="userName">{user.firstname} {user.lastname}</h3>
-                      <div className="cardDetails">
-                        <div className="detailItem">
-                          <Mail size={14} /> <span>{user.email}</span>
-                        </div>
-                        {user.phone && (
+        {loading ? (
+          <div className="loadingState">
+            <p>Chargement de l'annuaire...</p>
+          </div>
+        ) : (
+          <div className="usersGrid">
+            <AnimatePresence>
+              {filteredUsers.map((user) => (
+                <motion.div
+                  key={user.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card className="userCard">
+                    <div className="cardHeader">
+                      <div className="userIconSmall" style={{ background: getAbstractColor(user.id) }}>
+                         <UserIcon size={24} color="white" />
+                         <div className={`statusDot ${user.is_online ? 'online' : 'offline'}`} />
+                      </div>
+                      <div className="userBasic">
+                        <h3 className="userName">{user.firstname} {user.lastname}</h3>
+                        <div className="cardDetails">
                           <div className="detailItem">
-                            <Phone size={14} /> <span>{user.phone}</span>
+                            <Mail size={14} /> <span>{user.email}</span>
                           </div>
-                        )}
+                          {user.phone && (
+                            <div className="detailItem">
+                              <Phone size={14} /> <span>{user.phone}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {user.desc && (
-                    <div className="userBioPreview">
-                      <p>{user.desc.length > 100 ? `${user.desc.substring(0, 100)}...` : user.desc}</p>
+                    {user.desc && (
+                      <div className="userBioPreview">
+                        <p>{user.desc.length > 100 ? `${user.desc.substring(0, 100)}...` : user.desc}</p>
+                      </div>
+                    )}
+
+                    <div className="cardFooter">
+                      <span className={`roleBadge ${getRoleBadgeClass(user.roles)}`}>
+                        {getRoleLabel(user.roles)}
+                      </span>
+                      <button 
+                        className="callUserBtn" 
+                        title={`Appeler ${user.firstname}`}
+                        onClick={() => handleCall(user)}
+                      >
+                        <PhoneCall size={18} />
+                      </button>
                     </div>
-                  )}
+                  </Card>
+                </motion.div>
+              ))}
+            </AnimatePresence>
 
-                  <div className="cardFooter">
-                    <span className={`roleBadge ${getRoleBadgeClass(typeof user.roles?.[0] === 'string' ? user.roles[0] : (user.roles?.[0]?.label || "Utilisateur"))}`}>
-                      {typeof user.roles?.[0] === 'string' ? user.roles[0] : (user.roles?.[0]?.label || "Utilisateur")}
-                    </span>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {others.length === 0 && (
-            <div className="emptyState">
-              <Users size={48} strokeWidth={1.5} />
-              <h3>Aucun membre trouvé</h3>
-              <p>Essayez d'ajuster votre recherche ou vos filtres</p>
-            </div>
-          )}
-        </div>
+            {filteredUsers.length === 0 && !loading && (
+              <div className="emptyState">
+                <Users size={48} strokeWidth={1.5} />
+                <h3>Aucun membre trouvé</h3>
+                <p>Essayez d'ajuster votre recherche ou vos filtres</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
