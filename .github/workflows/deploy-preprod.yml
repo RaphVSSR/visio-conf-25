@@ -1,0 +1,27 @@
+name: Deploy to preprod
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-preprod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SSH & run deploy-preprod.sh
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            ~/deploy-preprod.sh
