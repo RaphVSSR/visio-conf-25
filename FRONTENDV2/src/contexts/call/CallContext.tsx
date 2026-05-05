@@ -8,7 +8,7 @@ interface CallContextType {
     callEndedNotice: string | null;
     remoteStreams: Map<string, MediaStream>;
     localMediaStream: React.MutableRefObject<MediaStream | null>;
-    initiateCall: (targetUsers: TargetUser[], callType: CallType) => void;
+    initiateCall: (targetUsers: TargetUser[], callType?: CallType) => void;
     acceptCall: () => void;
     rejectCall: () => void;
     hangUp: () => void;
