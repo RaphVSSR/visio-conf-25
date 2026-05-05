@@ -1,4 +1,5 @@
 import crypto from "crypto"
+import mongoose from "mongoose"
 import { getMessagesByDomain } from "../ListeMessages.ts"
 import SessionManager from "./authentication/SessionManager.ts"
 import Discussion from "../Discussion.ts"
@@ -65,6 +66,21 @@ export default class ChatService {
 	private static MAX_CONTENT_LENGTH = 2000
 	private static MAX_NAME_LENGTH = 100
 	private static ALLOWED_TYPES = ["group", "unique"]
+	private static MAX_SEND_PER_MINUTE = 30
+
+	private sendCounters = new Map<string, { count: number, resetAt: number }>()
+
+	private canSend(userId: string): boolean {
+		const now = Date.now()
+		const entry = this.sendCounters.get(userId)
+		if (!entry || entry.resetAt < now) {
+			this.sendCounters.set(userId, { count: 1, resetAt: now + 60_000 })
+			return true
+		}
+		if (entry.count >= ChatService.MAX_SEND_PER_MINUTE) return false
+		entry.count++
+		return true
+	}
 
 	// --- Chat CRUD operations ---
 
@@ -88,9 +104,21 @@ export default class ChatService {
 
 					// Validate members: each must exist as a real User
 					const requestedMembers = Array.isArray(payload.data.members) ? payload.data.members : []
-					const existingUsers = await User.model.find({ _id: { $in: requestedMembers } }).select("_id")
+					const validIds = requestedMembers.filter((id: any) => mongoose.isValidObjectId(id))
+					const existingUsers = await User.model.find({ _id: { $in: validIds } }).select("_id")
 					const validatedMembers = existingUsers.map((u: any) => u._id.toString())
 					const uniqueMembers = [...new Set([userId, ...validatedMembers])]
+
+					if (type === "unique") {
+						if (uniqueMembers.length !== 2) {
+							return this.send(socketId, "chat_operation_result", { action: "CREATE", status: "error", message: "invalid_unique_members" })
+						}
+						const existing = await Discussion.model.findOne({ type: "unique", members: { $all: uniqueMembers, $size: 2 } })
+						if (existing) {
+							const populatedExisting = await Discussion.findPopulateMembersByDiscussionId(existing.uuid)
+							return this.send(socketId, "chat_operation_result", { action: "CREATE", status: "success", data: populatedExisting })
+						}
+					}
 
 					const newChat = new Discussion.model({
 						uuid: crypto.randomUUID(),
@@ -166,6 +194,11 @@ export default class ChatService {
 			switch (payload.action) {
 
 				case "SEND": {
+					// Rate limiting
+					if (!this.canSend(userId)) {
+						return this.send(socketId, "message_operation_result", { action: "SEND", status: "error", message: "rate_limit_exceeded" })
+					}
+
 					// Validate content
 					if (typeof payload.data.content !== "string" || payload.data.content.trim().length === 0 || payload.data.content.length > ChatService.MAX_CONTENT_LENGTH) {
 						return this.send(socketId, "message_operation_result", { action: "SEND", status: "error", message: "invalid_content" })
