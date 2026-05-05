@@ -1,5 +1,5 @@
 import { AuthProvider } from 'contexts/AuthContext';
-import { AdminPanel, Home, Login, Signup, TeamsPage, Files, Directory, Profile, ChatPage } from 'pages';
+import { AdminPanel, Home, Login, Signup, TeamsPage, Files, Directory, Profile, ChatPage, Users } from 'pages';
 import React from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { UserAuth } from 'routing/UserAuth';
@@ -23,6 +23,7 @@ export const App = () => {
 							<Route path="/" element={ <Navigate to="/home" replace /> }/>
 							<Route path="/home" element={ <Home /> }/>
 							<Route path="/discussions" element={ <ChatPage /> }/>
+							<Route path="/users" element={ <Users /> }/>
 							<Route path="/equipes" element={ <TeamsPage /> }/>
 							<Route path="/drive" element={ <Files /> }/>
 							<Route path="/files" element={ <Files /> }/>

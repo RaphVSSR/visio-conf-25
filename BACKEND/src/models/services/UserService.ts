@@ -2,6 +2,7 @@ import { getMessagesByDomain } from "../ListeMessages.ts"
 import SessionManager from "./authentication/SessionManager.ts"
 import AccessRoleGuard from "./AccessRoleGuard.ts"
 import User from "../User.ts"
+import { sha256 } from "js-sha256"
 
 type MessageHandler = (socketId: string, payload: any) => void
 
@@ -35,6 +36,7 @@ export default class UserService {
 	register() {
 		this.registerHandler("user_get", this.handleUserQuery)
 		this.registerHandler("user_update", this.handleUserUpdate)
+		this.registerHandler("edit_user_request", this.handleEditUserRequest)
 
 		this.controleur.inscription(this, getMessagesByDomain("user").received, [...this.handlers.keys()])
 	}
@@ -65,14 +67,181 @@ export default class UserService {
 		dispatchers[payload.type]?.()
 	}
 
+	private handleEditUserRequest = async (socketId: string, payload: any) => {
+		const guard = await AccessRoleGuard.requireRole(socketId, "admin")
+		if (!guard.authorized) {
+			return this.send(socketId, "edit_user_answer", {
+				request: payload?.request,
+				etat: false,
+				error: guard.reason ?? "forbidden",
+			})
+		}
+
+		const request = payload?.request
+		if (!request) {
+			return this.send(socketId, "edit_user_answer", { etat: false, error: "missing_request" })
+		}
+
+		try {
+			if (request === "list") {
+				const users = await User.model
+					.find({})
+					.select("firstname lastname email phone status roles desc")
+					.lean()
+
+				const formattedUsers = users.map((user: any) => ({
+					_id: user._id?.toString(),
+					firstname: user.firstname,
+					lastname: user.lastname,
+					email: user.email,
+					phone: user.phone,
+					status: user.status,
+					roles: user.roles ?? [],
+					desc: user.desc ?? "",
+				}))
+
+				return this.send(socketId, "edit_user_answer", {
+					request: "list",
+					etat: true,
+					users: formattedUsers,
+				})
+			}
+
+			if (request === "add") {
+				const required = ["firstname", "lastname", "email", "phone", "password"]
+				const missing = required.find((key) => !payload?.[key])
+				if (missing) {
+					return this.send(socketId, "edit_user_answer", {
+						request: "add",
+						etat: false,
+						error: `missing_${missing}`,
+					})
+				}
+
+				const newUser = new User({
+					firstname: payload.firstname,
+					lastname: payload.lastname,
+					email: payload.email,
+					phone: payload.phone,
+					password: sha256(payload.password),
+					desc: payload.desc ?? "",
+					status: payload.status ?? "waiting",
+					roles: Array.isArray(payload.roles) && payload.roles.length > 0 ? payload.roles : ["user"],
+				} as any)
+				await newUser.save()
+
+				const created = newUser.modelInstance.toObject()
+				return this.send(socketId, "edit_user_answer", {
+					request: "add",
+					etat: true,
+					user: {
+						_id: created._id?.toString(),
+						firstname: created.firstname,
+						lastname: created.lastname,
+						email: created.email,
+						phone: created.phone,
+						status: created.status,
+						roles: created.roles ?? [],
+						desc: created.desc ?? "",
+					},
+				})
+			}
+
+			if (request === "delete") {
+				const targetFilter = payload?.id ? { _id: payload.id } : payload?.email ? { email: payload.email } : null
+				if (!targetFilter) {
+					return this.send(socketId, "edit_user_answer", {
+						request: "delete",
+						etat: false,
+						error: "missing_id_or_email",
+					})
+				}
+
+				const userToDelete = await User.model.findOne(targetFilter).lean()
+				if (!userToDelete) {
+					return this.send(socketId, "edit_user_answer", {
+						request: "delete",
+						etat: false,
+						error: "user_not_found",
+					})
+				}
+
+				await User.model.deleteOne({ _id: userToDelete._id })
+				return this.send(socketId, "edit_user_answer", {
+					request: "delete",
+					etat: true,
+					user: { _id: userToDelete._id?.toString(), email: userToDelete.email },
+				})
+			}
+
+			if (request === "edit") {
+				const targetFilter = payload?.id ? { _id: payload.id } : payload?.email ? { email: payload.email } : null
+				if (!targetFilter) {
+					return this.send(socketId, "edit_user_answer", {
+						request: "edit",
+						etat: false,
+						error: "missing_id_or_email",
+					})
+				}
+
+				const updateData: Record<string, any> = {}
+				const editableFields = ["firstname", "lastname", "email", "phone", "desc", "status", "roles"]
+				for (const key of editableFields) {
+					if (payload?.[key] !== undefined) updateData[key] = payload[key]
+				}
+				if (payload?.password) updateData.password = sha256(payload.password)
+
+				await User.model.updateOne(targetFilter, { $set: updateData })
+				const updated = await User.model
+					.findOne(targetFilter)
+					.select("firstname lastname email phone status roles desc")
+					.lean()
+
+				if (!updated) {
+					return this.send(socketId, "edit_user_answer", {
+						request: "edit",
+						etat: false,
+						error: "user_not_found",
+					})
+				}
+
+				return this.send(socketId, "edit_user_answer", {
+					request: "edit",
+					etat: true,
+					user: {
+						_id: updated._id?.toString(),
+						firstname: updated.firstname,
+						lastname: updated.lastname,
+						email: updated.email,
+						phone: updated.phone,
+						status: updated.status,
+						roles: updated.roles ?? [],
+						desc: updated.desc ?? "",
+					},
+				})
+			}
+
+			return this.send(socketId, "edit_user_answer", {
+				request,
+				etat: false,
+				error: "unknown_request",
+			})
+		} catch (error: any) {
+			return this.send(socketId, "edit_user_answer", {
+				request,
+				etat: false,
+				error: error?.message ?? "unknown_error",
+			})
+		}
+	}
+
 	private getUsersList = async (socketId: string) => {
 
 		const userId = this.resolveUserId(socketId)
 		if (!userId) return this.send(socketId, "user_get_response", { type: "list", etat: false, error: "not_authenticated" })
 
-		// On récupère tous les utilisateurs (actifs ou en attente) pour l'annuaire en dev
-		const users = await User.model.find({})
-			.select("firstname lastname email picture is_online job roles desc phone status")
+		const users = await User.model.find({ status: "active" })
+			.select("firstname lastname email picture is_online job roles desc phone")
 			.lean()
 
 		const formattedUsers = users.map(user => ({
@@ -81,12 +250,11 @@ export default class UserService {
 			lastname: user.lastname,
 			email: user.email,
 			picture: user.picture,
-			is_online: user.is_online, // Unifié en snake_case pour le frontend
+			isOnline: user.is_online,
 			job: user.job,
 			roles: user.roles,
 			desc: user.desc,
 			phone: user.phone,
-			status: user.status
 		}))
 
 		this.send(socketId, "user_get_response", { type: "list", etat: true, users: formattedUsers })
@@ -111,7 +279,7 @@ export default class UserService {
 			lastname: user.lastname,
 			email: user.email,
 			picture: user.picture,
-			is_online: user.is_online,
+			isOnline: user.is_online,
 			job: user.job,
 			desc: user.desc,
 			phone: user.phone,
@@ -147,7 +315,7 @@ export default class UserService {
 			lastname: user.lastname,
 			email: user.email,
 			picture: user.picture,
-			is_online: user.is_online,
+			isOnline: user.is_online,
 		}))
 
 		this.send(socketId, "user_get_response", { type: "search", etat: true, users: formattedUsers })
