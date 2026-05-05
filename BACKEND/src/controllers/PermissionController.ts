@@ -1,193 +1,191 @@
-import type { Request, Response } from "express";
-import mongoose from "mongoose";
-import Permission from "../models/Permission.ts";
+import type { Request, Response } from "express"
+import mongoose from "mongoose"
+import Permission, { type PermType } from "../models/Permission.ts"
+import TracedError from "../models/core/TracedError.ts"
 
 type PermissionBody = {
-  name?: unknown;
-  description?: unknown;
-};
+	name?: unknown
+	description?: unknown
+}
+
+const MAX_NAME_LENGTH = 100
+const MAX_DESCRIPTION_LENGTH = 300
 
 function sanitizeText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+	return typeof value === "string" ? value.trim() : ""
 }
 
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function normalizePermissionKey(name: string) {
+	return name
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "_")
+		.replace(/^_+|_+$/g, "")
 }
 
-function buildPermissionUuid(name: string) {
-  const normalizedName = name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-  const slug = normalizedName
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-
-  return `custom_permission_${slug || "item"}`;
+function buildPermissionUuid(labelKey: string) {
+	return `custom_permission_${labelKey}`
 }
 
 async function ensureUniqueUuid(baseUuid: string) {
-  let nextUuid = baseUuid;
-  let suffix = 2;
+	let nextUuid = baseUuid
+	let suffix = 2
 
-  while (await Permission.model.exists({ uuid: nextUuid })) {
-    nextUuid = `${baseUuid}_${suffix}`;
-    suffix += 1;
-  }
+	while (await Permission.model.exists({ uuid: nextUuid })) {
+		nextUuid = `${baseUuid}_${suffix}`
+		suffix += 1
+	}
 
-  return nextUuid;
+	return nextUuid
 }
 
-function mapPermission(permission: {
-  _id: { toString(): string };
-  uuid?: string;
-  label?: string;
-  desc?: string;
-  default?: boolean;
-}) {
-  return {
-    id: permission._id.toString(),
-    uuid: permission.uuid ?? "",
-    name: permission.label ?? "",
-    description: permission.desc ?? "",
-    default: permission.default ?? false,
-  };
+function isDuplicateKeyError(error: unknown) {
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		"code" in error &&
+		(error as { code?: number }).code === 11000
+	)
 }
 
-async function findPermissionByName(name: string, excludedId?: string) {
-  const match = await Permission.model.findOne({
-    label: { $regex: `^${escapeRegex(name)}$`, $options: "i" },
-  }).lean();
+function logControllerError(error: unknown) {
+	TracedError.errorHandler(error)
+}
 
-  if (!match) return null;
-  if (!excludedId) return match;
-
-  return match._id.toString() === excludedId ? null : match;
+function mapPermission(permission: Pick<PermType, "uuid" | "label" | "desc" | "default"> & { _id: { toString(): string } }) {
+	return {
+		id: permission._id.toString(),
+		uuid: permission.uuid,
+		name: permission.label,
+		description: permission.desc ?? "",
+		default: permission.default,
+	}
 }
 
 function validatePayload(body: PermissionBody) {
-  const name = sanitizeText(body.name);
-  const description = sanitizeText(body.description);
+	const name = sanitizeText(body.name)
+	const description = sanitizeText(body.description)
 
-  if (!name) {
-    return { error: "The permission name is required." };
-  }
+	if (!name) return { error: "Le nom de la permission est obligatoire." }
+	if (!description) return { error: "La description de la permission est obligatoire." }
+	if (name.length > MAX_NAME_LENGTH) return { error: "Le nom de la permission est trop long." }
+	if (description.length > MAX_DESCRIPTION_LENGTH) return { error: "La description de la permission est trop longue." }
 
-  if (!description) {
-    return { error: "The permission description is required." };
-  }
+	const labelKey = normalizePermissionKey(name)
+	if (!labelKey) return { error: "Le nom de la permission doit contenir au moins une lettre ou un chiffre." }
 
-  return { name, description };
+	return { name, description, labelKey }
 }
 
 export default class PermissionController {
-  static async list(_req: Request, res: Response) {
-    try {
-      const permissions = await Permission.model
-        .find({}, { _id: 1, uuid: 1, label: 1, desc: 1, default: 1 })
-        .sort({ label: 1 })
-        .lean();
 
-      res.json(permissions.map(permission => mapPermission(permission)));
-    } catch (error) {
-      res.status(500).json({ message: "Unable to load permissions." });
-    }
-  }
+	static async list(_request: Request, response: Response) {
+		try {
+			const permissions = await Permission.model
+				.find({}, { _id: 1, uuid: 1, label: 1, desc: 1, default: 1 })
+				.sort({ label: 1 })
+				.lean()
 
-  static async create(req: Request<unknown, unknown, PermissionBody>, res: Response) {
-    try {
-      const payload = validatePayload(req.body);
-      if ("error" in payload) {
-        return res.status(400).json({ message: payload.error });
-      }
+			response.json(permissions.map(permission => mapPermission(permission)))
+		} catch (error) {
+			logControllerError(error)
+			response.status(500).json({ message: "Impossible de charger les permissions." })
+		}
+	}
 
-      const duplicatePermission = await findPermissionByName(payload.name);
-      if (duplicatePermission) {
-        return res.status(409).json({ message: "A permission with this name already exists." });
-      }
+	static async create(request: Request<unknown, unknown, PermissionBody>, response: Response) {
+		try {
+			const payload = validatePayload(request.body)
+			if ("error" in payload) return response.status(400).json({ message: payload.error })
 
-      const uuid = await ensureUniqueUuid(buildPermissionUuid(payload.name));
-      const permission = new Permission({
-        uuid,
-        label: payload.name,
-        desc: payload.description,
-        default: false,
-      });
+			const duplicatePermission = await Permission.model.exists({ labelKey: payload.labelKey })
+			if (duplicatePermission) return response.status(409).json({ message: "Une permission avec ce nom existe déjà." })
 
-      await permission.save();
+			const uuid = await ensureUniqueUuid(buildPermissionUuid(payload.labelKey))
+			const permission = new Permission({
+				uuid,
+				label: payload.name,
+				labelKey: payload.labelKey,
+				desc: payload.description,
+				default: false,
+			})
 
-      return res.status(201).json(mapPermission(permission.modelInstance));
-    } catch (error) {
-      return res.status(500).json({ message: "Unable to create the permission." });
-    }
-  }
+			await permission.save()
 
-  static async update(
-    req: Request<{ id: string }, unknown, PermissionBody>,
-    res: Response,
-  ) {
-    try {
-      const { id } = req.params;
+			return response.status(201).json(mapPermission(permission.modelInstance))
+		} catch (error) {
+			if (isDuplicateKeyError(error)) return response.status(409).json({ message: "Cette permission existe déjà." })
 
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ message: "Invalid permission identifier." });
-      }
+			logControllerError(error)
+			return response.status(500).json({ message: "Impossible de créer la permission." })
+		}
+	}
 
-      const payload = validatePayload(req.body);
-      if ("error" in payload) {
-        return res.status(400).json({ message: payload.error });
-      }
+	static async update(
+		request: Request<{ id: string }, unknown, PermissionBody>,
+		response: Response,
+	) {
+		try {
+			const { id } = request.params
 
-      const duplicatePermission = await findPermissionByName(payload.name, id);
-      if (duplicatePermission) {
-        return res.status(409).json({ message: "A permission with this name already exists." });
-      }
+			if (!mongoose.Types.ObjectId.isValid(id)) {
+				return response.status(400).json({ message: "Identifiant de permission invalide." })
+			}
 
-      const updatedPermission = await Permission.model
-        .findByIdAndUpdate(
-          id,
-          {
-            $set: {
-              label: payload.name,
-              desc: payload.description,
-            },
-          },
-          {
-            new: true,
-            runValidators: true,
-          },
-        )
-        .lean();
+			const payload = validatePayload(request.body)
+			if ("error" in payload) return response.status(400).json({ message: payload.error })
 
-      if (!updatedPermission) {
-        return res.status(404).json({ message: "Permission not found." });
-      }
+			const duplicatePermission = await Permission.model.exists({
+				_id: { $ne: id },
+				labelKey: payload.labelKey,
+			})
+			if (duplicatePermission) return response.status(409).json({ message: "Une permission avec ce nom existe déjà." })
 
-      return res.json(mapPermission(updatedPermission));
-    } catch (error) {
-      return res.status(500).json({ message: "Unable to update the permission." });
-    }
-  }
+			const updatedPermission = await Permission.model
+				.findByIdAndUpdate(
+					id,
+					{
+						$set: {
+							label: payload.name,
+							labelKey: payload.labelKey,
+							desc: payload.description,
+						},
+					},
+					{
+						new: true,
+						runValidators: true,
+					},
+				)
+				.lean()
 
-  static async delete(req: Request<{ id: string }>, res: Response) {
-    try {
-      const { id } = req.params;
+			if (!updatedPermission) return response.status(404).json({ message: "Permission introuvable." })
 
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ message: "Invalid permission identifier." });
-      }
+			return response.json(mapPermission(updatedPermission))
+		} catch (error) {
+			if (isDuplicateKeyError(error)) return response.status(409).json({ message: "Cette permission existe déjà." })
 
-      const deletedPermission = await Permission.model.findByIdAndDelete(id).lean();
+			logControllerError(error)
+			return response.status(500).json({ message: "Impossible de modifier la permission." })
+		}
+	}
 
-      if (!deletedPermission) {
-        return res.status(404).json({ message: "Permission not found." });
-      }
+	static async remove(request: Request<{ id: string }>, response: Response) {
+		try {
+			const { id } = request.params
 
-      return res.status(204).send();
-    } catch (error) {
-      return res.status(500).json({ message: "Unable to delete the permission." });
-    }
-  }
+			if (!mongoose.Types.ObjectId.isValid(id)) {
+				return response.status(400).json({ message: "Identifiant de permission invalide." })
+			}
+
+			const deletedPermission = await Permission.model.findByIdAndDelete(id).lean()
+
+			if (!deletedPermission) return response.status(404).json({ message: "Permission introuvable." })
+
+			return response.status(204).send()
+		} catch (error) {
+			logControllerError(error)
+			return response.status(500).json({ message: "Impossible de supprimer la permission." })
+		}
+	}
 }

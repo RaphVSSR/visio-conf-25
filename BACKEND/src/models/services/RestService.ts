@@ -95,8 +95,8 @@ export default class RestService {
 						}
 					},
 					credentials: true,
-					methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-					allowedHeaders: ["Content-Type", "Authorization"],
+					methods: ["GET", "POST", "PUT", "DELETE"],
+					allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Guard"],
 
 				})
 			);

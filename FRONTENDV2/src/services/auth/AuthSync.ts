@@ -4,6 +4,7 @@ import type { AuthState } from "./AuthSync.types"
 type StateUpdater = (updater: (prev: AuthState) => AuthState) => void
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:3220"
+const API_PREFIX = process.env.REACT_APP_BACKEND_API_PREFIX || "/api"
 const WARNING_MS = Number(process.env.REACT_APP_SESSION_EXPIRY_WARNING_MS) || 60_000
 
 export class AuthSync {
@@ -113,7 +114,7 @@ export class AuthSync {
 
 	async logout(): Promise<void> {
 		try {
-			await fetch(`${BACKEND_URL}${process.env.REACT_APP_BACKEND_API_PREFIX || ""}/auth/logout`, {
+			await fetch(`${BACKEND_URL}${API_PREFIX}/auth/logout`, {
 				method: "POST",
 				credentials: "include",
 			})
@@ -138,7 +139,7 @@ export class AuthSync {
 		this.onStateChange(prev => ({ ...prev, isRefreshing: true }))
 
 		try {
-			const resp = await fetch(`${BACKEND_URL}${process.env.REACT_APP_BACKEND_API_PREFIX || ""}/auth/refresh`, {
+			const resp = await fetch(`${BACKEND_URL}${API_PREFIX}/auth/refresh`, {
 				method: "POST",
 				credentials: "include",
 			})

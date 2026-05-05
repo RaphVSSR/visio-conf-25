@@ -1,6 +1,7 @@
 import { Button, Card } from "design-system/components";
 import { useToast } from "contexts/ToastContext";
 import {
+  useCallback,
   useEffect,
   useState,
   type ChangeEvent,
@@ -16,7 +17,7 @@ const EMPTY_FORM: PermissionPayload = {
 };
 
 export const PermissionsManager = () => {
-  const { addToast } = useToast();
+  const { addToast, removeToast } = useToast();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [formData, setFormData] = useState<PermissionPayload>(EMPTY_FORM);
   const [editingPermissionId, setEditingPermissionId] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export const PermissionsManager = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function loadPermissions() {
+  const loadPermissions = useCallback(async () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
@@ -37,11 +38,11 @@ export const PermissionsManager = () => {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadPermissions();
-  }, []);
+  }, [loadPermissions]);
 
   function resetForm() {
     setFormData(EMPTY_FORM);
@@ -84,7 +85,7 @@ export const PermissionsManager = () => {
         });
 
         addToast({
-          message: "Permission modifiee.",
+          message: "Permission modifiée.",
           variant: "success",
         });
       } else {
@@ -94,7 +95,7 @@ export const PermissionsManager = () => {
         });
 
         addToast({
-          message: "Permission ajoutee.",
+          message: "Permission ajoutée.",
           variant: "success",
         });
       }
@@ -106,7 +107,7 @@ export const PermissionsManager = () => {
         error instanceof Error ? error.message : "Impossible d'enregistrer la permission.";
       setErrorMessage(message);
       addToast({
-        message: "Echec de l'enregistrement.",
+        message: "Échec de l'enregistrement.",
         subtitle: message,
         variant: "danger",
       });
@@ -116,19 +117,11 @@ export const PermissionsManager = () => {
   }
 
   async function handleDelete(permission: Permission) {
-    const confirmed = window.confirm(
-      `Supprimer la permission "${permission.name}" ?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     try {
       setErrorMessage(null);
       await PermissionApi.remove(permission.id);
       addToast({
-        message: "Permission supprimee.",
+        message: "Permission supprimée.",
         variant: "success",
       });
 
@@ -142,11 +135,35 @@ export const PermissionsManager = () => {
         error instanceof Error ? error.message : "Impossible de supprimer la permission.";
       setErrorMessage(message);
       addToast({
-        message: "Echec de la suppression.",
+        message: "Échec de la suppression.",
         subtitle: message,
         variant: "danger",
       });
     }
+  }
+
+  function requestDelete(permission: Permission) {
+    const toastId = addToast({
+      message: `Supprimer "${permission.name}" ?`,
+      subtitle: "Cette action est définitive.",
+      variant: "warning",
+      duration: 0,
+      actions: [
+        {
+          label: "Supprimer",
+          onClick: () => {
+            removeToast(toastId);
+            void handleDelete(permission);
+          },
+          variant: "primary",
+        },
+        {
+          label: "Annuler",
+          onClick: () => removeToast(toastId),
+          variant: "ghost",
+        },
+      ],
+    });
   }
 
   return (
@@ -168,7 +185,7 @@ export const PermissionsManager = () => {
                 type="text"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Ex: Gerer les exports"
+                placeholder="Ex: Gérer les exports"
                 maxLength={100}
               />
             </label>
@@ -179,7 +196,7 @@ export const PermissionsManager = () => {
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Decris ce que cette permission autorise."
+                placeholder="Décris ce que cette permission autorise."
                 rows={4}
                 maxLength={300}
               />
@@ -215,7 +232,7 @@ export const PermissionsManager = () => {
           <div className="permissionsManager__listHeader">
             <div>
               <h2>Liste des permissions</h2>
-              <p>{permissions.length} permission(s) chargee(s)</p>
+              <p>{permissions.length} permission(s) chargée(s)</p>
             </div>
             <Button
               type="button"
@@ -231,7 +248,7 @@ export const PermissionsManager = () => {
           {isLoading ? (
             <p className="permissionsManager__status">Chargement des permissions...</p>
           ) : permissions.length === 0 ? (
-            <p className="permissionsManager__status">Aucune permission trouvee.</p>
+            <p className="permissionsManager__status">Aucune permission trouvée.</p>
           ) : (
             <div className="permissionsManager__list">
               {permissions.map(permission => (
@@ -246,7 +263,7 @@ export const PermissionsManager = () => {
                       <p className="permissionsManager__uuid">{permission.uuid}</p>
                     </div>
                     {permission.default && (
-                      <span className="permissionsManager__badge">Par defaut</span>
+                      <span className="permissionsManager__badge">Par défaut</span>
                     )}
                   </div>
 
@@ -267,7 +284,7 @@ export const PermissionsManager = () => {
                       icon="Trash2"
                       iconPosition="left"
                       iconSize={16}
-                      onClick={() => void handleDelete(permission)}
+                      onClick={() => requestDelete(permission)}
                     />
                   </div>
                 </Card>

@@ -44,6 +44,7 @@ async function request<T>(path: string, init?: RequestInit) {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      "X-CSRF-Guard": "permissions-manager",
     },
     ...init,
   });
