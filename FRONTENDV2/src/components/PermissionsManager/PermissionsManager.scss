@@ -1,0 +1,139 @@
+@use "../../design-system/scss/global.scss" as *;
+
+.permissionsManagerHost {
+  width: 100%;
+  padding: 24px 0 0;
+}
+
+.permissionsManager {
+  @extend %flex-col;
+  gap: 24px;
+}
+
+.permissionsManager__panelHeader,
+.permissionsManager__listHeader,
+.permissionsManager__itemTop,
+.permissionsManager__itemActions,
+.permissionsManager__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.permissionsManager__panelHeader,
+.permissionsManager__listHeader {
+  align-items: flex-start;
+}
+
+.permissionsManager__panelHeader h2,
+.permissionsManager__listHeader h2,
+.permissionsManager__itemTop h3 {
+  color: $tab-heading;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.permissionsManager__panelHeader p,
+.permissionsManager__listHeader p,
+.permissionsManager__description,
+.permissionsManager__status,
+.permissionsManager__uuid {
+  color: $text-body;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.permissionsManager__form {
+  @extend %flex-col;
+  gap: 16px;
+}
+
+.permissionsManager__field {
+  @extend %flex-col;
+  gap: 8px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: $text;
+  font-weight: 600;
+}
+
+.permissionsManager__field input,
+.permissionsManager__field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid $bg-divider;
+  border-radius: 12px;
+  font: inherit;
+  color: $text;
+  background: $bg-white;
+}
+
+.permissionsManager__field textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.permissionsManager__field input:focus,
+.permissionsManager__field textarea:focus {
+  outline: 2px solid rgba(218, 31, 99, 0.2);
+  border-color: $tab-permissions;
+}
+
+.permissionsManager__error {
+  color: $danger;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 600;
+}
+
+.permissionsManager__listBlock {
+  @extend %flex-col;
+  gap: 16px;
+}
+
+.permissionsManager__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.permissionsManager__item {
+  gap: 16px;
+}
+
+.permissionsManager__uuid {
+  font-size: 13px;
+}
+
+.permissionsManager__badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: $success-light;
+  color: $success;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.permissionsManager__description {
+  min-height: 48px;
+  line-height: 1.5;
+}
+
+.permissionsManager__status {
+  padding: 16px;
+  border-radius: 12px;
+  background: $bg-light;
+}
+
+@media (max-width: 900px) {
+  .permissionsManager__panelHeader,
+  .permissionsManager__listHeader,
+  .permissionsManager__itemTop,
+  .permissionsManager__itemActions,
+  .permissionsManager__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .permissionsManagerHost {
+    padding-top: 16px;
+  }
+}

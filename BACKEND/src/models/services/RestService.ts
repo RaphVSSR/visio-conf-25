@@ -6,6 +6,7 @@ import session from "express-session"
 import ConnectMongoDBSession from "connect-mongodb-session"
 import cors from "cors"
 import AuthRoutes from "../../routes/AuthRoutes.ts"
+import PermissionRoutes from "../../routes/PermissionRoutes.ts"
 import TracedError from "../core/TracedError.ts";
 import SessionManager from "./authentication/SessionManager.ts";
 
@@ -94,8 +95,8 @@ export default class RestService {
 						}
 					},
 					credentials: true,
-					methods: ["GET", "POST"],
-					allowedHeaders: ["Content-Type", "Authorization"],
+					methods: ["GET", "POST", "PUT", "DELETE"],
+					allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Guard"],
 
 				})
 			);
@@ -116,6 +117,7 @@ export default class RestService {
 			const coreRouter = Router();
 
 			coreRouter.use("/auth", AuthRoutes);
+			coreRouter.use("/permissions", PermissionRoutes);
 
 			this.server.use(process.env.API_BASE_PREFIX?.startsWith("/") ? process.env.API_BASE_PREFIX : "/", coreRouter);
 

@@ -10,6 +10,7 @@ export type PermType = {
     _id?: Types.ObjectId,
     uuid: string,
     label: string,
+    labelKey?: string,
     desc?: string,
     default: boolean,
 
@@ -29,6 +30,10 @@ export default class Permission extends Collection {
             required: true,
             description: "Name of the permission",
         },
+        labelKey: {
+            type: String,
+            description: "Normalized label used to guarantee uniqueness for custom permissions",
+        },
         desc: {
             type: String,
             description: "Permission's description",
@@ -40,6 +45,11 @@ export default class Permission extends Collection {
         },
 
     });
+
+    protected static indexes = [
+        this.schema.index({ uuid: 1 }, { unique: true }),
+        this.schema.index({ labelKey: 1 }, { unique: true, sparse: true }),
+    ];
     
     static model: Model<PermType> = models.Permission || model<PermType>("Permission", this.schema);
 
