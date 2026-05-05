@@ -24,6 +24,8 @@ interface DirectoryUser {
   is_online: boolean;
   roles?: string[];
   desc?: string;
+  job?: string;
+  disturb_status?: string;
 }
 
 export const Directory: FC = () => {
@@ -128,7 +130,10 @@ export const Directory: FC = () => {
               </div>
               <div className="profileInfo">
                 <div className="profileMeta">
-                  <h2 className="profileName">{currentUser.firstname} {currentUser.lastname}</h2>
+                  <div className="nameWrapper">
+                    <h2 className="profileName">{currentUser.firstname} {currentUser.lastname}</h2>
+                    {currentUser.job && <span className="profileJob">{currentUser.job}</span>}
+                  </div>
                   <span className={`roleBadge ${getRoleBadgeClass(currentUser.roles)}`}>
                     {getRoleLabel(currentUser.roles)} (Moi)
                   </span>
@@ -163,7 +168,10 @@ export const Directory: FC = () => {
                          <div className={`statusDot ${user.is_online ? 'online' : 'offline'}`} />
                       </div>
                       <div className="userBasic">
-                        <h3 className="userName">{user.firstname} {user.lastname}</h3>
+                        <div className="nameWrapper">
+                          <h3 className="userName">{user.firstname} {user.lastname}</h3>
+                          {user.job && <span className="userJob">{user.job}</span>}
+                        </div>
                         <div className="cardDetails">
                           <div className="detailItem">
                             <Mail size={14} /> <span>{user.email}</span>

@@ -49,7 +49,7 @@ export default class ContactsService {
 
 			const users = await User.model.find(
 				filter,
-				{ firstname: 1, lastname: 1, picture: 1, is_online: 1, _id: 1, email: 1, roles: 1, desc: 1, phone: 1 }
+				{ firstname: 1, lastname: 1, picture: 1, is_online: 1, _id: 1, email: 1, roles: 1, desc: 1, phone: 1, job: 1, disturb_status: 1 }
 			).lean()
 
 			const contacts = users.map(u => ({
@@ -62,6 +62,8 @@ export default class ContactsService {
 				roles: u.roles,
 				desc: u.desc,
 				phone: u.phone,
+				job: u.job,
+				disturb_status: u.disturb_status,
 			}))
 
 			this.send(socketId, "contacts:list:response", contacts)

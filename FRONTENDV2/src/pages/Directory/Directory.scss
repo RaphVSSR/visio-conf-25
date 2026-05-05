@@ -132,13 +132,28 @@
         .profileMeta {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 12px;
           margin-bottom: 8px;
 
-          .profileName {
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: #1e293b;
+          .nameWrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            .profileName {
+              font-size: 1.75rem;
+              font-weight: 800;
+              color: #1e293b;
+            }
+
+            .profileJob {
+              font-size: 0.9rem;
+              color: #64748b;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.02em;
+            }
           }
         }
 
@@ -218,11 +233,23 @@
         }
 
         .userBasic {
-          .userName {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #1e293b;
+          .nameWrapper {
+            display: flex;
+            flex-direction: column;
             margin-bottom: 8px;
+
+            .userName {
+              font-size: 1.1rem;
+              font-weight: 700;
+              color: #1e293b;
+              margin-bottom: 0;
+            }
+
+            .userJob {
+              font-size: 0.8rem;
+              color: #94a3b8;
+              font-weight: 600;
+            }
           }
 
           .cardDetails {
