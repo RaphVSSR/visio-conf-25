@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "hooks/useAuth"
 import { ChatSync } from "services/chat/ChatSync"
-import type { ChatState } from "services/chat/ChatSync.types"
+import type { ChatState, DiscuType, Contact } from "services/chat/ChatSync.types"
 import "./Chat.scss"
 
 const INITIAL_STATE: ChatState = {
 	chats: [],
 	hiddenChats: [],
-	users: [],
 	activeChat: null,
 	isLoading: false,
 	creatingStatus: null,
@@ -33,16 +32,16 @@ export const Chat = () => {
 	const [newChatName, setNewChatName] = useState("")
 	const [messageText, setMessageText] = useState("")
 	const [selectedUsers, setSelectedUsers] = useState<string[]>([])
-	const [contacts, setContacts] = useState<any[]>([])
+	const [contacts, setContacts] = useState<Contact[]>([])
 
-	// --- Persist hiddenChats ---
+	// Fix #7 — Single useEffect for hiddenChats persistence (removed duplicate)
 	useEffect(() => {
 		localStorage.setItem("hiddenChats", JSON.stringify(state.hiddenChats))
 	}, [state.hiddenChats])
 
 	// --- Fetch contacts via contacts:list (prod pattern) ---
-	const handleContactsResponse = useCallback((data: any) => {
-		setContacts(Array.isArray(data) ? data : [])
+	const handleContactsResponse = useCallback((data: unknown) => {
+		setContacts(Array.isArray(data) ? data as Contact[] : [])
 	}, [])
 
 	useEffect(() => {
@@ -71,15 +70,6 @@ export const Chat = () => {
 		}
 	}, [socket, user])
 
-	// --- Unhide chat on new message (sync localStorage) ---
-	useEffect(() => {
-		const savedHidden = localStorage.getItem("hiddenChats")
-		const savedList: string[] = savedHidden ? JSON.parse(savedHidden) : []
-		if (JSON.stringify(savedList) !== JSON.stringify(state.hiddenChats)) {
-			localStorage.setItem("hiddenChats", JSON.stringify(state.hiddenChats))
-		}
-	}, [state.hiddenChats])
-
 	// --- Handlers ---
 	const handleCreateChat = () => {
 		if (!chatSyncRef.current || !user) return
@@ -99,7 +89,6 @@ export const Chat = () => {
 
 		chatSyncRef.current.createChat({
 			name: chatName,
-			creator: user._id,
 			members: [user._id, ...selectedUsers].filter(Boolean),
 			type: chatType,
 		})
@@ -114,15 +103,16 @@ export const Chat = () => {
 		if (window.confirm("Voulez-vous vraiment cacher cette discussion de votre vue ? (Elle réapparaîtra au prochain message)")) {
 			setState(prev => ({
 				...prev,
-				hiddenChats: [...prev.hiddenChats, prev.activeChat.uuid],
+				hiddenChats: [...prev.hiddenChats, prev.activeChat!.uuid],
 				activeChat: null,
 			}))
 		}
 	}
 
+	// Fix #5 frontend — no longer send sender (server forces session userId)
 	const handleSendMessage = () => {
 		if (!messageText.trim() || !state.activeChat || !chatSyncRef.current || !user) return
-		chatSyncRef.current.sendMessageToChat(state.activeChat.uuid, messageText, user._id)
+		chatSyncRef.current.sendMessageToChat(state.activeChat.uuid, messageText)
 		setMessageText("")
 	}
 
@@ -130,7 +120,7 @@ export const Chat = () => {
 		if (e.key === "Enter") handleSendMessage()
 	}
 
-	const setActiveChat = (chat: any) => {
+	const setActiveChat = (chat: DiscuType) => {
 		setState(prev => ({ ...prev, activeChat: chat }))
 	}
 
@@ -138,12 +128,12 @@ export const Chat = () => {
 	const visibleChats = [...state.chats]
 		.filter(chat => !state.hiddenChats.includes(chat.uuid))
 		.sort((a, b) => {
-			const dateA = a.messages?.length > 0
-				? new Date(a.messages[a.messages.length - 1].date_created).getTime()
-				: new Date(a.createdAt || a.date_created || 0).getTime()
-			const dateB = b.messages?.length > 0
-				? new Date(b.messages[b.messages.length - 1].date_created).getTime()
-				: new Date(b.createdAt || b.date_created || 0).getTime()
+			const aMsgs = a.messages ?? []
+			const bMsgs = b.messages ?? []
+			const lastA = aMsgs.length > 0 ? aMsgs[aMsgs.length - 1] : null
+			const lastB = bMsgs.length > 0 ? bMsgs[bMsgs.length - 1] : null
+			const dateA = lastA ? new Date(lastA.date_created).getTime() : new Date(a.date_created || 0).getTime()
+			const dateB = lastB ? new Date(lastB.date_created).getTime() : new Date(b.date_created || 0).getTime()
 			return dateB - dateA
 		})
 
@@ -172,9 +162,11 @@ export const Chat = () => {
 							<div className="chat__item-info">
 								<span className="chat__item-name">{chat.name}</span>
 								<span className="chat__item-preview">
-									{chat.messages?.length > 0
-										? chat.messages[chat.messages.length - 1].content
-										: "Pas de messages"}
+									{(() => {
+										const msgs = chat.messages ?? []
+										const last = msgs.length > 0 ? msgs[msgs.length - 1] : null
+										return last ? last.content : "Pas de messages"
+									})()}
 								</span>
 							</div>
 						</div>
@@ -213,8 +205,8 @@ export const Chat = () => {
 							{(!state.activeChat.messages || state.activeChat.messages.length === 0) && (
 								<div className="chat__no-messages">Aucun message pour l'instant</div>
 							)}
-							{state.activeChat.messages?.map((msg: any) => {
-								const senderId = typeof msg.sender === "object" ? msg.sender?._id : msg.sender
+							{state.activeChat.messages?.map((msg) => {
+								const senderId = typeof msg.sender === "object" ? (msg.sender as any)?._id : msg.sender
 								const isSent = senderId === user?._id
 								return (
 									<div key={msg.uuid} className={`chat__message-row ${isSent ? "chat__message-row--sent" : ""}`}>

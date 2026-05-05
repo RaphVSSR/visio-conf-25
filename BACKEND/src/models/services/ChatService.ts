@@ -26,11 +26,15 @@ export default class ChatService {
 		this.controleur.envoie(this, { [messageName]: payload, id: ids })
 	}
 
+	// Fix #6 — Deterministic routing: iterate over registered handler keys instead of Object.keys()
 	traitementMessage(msg: any) {
-		const action = Object.keys(msg).find(prop => prop !== "id")
-		if (!action) return
-		const handler = this.handlers.get(action)
-		if (handler) handler(msg.id, msg[action])
+		const socketId = msg.id
+		for (const [name, handler] of this.handlers) {
+			if (msg[name] !== undefined) {
+				handler(socketId, msg[name])
+				return
+			}
+		}
 	}
 
 	register() {
@@ -50,6 +54,12 @@ export default class ChatService {
 		return [...new Set(allSockets)]
 	}
 
+	// --- Helper: check if userId is a member of a discussion ---
+
+	private isMember(discussion: any, userId: string): boolean {
+		return discussion.members.some((m: any) => m.toString() === userId)
+	}
+
 	// --- Chat CRUD operations ---
 
 	private handleChatOperation = async (socketId: string, payload: { action: string, data: any }) => {
@@ -60,16 +70,16 @@ export default class ChatService {
 		try {
 			switch (payload.action) {
 
+				// Fix #4 — CREATE: force creator = userId, ensure userId ∈ members
 				case "CREATE": {
-					if (!payload.data.creator) {
-						return this.send(socketId, "chat_operation_result", { action: "CREATE", status: "error", message: "Missing creator" })
-					}
+					const members = Array.isArray(payload.data.members) ? payload.data.members : []
+					const uniqueMembers = [...new Set([userId, ...members])]
 
 					const newChat = new Discussion.model({
 						uuid: crypto.randomUUID(),
 						name: payload.data.name || "Nouveau groupe",
-						creator: payload.data.creator,
-						members: payload.data.members || [payload.data.creator],
+						creator: userId,
+						members: uniqueMembers,
 						type: payload.data.type || "group",
 						messages: [],
 					})
@@ -83,14 +93,22 @@ export default class ChatService {
 					break
 				}
 
+				// Fix #2 — READ: verify userId ∈ discussion.members
 				case "READ": {
 					const discussion = await Discussion.findPopulateMembersByDiscussionId(payload.data.uuid)
+					if (!discussion) throw new Error("Discussion not found")
+
+					if (!this.isMember(discussion, userId)) {
+						return this.send(socketId, "chat_operation_result", { action: "READ", status: "error", message: "forbidden" })
+					}
+
 					this.send(socketId, "chat_operation_result", { action: "READ", status: "success", data: discussion })
 					break
 				}
 
+				// Fix #1 — READ_ALL: use session userId, not client-provided userId
 				case "READ_ALL": {
-					const user = await User.model.findById(payload.data.userId)
+					const user = await User.model.findById(userId)
 					if (!user) throw new Error("User not found")
 
 					const discussions = await Discussion.findManyByUser(user as any)
@@ -98,7 +116,15 @@ export default class ChatService {
 					break
 				}
 
+				// Fix #3 — DELETE: verify userId === discussion.creator
 				case "DELETE": {
+					const discussion = await Discussion.model.findOne({ uuid: payload.data.uuid })
+					if (!discussion) throw new Error("Discussion not found")
+
+					if (discussion.creator.toString() !== userId) {
+						return this.send(socketId, "chat_operation_result", { action: "DELETE", status: "error", message: "forbidden" })
+					}
+
 					await Discussion.model.deleteOne({ uuid: payload.data.uuid })
 					this.send(socketId, "chat_operation_result", { action: "DELETE", status: "success", data: { uuid: payload.data.uuid } })
 					break
@@ -121,14 +147,19 @@ export default class ChatService {
 		try {
 			switch (payload.action) {
 
+				// Fix #5 — SEND: force sender = userId, verify membership
 				case "SEND": {
 					const discussion = await Discussion.model.findOne({ uuid: payload.data.chatUuid })
 					if (!discussion) throw new Error("Discussion not found")
 
+					if (!this.isMember(discussion, userId)) {
+						return this.send(socketId, "message_operation_result", { action: "SEND", status: "error", message: "forbidden" })
+					}
+
 					const newMessage = {
 						uuid: crypto.randomUUID(),
 						content: payload.data.content,
-						sender: payload.data.sender,
+						sender: userId,
 						date_created: new Date(),
 					}
 
@@ -149,6 +180,10 @@ export default class ChatService {
 				case "DELETE": {
 					const discussion = await Discussion.model.findOne({ uuid: payload.data.chatUuid })
 					if (!discussion) throw new Error("Discussion not found")
+
+					if (!this.isMember(discussion, userId)) {
+						return this.send(socketId, "message_operation_result", { action: "DELETE", status: "error", message: "forbidden" })
+					}
 
 					await Discussion.model.updateOne(
 						{ uuid: payload.data.chatUuid },
