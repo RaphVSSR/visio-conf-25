@@ -70,8 +70,9 @@ export default class UserService {
 		const userId = this.resolveUserId(socketId)
 		if (!userId) return this.send(socketId, "user_get_response", { type: "list", etat: false, error: "not_authenticated" })
 
-		const users = await User.model.find({ status: "active" })
-			.select("firstname lastname email picture is_online job roles desc phone")
+		// On récupère tous les utilisateurs (actifs ou en attente) pour l'annuaire en dev
+		const users = await User.model.find({})
+			.select("firstname lastname email picture is_online job roles desc phone status")
 			.lean()
 
 		const formattedUsers = users.map(user => ({
@@ -80,11 +81,12 @@ export default class UserService {
 			lastname: user.lastname,
 			email: user.email,
 			picture: user.picture,
-			isOnline: user.is_online,
+			is_online: user.is_online, // Unifié en snake_case pour le frontend
 			job: user.job,
 			roles: user.roles,
 			desc: user.desc,
 			phone: user.phone,
+			status: user.status
 		}))
 
 		this.send(socketId, "user_get_response", { type: "list", etat: true, users: formattedUsers })
@@ -109,7 +111,7 @@ export default class UserService {
 			lastname: user.lastname,
 			email: user.email,
 			picture: user.picture,
-			isOnline: user.is_online,
+			is_online: user.is_online,
 			job: user.job,
 			desc: user.desc,
 			phone: user.phone,
@@ -145,7 +147,7 @@ export default class UserService {
 			lastname: user.lastname,
 			email: user.email,
 			picture: user.picture,
-			isOnline: user.is_online,
+			is_online: user.is_online,
 		}))
 
 		this.send(socketId, "user_get_response", { type: "search", etat: true, users: formattedUsers })

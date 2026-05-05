@@ -1,8 +1,27 @@
-# Référence du Modèle File / Folder / FileSystem — VisioConf
+# Référence du Modèle File / Folder / Space — VisioConf
 
-**Fichier source** : `BACKEND/src/models/services/FileSystem.ts`
-**Classes parentes** : `Collection` (abstract) — Folder et File
-**Collections MongoDB** : `File` (partagée entre Folder et File)
+**Service** : `FilesService`  
+**Type** : CLIENT  
+**Édité le** : 04/05/2026
+
+---
+
+## Synthèse des messages
+
+| Message | Sens | Payload | Description |
+| :--- | :--- | :--- | :--- |
+| `get_files` | 📥 Entrant | `{ userId, spaceId?, category? }` | Demande la liste des fichiers d'un dossier ou d'une catégorie. |
+| `files` | 📤 Sortant | `{ success, files }` | Renvoie la liste des fichiers demandés. |
+| `upload_file` | 📥 Entrant | `{ name, size, type, url, userId, spaceId? }` | Enregistre un nouveau fichier dans la base de données. |
+| `file_uploading_status` | 📤 Sortant | `{ success, file?, error? }` | Statut de l'enregistrement du fichier. |
+| `get_spaces` | 📥 Entrant | `{ userId, parentId?, category? }` | Demande la liste des dossiers. |
+| `spaces` | 📤 Sortant | `{ success, spaces }` | Renvoie la liste des dossiers demandés. |
+| `create_space` | 📥 Entrant | `{ name, userId, parentId?, category? }` | Crée un nouveau dossier. |
+| `space_creating_status` | 📤 Sortant | `{ success, space?, error? }` | Statut de création du dossier. |
+| `delete_file` | 📥 Entrant | `{ fileId, userId }` | Supprime un fichier. |
+| `file_deleting_status` | 📤 Sortant | `{ success, fileId }` | Confirmation de suppression du fichier. |
+| `delete_space` | 📥 Entrant | `{ spaceId, userId }` | Supprime un dossier. |
+| `space_deleting_status` | 📤 Sortant | `{ success, spaceId }` | Confirmation de suppression du dossier. |
 
 ---
 
