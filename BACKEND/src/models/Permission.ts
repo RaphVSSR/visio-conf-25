@@ -10,6 +10,7 @@ export type PermType = {
     _id?: Types.ObjectId,
     uuid: string,
     label: string,
+    labelKey?: string,
     desc?: string,
     default: boolean,
 
@@ -22,12 +23,19 @@ export default class Permission extends Collection {
         uuid: {
             type: String,
             required: true,
+            unique: true,
             description: "Message identifier",
         },
         label: {
             type: String,
             required: true,
             description: "Name of the permission",
+        },
+        labelKey: {
+            type: String,
+            unique: true,
+            sparse: true,
+            description: "Normalized label used to guarantee uniqueness for custom permissions",
         },
         desc: {
             type: String,
@@ -40,6 +48,11 @@ export default class Permission extends Collection {
         },
 
     });
+
+    protected static indexes = [
+        this.schema.index({ uuid: 1 }, { unique: true }),
+        this.schema.index({ labelKey: 1 }, { unique: true, sparse: true }),
+    ];
     
     static model: Model<PermType> = models.Permission || model<PermType>("Permission", this.schema);
 
@@ -287,9 +300,39 @@ export default class Permission extends Collection {
             },
         ];
 
+        await this.removeUuidDuplicates();
+        await this.model.createIndexes();
+
         for (const perm of perms) {
-            const newPerm = new Permission(perm as any);
-            await newPerm.save();
+            await this.model.updateOne(
+                { uuid: perm.uuid },
+                { $setOnInsert: perm },
+                { upsert: true },
+            );
+        }
+    }
+
+    static async removeUuidDuplicates() {
+
+        const duplicates = await this.model.aggregate<{ _id: string, ids: Types.ObjectId[] }>([
+            {
+                $group: {
+                    _id: "$uuid",
+                    ids: { $push: "$_id" },
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $match: {
+                    _id: { $ne: null },
+                    count: { $gt: 1 },
+                },
+            },
+        ]);
+
+        for (const duplicate of duplicates) {
+            const [, ...idsToDelete] = duplicate.ids;
+            if (idsToDelete.length > 0) await this.model.deleteMany({ _id: { $in: idsToDelete } });
         }
     }
 

@@ -1,14 +1,28 @@
 import { FC, useEffect, useRef, useState, useCallback } from "react";
 import { Pencil, Trash2, Eye, Plus, RefreshCw } from "lucide-react";
 import { useAuth } from "hooks/useAuth";
+import { PermissionApi } from "services/permissions/PermissionApi";
+import type { Permission } from "types/Permission";
 import "./RoleManagement.scss";
+
+type RolePermission = {
+  _id: string;
+  label: string;
+  uuid?: string;
+  default?: boolean;
+};
 
 type RoleData = {
   _id: string;
   uuid: string;
   label: string;
-  permissions?: { _id: string; label: string }[];
+  permissions?: RolePermission[];
   default: boolean;
+};
+
+type RoleSocketStatus = {
+  success?: boolean;
+  message?: string;
 };
 
 export type RoleManagementProps = {
@@ -21,10 +35,13 @@ export const RoleManagement: FC<RoleManagementProps> = ({
   const { socket } = useAuth();
 
   const [roles, setRoles] = useState<RoleData[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
   const [selectedRole, setSelectedRole] = useState<RoleData | null>(null);
   const [editingRole, setEditingRole] = useState<RoleData | null>(null);
   const [newRoleName, setNewRoleName] = useState("");
+  const [newRolePermissionIds, setNewRolePermissionIds] = useState<string[]>([]);
   const [editRoleName, setEditRoleName] = useState("");
+  const [editRolePermissionIds, setEditRolePermissionIds] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState<{
     text: string;
     type: "success" | "error";
@@ -38,52 +55,54 @@ export const RoleManagement: FC<RoleManagementProps> = ({
     setStatusMessage({ text, type });
   }, []);
 
-  // --- Socket message handlers ---
+  const refreshRoles = useCallback(() => {
+    socketRef.current?.send("get_roles", true);
+  }, []);
 
-  const handleRoles = useCallback((data: any) => {
+  const handleRoles = useCallback((data: RoleData[]) => {
     if (data) setRoles(data);
   }, []);
 
-  const handleRole = useCallback((data: any) => {
+  const handleRole = useCallback((data: RoleData) => {
     if (data) setSelectedRole(data);
   }, []);
 
-  const handleRoleCreatingStatus = useCallback((data: any) => {
+  const handleRoleCreatingStatus = useCallback((data: RoleSocketStatus) => {
     if (data?.success) {
       showStatus("Rôle créé avec succès", "success");
       setNewRoleName("");
-      socketRef.current?.send("get_roles", true);
+      setNewRolePermissionIds([]);
+      refreshRoles();
     } else {
       showStatus(data?.message || "Erreur lors de la création", "error");
     }
-  }, [showStatus]);
+  }, [refreshRoles, showStatus]);
 
-  const handleRoleAlreadyExists = useCallback((data: any) => {
+  const handleRoleAlreadyExists = useCallback((data: RoleSocketStatus) => {
     showStatus(data?.message || "Ce rôle existe déjà", "error");
   }, [showStatus]);
 
-  const handleRoleUpdatingStatus = useCallback((data: any) => {
+  const handleRoleUpdatingStatus = useCallback((data: RoleSocketStatus) => {
     if (data?.success) {
       showStatus("Rôle modifié avec succès", "success");
       setEditingRole(null);
-      socketRef.current?.send("get_roles", true);
+      setEditRolePermissionIds([]);
+      refreshRoles();
     } else {
       showStatus(data?.message || "Erreur lors de la modification", "error");
     }
-  }, [showStatus]);
+  }, [refreshRoles, showStatus]);
 
-  const handleRoleDeletingStatus = useCallback((data: any) => {
+  const handleRoleDeletingStatus = useCallback((data: RoleSocketStatus) => {
     if (data?.success) {
       showStatus("Rôle supprimé", "success");
       setSelectedRole(null);
       setConfirmDelete(null);
-      socketRef.current?.send("get_roles", true);
+      refreshRoles();
     } else {
       showStatus(data?.message || "Erreur lors de la suppression", "error");
     }
-  }, [showStatus]);
-
-  // --- Socket lifecycle ---
+  }, [refreshRoles, showStatus]);
 
   useEffect(() => {
     if (!socket) return;
@@ -105,7 +124,33 @@ export const RoleManagement: FC<RoleManagementProps> = ({
       socket.off("role_updating_status", handleRoleUpdatingStatus);
       socket.off("role_deleting_status", handleRoleDeletingStatus);
     };
-  }, [socket, handleRoles, handleRole, handleRoleCreatingStatus, handleRoleAlreadyExists, handleRoleUpdatingStatus, handleRoleDeletingStatus]);
+  }, [
+    socket,
+    handleRoles,
+    handleRole,
+    handleRoleCreatingStatus,
+    handleRoleAlreadyExists,
+    handleRoleUpdatingStatus,
+    handleRoleDeletingStatus,
+  ]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    PermissionApi.list()
+      .then((permissions) => {
+        if (isMounted) setAvailablePermissions(permissions);
+      })
+      .catch((error) => {
+        const message =
+          error instanceof Error ? error.message : "Impossible de charger les permissions.";
+        if (isMounted) showStatus(message, "error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showStatus]);
 
   useEffect(() => {
     if (!statusMessage) return;
@@ -113,20 +158,21 @@ export const RoleManagement: FC<RoleManagementProps> = ({
     return () => clearTimeout(timer);
   }, [statusMessage]);
 
-  // --- Actions ---
-
   const handleRefresh = () => {
-    socket?.send("get_roles", true);
+    refreshRoles();
   };
 
   const handleGetRole = (roleId: string) => {
-    setSelectedRole(roles.find((r) => r._id === roleId) || null);
+    setSelectedRole(roles.find((role) => role._id === roleId) || null);
     socket?.send("get_role", { role_id: roleId });
   };
 
   const handleCreateRole = () => {
     if (!newRoleName.trim() || !socket) return;
-    socket.send("create_role", { name: newRoleName.trim(), perms: [] });
+    socket.send("create_role", {
+      name: newRoleName.trim(),
+      perms: newRolePermissionIds,
+    });
   };
 
   const handleUpdateRole = () => {
@@ -134,7 +180,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
     socket.send("update_role", {
       role_id: editingRole._id,
       name: editRoleName.trim(),
-      perms: editingRole.permissions?.map((p) => p._id) || [],
+      perms: editRolePermissionIds,
     });
   };
 
@@ -146,9 +192,59 @@ export const RoleManagement: FC<RoleManagementProps> = ({
   const startEdit = (role: RoleData) => {
     setEditingRole(role);
     setEditRoleName(role.label);
+    setEditRolePermissionIds(role.permissions?.map((permission) => permission._id) || []);
   };
 
-  // --- Render helpers ---
+  const togglePermission = (
+    permissionId: string,
+    selectedIds: string[],
+    setSelectedIds: (nextIds: string[]) => void,
+  ) => {
+    setSelectedIds(
+      selectedIds.includes(permissionId)
+        ? selectedIds.filter((selectedId) => selectedId !== permissionId)
+        : [...selectedIds, permissionId],
+    );
+  };
+
+  const renderPermissionSelector = (
+    selectedIds: string[],
+    setSelectedIds: (nextIds: string[]) => void,
+  ) => (
+    <div className="rm-permissionSelector">
+      <div className="rm-permissionSelector__header">
+        <h4>Permissions du rôle</h4>
+        <span>{selectedIds.length} sélectionnée(s)</span>
+      </div>
+
+      {availablePermissions.length === 0 ? (
+        <p className="rm-empty">Aucune permission disponible.</p>
+      ) : (
+        <div className="rm-permissionSelector__grid">
+          {availablePermissions.map((permission) => {
+            const isChecked = selectedIds.includes(permission.id);
+
+            return (
+              <label
+                key={permission.id}
+                className={`rm-permissionChoice ${isChecked ? "rm-permissionChoice--checked" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => togglePermission(permission.id, selectedIds, setSelectedIds)}
+                />
+                <span>
+                  <strong>{permission.name}</strong>
+                  <small>{permission.uuid}</small>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   const renderList = () => (
     <div className="rm-section">
@@ -171,6 +267,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
             <tr>
               <th>Nom</th>
               <th>Identifiant</th>
+              <th>Permissions</th>
               <th>Par défaut</th>
               <th>Actions</th>
             </tr>
@@ -185,6 +282,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
               >
                 <td className="rm-table__label">{role.label}</td>
                 <td className="rm-table__uuid">{role.uuid}</td>
+                <td>{role.permissions?.length || 0}</td>
                 <td>{role.default ? "Oui" : "Non"}</td>
                 <td className="rm-table__actions">
                   <button
@@ -227,10 +325,13 @@ export const RoleManagement: FC<RoleManagementProps> = ({
             type="text"
             className="rm-form__input"
             value={newRoleName}
-            onChange={(e) => setNewRoleName(e.target.value)}
+            onChange={(event) => setNewRoleName(event.target.value)}
             placeholder="Ex: Modérateur"
           />
         </label>
+
+        {renderPermissionSelector(newRolePermissionIds, setNewRolePermissionIds)}
+
         <button
           className="rm-btn rm-btn--primary"
           onClick={handleCreateRole}
@@ -260,16 +361,19 @@ export const RoleManagement: FC<RoleManagementProps> = ({
     return (
       <div className="rm-section">
         <h3>Modifier : {editingRole.label}</h3>
-        <div className="rm-form">
+        <div className="rm-form rm-form--wide">
           <label className="rm-form__label">
             Nom du rôle
             <input
               type="text"
               className="rm-form__input"
               value={editRoleName}
-              onChange={(e) => setEditRoleName(e.target.value)}
+              onChange={(event) => setEditRoleName(event.target.value)}
             />
           </label>
+
+          {renderPermissionSelector(editRolePermissionIds, setEditRolePermissionIds)}
+
           <div className="rm-form__buttons">
             <button
               className="rm-btn rm-btn--primary"
@@ -286,16 +390,6 @@ export const RoleManagement: FC<RoleManagementProps> = ({
             </button>
           </div>
         </div>
-        {editingRole.permissions && editingRole.permissions.length > 0 && (
-          <div className="rm-perms">
-            <h4>Permissions associées</h4>
-            <ul>
-              {editingRole.permissions.map((p) => (
-                <li key={p._id}>{p.label}</li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     );
   };
@@ -348,8 +442,8 @@ export const RoleManagement: FC<RoleManagementProps> = ({
                 Permissions ({selectedRole.permissions.length})
               </span>
               <ul className="rm-detail__permlist">
-                {selectedRole.permissions.map((p) => (
-                  <li key={p._id}>{p.label}</li>
+                {selectedRole.permissions.map((permission) => (
+                  <li key={permission._id}>{permission.label}</li>
                 ))}
               </ul>
             </div>
@@ -396,7 +490,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
 
       {selectedRole && activeAction !== "Modifier" && (
         <div className="rm-modal-overlay" onClick={() => setSelectedRole(null)}>
-          <div className="rm-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="rm-modal" onClick={(event) => event.stopPropagation()}>
             {renderDetail()}
           </div>
         </div>
@@ -409,7 +503,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
         >
           <div
             className="rm-modal rm-modal--small"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <h3>Confirmer la suppression</h3>
             <p>

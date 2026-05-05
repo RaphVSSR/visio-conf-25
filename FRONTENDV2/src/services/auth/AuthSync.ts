@@ -1,9 +1,12 @@
 import type MessageClientAdapter from "services/MessageClientAdapter"
-import type { AuthState } from "./AuthSync.types"
+import type { AuthState, AuthUser } from "./AuthSync.types"
+import { httpClient } from "services/http/httpClient"
 
 type StateUpdater = (updater: (prev: AuthState) => AuthState) => void
+type AuthResponse =
+	| { status: "success", user: AuthUser, expiresAt: number }
+	| { status: "failure", reason?: string }
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:3220"
 const WARNING_MS = Number(process.env.REACT_APP_SESSION_EXPIRY_WARNING_MS) || 60_000
 
 export class AuthSync {
@@ -14,7 +17,7 @@ export class AuthSync {
 	private logoutTimer: ReturnType<typeof setTimeout> | null = null
 	private refreshing = false
 
-	private handleLoginResponse = (data: { status: string, [key: string]: any }) => {
+	private handleLoginResponse = (data: AuthResponse) => {
 
 		switch (data.status) {
 			case "success":
@@ -38,7 +41,7 @@ export class AuthSync {
 		}
 	}
 
-	private handleAuthenticateResponse = (data: { status: string, [key: string]: any }) => {
+	private handleAuthenticateResponse = (data: AuthResponse) => {
 
 		switch (data.status) {
 			case "success":
@@ -64,7 +67,7 @@ export class AuthSync {
 		}
 	}
 
-	private handleRegisterResponse = (data: { status: string, [key: string]: any }) => {
+	private handleRegisterResponse = (data: AuthResponse) => {
 
 		switch (data.status) {
 			case "success":
@@ -113,9 +116,8 @@ export class AuthSync {
 
 	async logout(): Promise<void> {
 		try {
-			await fetch(`${BACKEND_URL}${process.env.REACT_APP_BACKEND_API_PREFIX || ""}/auth/logout`, {
+			await httpClient.fetch("/auth/logout", {
 				method: "POST",
-				credentials: "include",
 			})
 		} catch (error) {
 			console.error("Logout request failed:", error)
@@ -138,9 +140,8 @@ export class AuthSync {
 		this.onStateChange(prev => ({ ...prev, isRefreshing: true }))
 
 		try {
-			const resp = await fetch(`${BACKEND_URL}${process.env.REACT_APP_BACKEND_API_PREFIX || ""}/auth/refresh`, {
+			const resp = await httpClient.fetch("/auth/refresh", {
 				method: "POST",
-				credentials: "include",
 			})
 			const data = await resp.json()
 
