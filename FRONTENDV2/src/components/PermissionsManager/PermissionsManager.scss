@@ -98,6 +98,14 @@
   gap: 16px;
 }
 
+.permissionsManager__card--accent {
+  --card-border-color: #{$tab-permissions};
+}
+
+.permissionsManager__card--success {
+  --card-border-color: #{$success};
+}
+
 .permissionsManager__uuid {
   font-size: 13px;
 }
@@ -121,6 +129,11 @@
   padding: 16px;
   border-radius: 12px;
   background: $bg-light;
+}
+
+.permissionsManager__errorBlock {
+  @extend %flex-col;
+  gap: 12px;
 }
 
 @media (max-width: 900px) {

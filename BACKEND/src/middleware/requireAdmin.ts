@@ -1,11 +1,21 @@
+import crypto from "node:crypto"
 import type { NextFunction, Request, Response } from "express"
 import User from "../models/User.ts"
+import TracedError from "../models/core/TracedError.ts"
 
-const CSRF_GUARD_HEADER = "permissions-manager"
+function getSessionCsrfToken(request: Request) {
+	request.session.csrfToken ??= crypto.randomBytes(32).toString("hex")
+
+	return request.session.csrfToken
+}
+
+export function sendPermissionCsrfToken(request: Request, response: Response) {
+	response.json({ csrfToken: getSessionCsrfToken(request) })
+}
 
 export async function requireAdmin(request: Request, response: Response, next: NextFunction) {
 
-	const userId = (request.session as any)?.userId
+	const userId = request.session.userId
 	if (!userId) return response.status(401).json({ message: "Authentification requise." })
 
 	try {
@@ -14,7 +24,7 @@ export async function requireAdmin(request: Request, response: Response, next: N
 
 		next()
 	} catch (error) {
-		console.error("Erreur pendant la vérification admin Permissions:", error)
+		TracedError.errorHandler(error)
 		response.status(500).json({ message: "Impossible de vérifier les droits administrateur." })
 	}
 }
@@ -23,8 +33,8 @@ export function requirePermissionCsrfGuard(request: Request, response: Response,
 
 	if (request.method === "GET" || request.method === "HEAD") return next()
 
-	if (request.get("X-CSRF-Guard") !== CSRF_GUARD_HEADER) {
-		return response.status(403).json({ message: "Protection CSRF invalide." })
+	if (request.get("X-CSRF-Token") !== getSessionCsrfToken(request)) {
+		return response.status(403).json({ message: "CSRF invalide." })
 	}
 
 	next()

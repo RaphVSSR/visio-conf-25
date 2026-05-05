@@ -1,21 +1,15 @@
 import type { Permission, PermissionPayload } from "types/Permission";
+import { httpClient } from "services/http/httpClient";
 
 type ApiError = {
   message?: string;
 };
 
-const backendUrl = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:3220";
-const apiPrefix = process.env.REACT_APP_BACKEND_API_PREFIX || "/api";
+type CsrfTokenResponse = {
+  csrfToken: string;
+};
 
-function buildUrl(path: string) {
-  const normalizedBase = backendUrl.replace(/\/+$/g, "");
-  const normalizedPrefix =
-    apiPrefix === "/"
-      ? ""
-      : (apiPrefix.startsWith("/") ? apiPrefix : `/${apiPrefix}`).replace(/\/+$/g, "");
-
-  return `${normalizedBase}${normalizedPrefix}${path}`;
-}
+let csrfTokenPromise: Promise<string> | null = null;
 
 async function parseResponse<T>(response: Response) {
   if (response.status === 204) {
@@ -39,15 +33,50 @@ async function parseResponse<T>(response: Response) {
   return data as T;
 }
 
+async function getCsrfToken() {
+  csrfTokenPromise ??= httpClient
+    .fetch("/permissions/csrf-token")
+    .then(response => parseResponse<CsrfTokenResponse>(response))
+    .then(data => data.csrfToken);
+
+  return csrfTokenPromise;
+}
+
+function resetCsrfToken() {
+  csrfTokenPromise = null;
+}
+
 async function request<T>(path: string, init?: RequestInit) {
-  const response = await fetch(buildUrl(path), {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRF-Guard": "permissions-manager",
-    },
-    ...init,
-  });
+  const method = init?.method?.toUpperCase() ?? "GET";
+  const requiresCsrfToken = method !== "GET" && method !== "HEAD";
+
+  async function sendRequest() {
+    const headers: Record<string, string> = {};
+
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => {
+        headers[key] = value;
+      });
+    }
+
+    if (requiresCsrfToken) {
+      headers["X-CSRF-Token"] = await getCsrfToken();
+    }
+
+    return httpClient.fetch(path, {
+      ...init,
+      headers: {
+        ...headers,
+      },
+    });
+  }
+
+  let response = await sendRequest();
+
+  if (requiresCsrfToken && response.status === 403) {
+    resetCsrfToken();
+    response = await sendRequest();
+  }
 
   return parseResponse<T>(response);
 }

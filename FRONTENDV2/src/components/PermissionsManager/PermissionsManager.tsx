@@ -169,7 +169,7 @@ export const PermissionsManager = () => {
   return (
     <section className="permissionsManagerHost">
       <div className="permissionsManager">
-        <Card borderColor="#da1f63">
+        <Card className="card permissionsManager__card--accent">
           <div className="permissionsManager__panelHeader">
             <div>
               <h2>{editingPermissionId ? "Modifier une permission" : "Ajouter une permission"}</h2>
@@ -202,7 +202,20 @@ export const PermissionsManager = () => {
               />
             </label>
 
-            {errorMessage && <p className="permissionsManager__error">{errorMessage}</p>}
+            {errorMessage && (
+              <div className="permissionsManager__errorBlock">
+                <p className="permissionsManager__error">{errorMessage}</p>
+                <Button
+                  type="button"
+                  text="Réessayer"
+                  icon="RefreshCw"
+                  iconPosition="left"
+                  iconSize={16}
+                  onClick={() => void loadPermissions()}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
 
             <div className="permissionsManager__actions">
               <Button
@@ -254,8 +267,11 @@ export const PermissionsManager = () => {
               {permissions.map(permission => (
                 <Card
                   key={permission.id}
-                  borderColor={permission.default ? "#63b367" : "#da1f63"}
-                  className="permissionsManager__item"
+                  className={`card permissionsManager__item ${
+                    permission.default
+                      ? "permissionsManager__card--success"
+                      : "permissionsManager__card--accent"
+                  }`}
                 >
                   <div className="permissionsManager__itemTop">
                     <div>
