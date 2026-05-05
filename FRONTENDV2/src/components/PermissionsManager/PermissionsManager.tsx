@@ -3,6 +3,7 @@ import { useToast } from "contexts/ToastContext";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -16,16 +17,38 @@ const EMPTY_FORM: PermissionPayload = {
   description: "",
 };
 
+type PermissionSort = "name-asc" | "name-desc" | "custom-first" | "default-first";
+
 export const PermissionsManager = () => {
   const { addToast, removeToast } = useToast();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [formData, setFormData] = useState<PermissionPayload>(EMPTY_FORM);
   const [editingPermissionId, setEditingPermissionId] = useState<string | null>(null);
+  const [permissionSort, setPermissionSort] = useState<PermissionSort>("name-asc");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const defaultPermissionsCount = permissions.filter(permission => permission.default).length;
   const customPermissionsCount = permissions.length - defaultPermissionsCount;
+
+  const sortedPermissions = useMemo(() => {
+    const byName = (firstPermission: Permission, secondPermission: Permission) =>
+      firstPermission.name.localeCompare(secondPermission.name, "fr", { sensitivity: "base" });
+
+    return [...permissions].sort((firstPermission, secondPermission) => {
+      switch (permissionSort) {
+        case "name-desc":
+          return byName(secondPermission, firstPermission);
+        case "custom-first":
+          return Number(firstPermission.default) - Number(secondPermission.default) || byName(firstPermission, secondPermission);
+        case "default-first":
+          return Number(secondPermission.default) - Number(firstPermission.default) || byName(firstPermission, secondPermission);
+        case "name-asc":
+        default:
+          return byName(firstPermission, secondPermission);
+      }
+    });
+  }, [permissionSort, permissions]);
 
   const loadPermissions = useCallback(async () => {
     try {
@@ -176,7 +199,7 @@ export const PermissionsManager = () => {
             <span className="permissionsManager__eyebrow">Administration</span>
             <h2>Permissions</h2>
             <p>
-              Pilote les accès disponibles dans l’application avant leur attribution aux rôles.
+              Pilote les accès disponibles dans l'application avant leur attribution aux rôles.
             </p>
           </div>
           <div className="permissionsManager__stats">
@@ -279,17 +302,32 @@ export const PermissionsManager = () => {
             <div>
               <span className="permissionsManager__sectionTag">Catalogue</span>
               <h2>Liste des permissions</h2>
-              <p>{permissions.length} permission(s) chargée(s)</p>
+              <p>{sortedPermissions.length} permission(s) affichée(s)</p>
             </div>
-            <Button
-              type="button"
-              text="Actualiser"
-              icon="RefreshCw"
-              iconPosition="left"
-              iconSize={16}
-              onClick={() => void loadPermissions()}
-              disabled={isLoading}
-            />
+            <div className="permissionsManager__listTools">
+              <label className="permissionsManager__sortControl">
+                <span>Trier par</span>
+                <select
+                  value={permissionSort}
+                  onChange={(event) => setPermissionSort(event.target.value as PermissionSort)}
+                  disabled={isLoading || permissions.length === 0}
+                >
+                  <option value="name-asc">Nom A-Z</option>
+                  <option value="name-desc">Nom Z-A</option>
+                  <option value="custom-first">Personnalisées d'abord</option>
+                  <option value="default-first">Par défaut d'abord</option>
+                </select>
+              </label>
+              <Button
+                type="button"
+                text="Actualiser"
+                icon="RefreshCw"
+                iconPosition="left"
+                iconSize={16}
+                onClick={() => void loadPermissions()}
+                disabled={isLoading}
+              />
+            </div>
           </div>
 
           {isLoading ? (
@@ -298,7 +336,7 @@ export const PermissionsManager = () => {
             <p className="permissionsManager__status">Aucune permission trouvée.</p>
           ) : (
             <div className="permissionsManager__list">
-              {permissions.map(permission => (
+              {sortedPermissions.map(permission => (
                 <Card
                   key={permission.id}
                   className={`card permissionsManager__item ${

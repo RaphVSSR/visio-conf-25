@@ -23,6 +23,7 @@ export default class Permission extends Collection {
         uuid: {
             type: String,
             required: true,
+            unique: true,
             description: "Message identifier",
         },
         label: {
@@ -32,6 +33,8 @@ export default class Permission extends Collection {
         },
         labelKey: {
             type: String,
+            unique: true,
+            sparse: true,
             description: "Normalized label used to guarantee uniqueness for custom permissions",
         },
         desc: {
@@ -297,9 +300,39 @@ export default class Permission extends Collection {
             },
         ];
 
+        await this.removeUuidDuplicates();
+        await this.model.createIndexes();
+
         for (const perm of perms) {
-            const newPerm = new Permission(perm as any);
-            await newPerm.save();
+            await this.model.updateOne(
+                { uuid: perm.uuid },
+                { $setOnInsert: perm },
+                { upsert: true },
+            );
+        }
+    }
+
+    static async removeUuidDuplicates() {
+
+        const duplicates = await this.model.aggregate<{ _id: string, ids: Types.ObjectId[] }>([
+            {
+                $group: {
+                    _id: "$uuid",
+                    ids: { $push: "$_id" },
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $match: {
+                    _id: { $ne: null },
+                    count: { $gt: 1 },
+                },
+            },
+        ]);
+
+        for (const duplicate of duplicates) {
+            const [, ...idsToDelete] = duplicate.ids;
+            if (idsToDelete.length > 0) await this.model.deleteMany({ _id: { $in: idsToDelete } });
         }
     }
 

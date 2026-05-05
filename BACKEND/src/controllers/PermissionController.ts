@@ -15,6 +15,10 @@ function sanitizeText(value: unknown) {
 	return typeof value === "string" ? value.trim() : ""
 }
 
+function escapeRegExp(value: string) {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 function normalizePermissionKey(name: string) {
 	return name
 		.normalize("NFD")
@@ -22,22 +26,6 @@ function normalizePermissionKey(name: string) {
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "_")
 		.replace(/^_+|_+$/g, "")
-}
-
-function buildPermissionUuid(labelKey: string) {
-	return `custom_permission_${labelKey}`
-}
-
-async function ensureUniqueUuid(baseUuid: string) {
-	let nextUuid = baseUuid
-	let suffix = 2
-
-	while (await Permission.model.exists({ uuid: nextUuid })) {
-		nextUuid = `${baseUuid}_${suffix}`
-		suffix += 1
-	}
-
-	return nextUuid
 }
 
 function isDuplicateKeyError(error: unknown) {
@@ -51,6 +39,15 @@ function isDuplicateKeyError(error: unknown) {
 
 function logControllerError(error: unknown) {
 	TracedError.errorHandler(error)
+}
+
+function buildDuplicateNameQuery(name: string, labelKey: string) {
+	return {
+		$or: [
+			{ labelKey },
+			{ label: { $regex: `^${escapeRegExp(name)}$`, $options: "i" } },
+		],
+	}
 }
 
 function mapPermission(permission: Pick<PermType, "uuid" | "label" | "desc" | "default"> & { _id: { toString(): string } }) {
@@ -99,12 +96,11 @@ export default class PermissionController {
 			const payload = validatePayload(request.body)
 			if ("error" in payload) return response.status(400).json({ message: payload.error })
 
-			const duplicatePermission = await Permission.model.exists({ labelKey: payload.labelKey })
+			const duplicatePermission = await Permission.model.exists(buildDuplicateNameQuery(payload.name, payload.labelKey))
 			if (duplicatePermission) return response.status(409).json({ message: "Une permission avec ce nom existe déjà." })
 
-			const uuid = await ensureUniqueUuid(buildPermissionUuid(payload.labelKey))
 			const permission = new Permission({
-				uuid,
+				uuid: `custom_permission_${payload.labelKey}`,
 				label: payload.name,
 				labelKey: payload.labelKey,
 				desc: payload.description,
@@ -138,7 +134,7 @@ export default class PermissionController {
 
 			const duplicatePermission = await Permission.model.exists({
 				_id: { $ne: id },
-				labelKey: payload.labelKey,
+				...buildDuplicateNameQuery(payload.name, payload.labelKey),
 			})
 			if (duplicatePermission) return response.status(409).json({ message: "Une permission avec ce nom existe déjà." })
 
