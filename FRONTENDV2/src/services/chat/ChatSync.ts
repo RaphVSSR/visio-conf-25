@@ -58,22 +58,8 @@ export class ChatSync {
 
 	private handleMessageOperationResult = (data: { action: string, status: string, message?: string, data?: any }) => {
 
-		// Fix #9 — Rollback on SEND error: remove optimistically added message
 		if (data.status === "error") {
 			console.error("ChatSync: message_operation error:", data.message)
-
-			if (data.data?.pendingUuid) {
-				this.onStateChange(prev => {
-					const rollbackChats = prev.chats.map(c => ({
-						...c,
-						messages: c.messages?.filter(m => m.uuid !== data.data.pendingUuid),
-					}))
-					const rollbackActive = prev.activeChat
-						? { ...prev.activeChat, messages: prev.activeChat.messages?.filter(m => m.uuid !== data.data.pendingUuid) }
-						: null
-					return { ...prev, chats: rollbackChats, activeChat: rollbackActive }
-				})
-			}
 			return
 		}
 

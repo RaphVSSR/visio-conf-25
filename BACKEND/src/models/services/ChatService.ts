@@ -60,6 +60,12 @@ export default class ChatService {
 		return discussion.members.some((m: any) => m.toString() === userId)
 	}
 
+	// --- Input validation helpers ---
+
+	private static MAX_CONTENT_LENGTH = 2000
+	private static MAX_NAME_LENGTH = 100
+	private static ALLOWED_TYPES = ["group", "unique"]
+
 	// --- Chat CRUD operations ---
 
 	private handleChatOperation = async (socketId: string, payload: { action: string, data: any }) => {
@@ -70,17 +76,28 @@ export default class ChatService {
 		try {
 			switch (payload.action) {
 
-				// Fix #4 — CREATE: force creator = userId, ensure userId ∈ members
 				case "CREATE": {
-					const members = Array.isArray(payload.data.members) ? payload.data.members : []
-					const uniqueMembers = [...new Set([userId, ...members])]
+					// Validate name
+					const name = typeof payload.data.name === "string" ? payload.data.name.trim() : ""
+					if (name.length > ChatService.MAX_NAME_LENGTH) {
+						return this.send(socketId, "chat_operation_result", { action: "CREATE", status: "error", message: "invalid_name" })
+					}
+
+					// Validate type
+					const type = ChatService.ALLOWED_TYPES.includes(payload.data.type) ? payload.data.type : "group"
+
+					// Validate members: each must exist as a real User
+					const requestedMembers = Array.isArray(payload.data.members) ? payload.data.members : []
+					const existingUsers = await User.model.find({ _id: { $in: requestedMembers } }).select("_id")
+					const validatedMembers = existingUsers.map((u: any) => u._id.toString())
+					const uniqueMembers = [...new Set([userId, ...validatedMembers])]
 
 					const newChat = new Discussion.model({
 						uuid: crypto.randomUUID(),
-						name: payload.data.name || "Nouveau groupe",
+						name: name || "Nouveau groupe",
 						creator: userId,
 						members: uniqueMembers,
-						type: payload.data.type || "group",
+						type,
 						messages: [],
 					})
 
@@ -116,7 +133,6 @@ export default class ChatService {
 					break
 				}
 
-				// Fix #3 — DELETE: verify userId === discussion.creator
 				case "DELETE": {
 					const discussion = await Discussion.model.findOne({ uuid: payload.data.uuid })
 					if (!discussion) throw new Error("Discussion not found")
@@ -125,8 +141,10 @@ export default class ChatService {
 						return this.send(socketId, "chat_operation_result", { action: "DELETE", status: "error", message: "forbidden" })
 					}
 
+					// Broadcast to all members before deleting
+					const targets = await this.getMemberSocketIds(discussion.members)
 					await Discussion.model.deleteOne({ uuid: payload.data.uuid })
-					this.send(socketId, "chat_operation_result", { action: "DELETE", status: "success", data: { uuid: payload.data.uuid } })
+					this.send(targets.length > 0 ? targets : socketId, "chat_operation_result", { action: "DELETE", status: "success", data: { uuid: payload.data.uuid } })
 					break
 				}
 			}
@@ -147,8 +165,12 @@ export default class ChatService {
 		try {
 			switch (payload.action) {
 
-				// Fix #5 — SEND: force sender = userId, verify membership
 				case "SEND": {
+					// Validate content
+					if (typeof payload.data.content !== "string" || payload.data.content.trim().length === 0 || payload.data.content.length > ChatService.MAX_CONTENT_LENGTH) {
+						return this.send(socketId, "message_operation_result", { action: "SEND", status: "error", message: "invalid_content" })
+					}
+
 					const discussion = await Discussion.model.findOne({ uuid: payload.data.chatUuid })
 					if (!discussion) throw new Error("Discussion not found")
 
@@ -182,6 +204,16 @@ export default class ChatService {
 					if (!discussion) throw new Error("Discussion not found")
 
 					if (!this.isMember(discussion, userId)) {
+						return this.send(socketId, "message_operation_result", { action: "DELETE", status: "error", message: "forbidden" })
+					}
+
+					// Only the message sender or the discussion creator can delete a message
+					const targetMsg = (discussion as any).messages?.find((m: any) => m.uuid === payload.data.messageUuid)
+					if (!targetMsg) throw new Error("Message not found")
+
+					const isSender = targetMsg.sender.toString() === userId
+					const isOwner = discussion.creator.toString() === userId
+					if (!isSender && !isOwner) {
 						return this.send(socketId, "message_operation_result", { action: "DELETE", status: "error", message: "forbidden" })
 					}
 
