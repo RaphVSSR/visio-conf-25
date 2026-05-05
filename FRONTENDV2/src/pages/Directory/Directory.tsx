@@ -97,7 +97,7 @@ export const Directory: FC = () => {
       firstname: user.firstname,
       lastname: user.lastname,
       picture: "default_profile_picture.png"
-    }]);
+    }], "audio");
   };
 
   return (
