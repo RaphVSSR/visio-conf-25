@@ -135,18 +135,20 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 				</div>
 
 			</div>
-			<ul id="tabOptions">
-				{tabDataSelected.subOption.map((option, index) =>
+			{tabSelected !== "Permissions" && (
+				<ul id="tabOptions">
+					{tabDataSelected.subOption.map((option, index) =>
 
-					<li
-						key={index}
-						className={`option ${subOptionSelected === option.label ? "option--active" : ""}`}
-						onClick={() => setSubOptionSelected(option.label)}
-					>
-						<p className="optionLabel">{option.label}</p>
-					</li>
-				)}
-			</ul>
+						<li
+							key={index}
+							className={`option ${subOptionSelected === option.label ? "option--active" : ""}`}
+							onClick={() => setSubOptionSelected(option.label)}
+						>
+							<p className="optionLabel">{option.label}</p>
+						</li>
+					)}
+				</ul>
+			)}
 
 
 		</section>

@@ -24,6 +24,8 @@ export const PermissionsManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const defaultPermissionsCount = permissions.filter(permission => permission.default).length;
+  const customPermissionsCount = permissions.length - defaultPermissionsCount;
 
   const loadPermissions = useCallback(async () => {
     try {
@@ -169,38 +171,69 @@ export const PermissionsManager = () => {
   return (
     <section className="permissionsManagerHost">
       <div className="permissionsManager">
-        <Card className="card permissionsManager__card--accent">
+        <div className="permissionsManager__hero">
+          <div className="permissionsManager__heroContent">
+            <span className="permissionsManager__eyebrow">Administration</span>
+            <h2>Permissions</h2>
+            <p>
+              Pilote les accès disponibles dans l’application avant leur attribution aux rôles.
+            </p>
+          </div>
+          <div className="permissionsManager__stats">
+            <div className="permissionsManager__stat">
+              <strong>{permissions.length}</strong>
+              <span>Total</span>
+            </div>
+            <div className="permissionsManager__stat">
+              <strong>{customPermissionsCount}</strong>
+              <span>Personnalisées</span>
+            </div>
+            <div className="permissionsManager__stat">
+              <strong>{defaultPermissionsCount}</strong>
+              <span>Par défaut</span>
+            </div>
+          </div>
+        </div>
+
+        <Card className="card permissionsManager__formCard permissionsManager__card--accent">
           <div className="permissionsManager__panelHeader">
             <div>
+              <span className="permissionsManager__sectionTag">
+                {editingPermissionId ? "Édition en cours" : "Nouvelle règle"}
+              </span>
               <h2>{editingPermissionId ? "Modifier une permission" : "Ajouter une permission"}</h2>
-              <p>Chaque permission contient un nom et une description.</p>
+              <p>Renseigne un nom clair et une description compréhensible par les administrateurs.</p>
             </div>
           </div>
 
           <form className="permissionsManager__form" onSubmit={handleSubmit}>
-            <label className="permissionsManager__field">
-              <span>Nom</span>
-              <input
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="Ex: Gérer les exports"
-                maxLength={100}
-              />
-            </label>
+            <div className="permissionsManager__formGrid">
+              <label className="permissionsManager__field">
+                <span>Nom</span>
+                <input
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Ex: Gérer les exports"
+                  maxLength={100}
+                />
+                <small>{formData.name.length}/100 caractères</small>
+              </label>
 
-            <label className="permissionsManager__field">
-              <span>Description</span>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Décris ce que cette permission autorise."
-                rows={4}
-                maxLength={300}
-              />
-            </label>
+              <label className="permissionsManager__field permissionsManager__field--wide">
+                <span>Description</span>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Décris précisément ce que cette permission autorise."
+                  rows={4}
+                  maxLength={300}
+                />
+                <small>{formData.description.length}/300 caractères</small>
+              </label>
+            </div>
 
             {errorMessage && (
               <div className="permissionsManager__errorBlock">
@@ -244,6 +277,7 @@ export const PermissionsManager = () => {
         <section className="permissionsManager__listBlock">
           <div className="permissionsManager__listHeader">
             <div>
+              <span className="permissionsManager__sectionTag">Catalogue</span>
               <h2>Liste des permissions</h2>
               <p>{permissions.length} permission(s) chargée(s)</p>
             </div>
