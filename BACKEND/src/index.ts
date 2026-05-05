@@ -17,6 +17,7 @@ import TeamService from "./models/services/TeamService.ts"
 import UserService from "./models/services/UserService.ts"
 import CallSignaling from "./models/services/CallSignaling.ts"
 import ContactsService from "./models/services/ContactsService.ts"
+import ChatService from "./models/services/ChatService.ts"
 import FilesService from "./models/services/FilesService.ts"
 
 dotenv.config()
@@ -29,6 +30,7 @@ function registerServices(controleur: any, io: any) {
 	new UserService(controleur, "UserService").register()
 	new CallSignaling(controleur, "CallSignaling").register()
 	new ContactsService(controleur, "ContactsService").register()
+	new ChatService(controleur, "ChatService").register()
 	new FilesService(controleur, io, "FilesService").register()
 }
 

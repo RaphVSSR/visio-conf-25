@@ -21,3 +21,4 @@ export { default as TeamForm } from "./TeamForm";
 export * from "./PostItem";
 export { default as PostItem } from "./PostItem";
 export * from "./AuthToasts";
+export * from "./Chat/Chat";
