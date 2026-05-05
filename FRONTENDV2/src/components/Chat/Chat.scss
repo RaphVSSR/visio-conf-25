@@ -1,0 +1,497 @@
+@use "../../design-system/scss/global.scss" as *;
+
+.chat {
+	display: flex;
+	height: 100vh;
+	overflow: hidden;
+	width: 100%;
+
+	// ─── Sidebar ───────────────────────────────────────────
+
+	&__sidebar {
+		width: 320px;
+		border-right: 1px solid $bg-divider;
+		background-color: $bg-white;
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 0;
+	}
+
+	&__sidebar-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 20px 16px 12px;
+		border-bottom: 1px solid $bg-divider;
+
+		h2 {
+			font-size: 20px;
+			font-weight: 700;
+			color: $text;
+		}
+	}
+
+	&__add-btn {
+		width: 34px;
+		height: 34px;
+		border-radius: 50%;
+		border: none;
+		background: $primary;
+		color: $bg-white;
+		font-size: 20px;
+		font-weight: 600;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background-color 0.2s, transform 0.15s;
+
+		&:hover {
+			background: $primary-hover;
+			transform: scale(1.05);
+		}
+	}
+
+	&__list {
+		flex: 1;
+		overflow-y: auto;
+		@extend %custom-scrollbar;
+	}
+
+	&__loading {
+		padding: 16px;
+		color: $text-muted;
+		font-size: 14px;
+	}
+
+	// ─── Chat Items ────────────────────────────────────────
+
+	&__item {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 12px 16px;
+		cursor: pointer;
+		transition: background-color 0.15s;
+
+		&:hover {
+			background-color: $bg-hover;
+		}
+
+		&--active {
+			background-color: $bg-accent-hover;
+			border-left: 3px solid $primary;
+		}
+	}
+
+	&__avatar {
+		width: 42px;
+		height: 42px;
+		border-radius: 50%;
+		background: linear-gradient(135deg, $primary, lighten($primary, 15%));
+		color: $bg-white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
+		font-size: 16px;
+		flex-shrink: 0;
+	}
+
+	&__item-info {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	&__item-name {
+		font-size: 14px;
+		font-weight: 600;
+		color: $text;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	&__item-preview {
+		font-size: 13px;
+		color: $text-subtle;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	// ─── Chat Window ───────────────────────────────────────
+
+	&__window {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		background: $bg-page;
+	}
+
+	&__header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 14px 20px;
+		background: $bg-white;
+		border-bottom: 1px solid $bg-divider;
+	}
+
+	&__header-user {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+
+		h3 {
+			font-size: 16px;
+			font-weight: 600;
+			color: $text;
+		}
+	}
+
+	&__header-status {
+		font-size: 12px;
+		color: $text-subtle;
+	}
+
+	&__header-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	&__action-btn {
+		background: none;
+		border: none;
+		font-size: 18px;
+		cursor: pointer;
+		padding: 6px;
+		border-radius: 6px;
+		transition: background-color 0.15s;
+
+		&:hover {
+			background-color: $bg-hover;
+		}
+	}
+
+	// ─── Messages ──────────────────────────────────────────
+
+	&__messages {
+		flex: 1;
+		overflow-y: auto;
+		padding: 20px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		@extend %custom-scrollbar;
+	}
+
+	&__no-messages {
+		text-align: center;
+		color: $text-subtle;
+		padding: 40px 20px;
+		font-size: 14px;
+	}
+
+	&__message-row {
+		display: flex;
+		justify-content: flex-start;
+
+		&--sent {
+			justify-content: flex-end;
+		}
+	}
+
+	&__bubble {
+		max-width: 65%;
+		padding: 10px 14px;
+		border-radius: 16px;
+		font-size: 14px;
+		line-height: 1.45;
+		position: relative;
+
+		&--sent {
+			background: $primary;
+			color: $bg-white;
+			border-bottom-right-radius: 4px;
+		}
+
+		&--received {
+			background: $bg-white;
+			color: $text;
+			border: 1px solid $bg-divider;
+			border-bottom-left-radius: 4px;
+		}
+	}
+
+	&__bubble-content {
+		word-break: break-word;
+	}
+
+	&__bubble-time {
+		font-size: 11px;
+		margin-top: 4px;
+		opacity: 0.7;
+		text-align: right;
+	}
+
+	// ─── Input Area ────────────────────────────────────────
+
+	&__input-area {
+		padding: 12px 20px;
+		background: $bg-white;
+		border-top: 1px solid $bg-divider;
+	}
+
+	&__input-wrapper {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+
+		input {
+			flex: 1;
+			padding: 10px 16px;
+			border: 1px solid $bg-divider;
+			border-radius: 24px;
+			font-size: 14px;
+			font-family: $font-body;
+			background: $bg-light;
+			outline: none;
+			transition: border-color 0.2s;
+
+			&:focus {
+				border-color: $primary;
+			}
+
+			&::placeholder {
+				color: $text-placeholder;
+			}
+		}
+	}
+
+	&__send-btn {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		border: none;
+		background: $primary;
+		color: $bg-white;
+		font-size: 18px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background-color 0.2s, transform 0.15s;
+
+		&:hover {
+			background: $primary-hover;
+			transform: scale(1.05);
+		}
+	}
+
+	// ─── Empty State ───────────────────────────────────────
+
+	&__empty-state {
+		@extend %flex-col-centered;
+		height: 100%;
+		padding: 20px;
+		text-align: center;
+		color: $text-subtle;
+
+		h3 {
+			font-size: 22px;
+			font-weight: 600;
+			color: $text;
+			margin-bottom: 8px;
+		}
+
+		p {
+			font-size: 15px;
+			color: $text-subtle;
+		}
+	}
+
+	// ─── Modal ─────────────────────────────────────────────
+
+	&__modal-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(4px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 100;
+	}
+
+	&__modal {
+		background: $bg-white;
+		border-radius: 16px;
+		padding: 28px 32px;
+		width: 100%;
+		max-width: 460px;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+		h2 {
+			font-size: 20px;
+			font-weight: 700;
+			color: $text;
+			margin-bottom: 4px;
+		}
+	}
+
+	&__modal-subtitle {
+		font-size: 14px;
+		color: $text-subtle;
+		margin-bottom: 20px;
+	}
+
+	&__form-group {
+		margin-bottom: 16px;
+
+		label {
+			display: block;
+			font-size: 13px;
+			font-weight: 600;
+			color: $text-body;
+			margin-bottom: 6px;
+		}
+
+		input {
+			width: 100%;
+			padding: 10px 14px;
+			border: 1px solid $bg-divider;
+			border-radius: 8px;
+			font-size: 14px;
+			font-family: $font-body;
+			outline: none;
+			transition: border-color 0.2s;
+
+			&:focus {
+				border-color: $primary;
+			}
+		}
+	}
+
+	&__label-hint {
+		font-weight: 400;
+		color: $text-placeholder;
+	}
+
+	&__users-selection {
+		margin-bottom: 20px;
+	}
+
+	&__users-list {
+		max-height: 200px;
+		overflow-y: auto;
+		border: 1px solid $bg-divider;
+		border-radius: 8px;
+		@extend %custom-scrollbar;
+	}
+
+	&__user-item {
+		padding: 8px 12px;
+
+		&:not(:last-child) {
+			border-bottom: 1px solid $bg-muted;
+		}
+
+		label {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			cursor: pointer;
+			font-size: 14px;
+
+			input[type="checkbox"] {
+				accent-color: $primary;
+			}
+		}
+	}
+
+	&__user-name {
+		font-weight: 500;
+		color: $text;
+	}
+
+	&__online-badge {
+		font-size: 12px;
+		color: $contact-green;
+		margin-left: auto;
+	}
+
+	&__no-users {
+		padding: 16px;
+		text-align: center;
+		color: $text-placeholder;
+		font-size: 14px;
+	}
+
+	&__modal-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 10px;
+	}
+
+	&__btn-cancel {
+		padding: 9px 18px;
+		border: 1px solid $bg-divider;
+		border-radius: 8px;
+		background: $bg-white;
+		color: $text-body;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 0.15s;
+
+		&:hover {
+			background: $bg-hover;
+		}
+	}
+
+	&__btn-create {
+		padding: 9px 18px;
+		border: none;
+		border-radius: 8px;
+		background: $primary;
+		color: $bg-white;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background-color 0.2s, opacity 0.2s;
+
+		&:hover {
+			background: $primary-hover;
+		}
+
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+	}
+}
+
+// ─── Responsive ────────────────────────────────────────
+
+@media (max-width: 768px) {
+	.chat {
+		flex-direction: column;
+
+		&__sidebar {
+			width: 100%;
+			height: auto;
+			max-height: 40%;
+			border-right: none;
+			border-bottom: 1px solid $bg-divider;
+		}
+
+		&__window {
+			height: 60%;
+		}
+	}
+}

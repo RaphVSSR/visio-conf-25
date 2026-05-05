@@ -7,3 +7,4 @@ export * from "./Teams/TeamsPage";
 export * from "./Files/Files";
 export * from "./Directory/Directory";
 export * from "./Profile/Profile";
+export * from "./Chat/ChatPage";

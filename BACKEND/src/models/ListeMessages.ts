@@ -47,6 +47,10 @@ const MessageRegistry: Record<string, MessageDomain> = {
 		emitted: ["contacts:list"],
 		received: ["contacts:list:response"],
 	},
+	chat: {
+		emitted: ["chat_operation", "message_operation"],
+		received: ["chat_operation_result", "message_operation_result"],
+	},
 	files: {
 		emitted: [
 			"get_files", "upload_file", "update_file", "delete_file",
