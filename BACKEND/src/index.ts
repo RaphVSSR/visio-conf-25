@@ -51,7 +51,6 @@ try {
 	const expressApp = await RestService.implement()
 	HTTPServer.createFromExpress(expressApp)
 
-<<<<<<< HEAD
     const socketServer = new Server(HTTPServer.server, {
         cors: {
             origin: (origin, callback) => {
