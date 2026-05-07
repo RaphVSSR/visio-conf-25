@@ -15,37 +15,7 @@ export default class MessageClientAdapter {
 			autoConnect: true, 
 			reconnection: true, 
 			withCredentials: true,
-			transports: ["polling", "websocket"]
-		})
-
-		this.socket.on("connect", () => {
-			console.log("[socket] connected", {
-				id: this.socket.id,
-				transport: this.socket.io.engine.transport.name,
-				url,
-			})
-		})
-
-		this.socket.on("connect_error", (err: any) => {
-			console.error("[socket] connect_error", {
-				message: err?.message,
-				description: err?.description,
-				context: err?.context,
-				type: err?.type,
-				url,
-			})
-		})
-
-		this.socket.on("disconnect", (reason: string) => {
-			console.warn("[socket] disconnect", { reason })
-		})
-
-		this.socket.io.on("reconnect_attempt", (attempt: number) => {
-			console.warn("[socket] reconnect_attempt", { attempt })
-		})
-
-		this.socket.io.engine.on("upgrade", (transport: { name: string }) => {
-			console.log("[socket] upgraded transport", { transport: transport.name })
+			transports: ["websocket", "polling"]
 		})
 
 		this.socket.on("message", (raw: string) => {
