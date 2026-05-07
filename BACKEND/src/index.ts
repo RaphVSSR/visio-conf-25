@@ -1,76 +1,93 @@
-import dotenv from "dotenv"
-import { Server } from "socket.io"
-import Database from "./models/services/Database.ts"
-import TracedError from "./models/Core/TracedError.ts"
-import HTTPServer from "./models/Core/HTTPServer.ts"
-import RestService from "./models/services/RestService.ts"
-import SessionManager from "./models/services/authentication/SessionManager.ts"
-import Controleur from "./Controller/controleur.js"
-import CanalSocketIO from "./Controller/canalsocketio.js"
-import User from "./models/User.ts"
-import Permission from "./models/Permission.ts"
-import Role from "./models/Role.ts"
-import AuthService from "./models/services/authentication/AuthService.ts"
-import RoleService from "./models/services/RoleService.ts"
-import ChannelService from "./models/services/ChannelService.ts"
-import TeamService from "./models/services/TeamService.ts"
-import UserService from "./models/services/UserService.ts"
-import CallSignaling from "./models/services/CallSignaling.ts"
-import ContactsService from "./models/services/ContactsService.ts"
-import ChatService from "./models/services/ChatService.ts"
-import FilesService from "./models/services/FilesService.ts"
+import dotenv from "dotenv";
+import { Server } from "socket.io";
+import Database from "./models/services/Database.ts";
+import TracedError from "./models/Core/TracedError.ts";
+import HTTPServer from "./models/Core/HTTPServer.ts";
+import RestService from "./models/services/RestService.ts";
+import SessionManager from "./models/services/authentication/SessionManager.ts";
+import Controleur from "./Controller/controleur.js";
+import CanalSocketIO from "./Controller/canalsocketio.js";
+import User from "./models/User.ts";
+import Permission from "./models/Permission.ts";
+import Role from "./models/Role.ts";
+import AuthService from "./models/services/authentication/AuthService.ts";
+import RoleService from "./models/services/RoleService.ts";
+import ChannelService from "./models/services/ChannelService.ts";
+import TeamService from "./models/services/TeamService.ts";
+import UserService from "./models/services/UserService.ts";
+import CallSignaling from "./models/services/CallSignaling.ts";
+import ContactsService from "./models/services/ContactsService.ts";
+import ChatService from "./models/services/ChatService.ts";
+import FilesService from "./models/services/FilesService.ts";
 
-dotenv.config()
+dotenv.config();
 
 function registerServices(controleur: any, io: any) {
-	new AuthService(controleur, "AuthService").register()
-	new RoleService(controleur, "RoleService").register()
-	new ChannelService(controleur, "ChannelService").register()
-	new TeamService(controleur, "TeamService").register()
-	new UserService(controleur, "UserService").register()
-	new CallSignaling(controleur, "CallSignaling").register()
-	new ContactsService(controleur, "ContactsService").register()
-	new ChatService(controleur, "ChatService").register()
-	new FilesService(controleur, io, "FilesService").register()
+	new AuthService(controleur, "AuthService").register();
+	new RoleService(controleur, "RoleService").register();
+	new ChannelService(controleur, "ChannelService").register();
+	new TeamService(controleur, "TeamService").register();
+	new UserService(controleur, "UserService").register();
+	new CallSignaling(controleur, "CallSignaling").register();
+	new ContactsService(controleur, "ContactsService").register();
+	new ChatService(controleur, "ChatService").register();
+	new FilesService(controleur, io, "FilesService").register();
+}
+
+function appShutdown(socketServer: Server) {
+
+	const shutdown = async (signal: string) => {
+
+		if (process.env.VERBOSE === "true") console.log(`\n${signal} received — shutting down..`);
+		try {
+
+			socketServer.close();
+			await HTTPServer.close();
+			await Database.disconnect();
+			process.exit(0);
+
+		} catch (error) {
+			
+			TracedError.errorHandler(error);
+			process.exit(1);
+		}
+	};
+
+	process.on("SIGINT", () => shutdown("SIGINT"));
+	process.on("SIGTERM", () => shutdown("SIGTERM"));
 }
 
 try {
+	if (process.env.VERBOSE === "true") console.log(`Lancement de l'app : [${new Date().toISOString()}]\n`);
 
-	if (process.env.VERBOSE === "true") console.log(`Lancement de l'app : [${new Date().toISOString()}]\n`)
+	await Database.connectToMongo();
 
-	await Database.connectToMongo()
+	if (process.env.FLUSH_DB_ON_START === "true") await Database.flushAllCollections();
 
-	if (process.env.FLUSH_DB_ON_START === "true") await Database.flushAllCollections()
+	await User.inject();
+	await Permission.inject();
+	await Role.inject();
+	await Database.injectDefaultAdmin();
+	Database.ensureUploadDirectories();
 
-	await User.inject()
-	await Permission.inject()
-	await Role.inject()
-	await Database.injectDefaultAdmin()
-	Database.ensureUploadDirectories()
+	const expressApp = await RestService.implement();
+	HTTPServer.createFromExpress(expressApp);
 
-	const expressApp = await RestService.implement()
-	HTTPServer.createFromExpress(expressApp)
+	const socketServer = new Server(HTTPServer.server, { cors: RestService.corsOptions });
+	SessionManager.bindToServer(socketServer);
+	socketServer.engine.use(RestService.sessionMiddleware);
 
-	const socketServer = new Server(HTTPServer.server, {
-		cors: {
-			origin: [process.env.FRONTEND_URL || "http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"],
-			methods: ["GET", "POST"],
-			credentials: true,
-		}
-	})
-	SessionManager.bindToServer(socketServer)
-	socketServer.engine.use(RestService.sessionMiddleware)
+	const controleur = new Controleur();
+	new CanalSocketIO(socketServer, controleur, "canalsocketio");
 
-	const controleur = new Controleur()
-	new CanalSocketIO(socketServer, controleur, "canalsocketio")
+	registerServices(controleur, socketServer);
 
-	registerServices(controleur, socketServer)
+	HTTPServer.listen();
 
-	HTTPServer.listen()
+	appShutdown(socketServer);
 
-	if (process.env.VERBOSE === "true") console.log("âœ… All services registered & server listening")
+	if (process.env.VERBOSE === "true") console.log("âœ… All services registered & server listening");
 
 } catch (error) {
-
-	TracedError.errorHandler(error)
+	TracedError.errorHandler(error);
 }

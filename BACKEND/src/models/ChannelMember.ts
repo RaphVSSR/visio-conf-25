@@ -1,75 +1,63 @@
-import mongoose, { model, Model, Schema, Types } from "mongoose"
+import mongoose, { model, Model, Schema, Types } from "mongoose";
 import Collection from "./Core/Collection.ts";
 import TracedError from "./Core/TracedError.ts";
 
 const { models } = mongoose;
 
-
 export type ChannelMemberType = {
-
-    channelId: Types.ObjectId,
-    userId: Types.ObjectId,
-    role?: string,
-    joinedAt?: Date,
-
-}
+	channelId: Types.ObjectId;
+	userId: Types.ObjectId;
+	role?: string;
+	joinedAt?: Date;
+};
 
 export default class ChannelMember extends Collection {
+	protected static schema = new Schema<ChannelMemberType>({
+		channelId: {
+			type: Schema.Types.ObjectId,
+			ref: "Channel",
+			required: true,
+		},
+		userId: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
+		role: {
+			type: String,
+			enum: ["admin", "member"],
+			default: "member",
+		},
+		joinedAt: {
+			type: Date,
+			default: Date.now,
+		},
+	});
 
-    protected static schema = new Schema<ChannelMemberType>({
+	private static areIndexesInitialized = (() => {
+		this.schema.index({ channelId: 1, userId: 1 }, { unique: true });
+	})();
 
-        channelId: {
-            type: Schema.Types.ObjectId,
-            ref: "Channel",
-            required: true,
-        },
-        userId: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-        role: {
-            type: String,
-            enum: ["admin", "member"],
-            default: "member",
-        },
-        joinedAt: {
-            type: Date,
-            default: Date.now,
-        },
-    });
+	static model: Model<ChannelMemberType> =
+		models.ChannelMember || model<ChannelMemberType>("ChannelMember", this.schema);
 
-    private static areIndexesInitialized = (() => {
+	modelInstance;
 
-        this.schema.index({ channelId: 1, userId: 1 }, { unique: true });
-    })()
-    
-    static model: Model<ChannelMemberType> = models.ChannelMember || model<ChannelMemberType>("ChannelMember", this.schema);
+	constructor(dataToConstruct: ChannelMemberType) {
+		super();
 
-    modelInstance;
+		this.modelInstance = new ChannelMember.model(dataToConstruct);
+	}
 
-    constructor(dataToConstruct: ChannelMemberType){
+	async save() {
+		try {
+			await this.modelInstance.save();
+		} catch (error: any) {
+			throw new TracedError("collectionSaving", error.message);
+		}
+	}
 
-        super();
-
-        this.modelInstance = new ChannelMember.model(dataToConstruct);
-
-    }
-
-    async save(){
-
-        try {
-            
-            await this.modelInstance.save();
-
-        } catch (error: any) {
-            
-            throw new TracedError("collectionSaving", error.message);
-        }
-    }
-
-    static async flushAll() {
-        
-        return this.model.deleteMany({});
-    }
+	static async flushAll() {
+		return this.model.deleteMany({});
+	}
 }

@@ -1,79 +1,67 @@
-import mongoose, { model, Model, Schema, Types } from "mongoose"
+import mongoose, { model, Model, Schema, Types } from "mongoose";
 import Collection from "./Core/Collection.ts";
 import TracedError from "./Core/TracedError.ts";
 
 const { models } = mongoose;
 
-
 export type ChannelPostResponseType = {
-
-    postId: Types.ObjectId,
-    content: string,
-    authorId: Types.ObjectId,
-    createdAt?: Date,
-    updatedAt?: Date,
-
-}
+	postId: Types.ObjectId;
+	content: string;
+	authorId: Types.ObjectId;
+	createdAt?: Date;
+	updatedAt?: Date;
+};
 
 export default class ChannelPostResponse extends Collection {
+	protected static schema = new Schema<ChannelPostResponseType>({
+		postId: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "ChannelPost",
+			required: true,
+		},
+		content: {
+			type: String,
+			required: true,
+		},
+		authorId: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
+		createdAt: {
+			type: Date,
+			default: Date.now,
+		},
+		updatedAt: {
+			type: Date,
+			default: Date.now,
+		},
+	});
 
-    protected static schema = new Schema<ChannelPostResponseType>({
+	private static areIndexesInitialized = (() => {
+		this.schema.index({ postId: 1, createdAt: 1 });
+	})();
 
-        postId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "ChannelPost",
-            required: true,
-        },
-        content: {
-            type: String,
-            required: true,
-        },
-        authorId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-        createdAt: {
-            type: Date,
-            default: Date.now,
-        },
-        updatedAt: {
-            type: Date,
-            default: Date.now,
-        },
-    });
+	static model: Model<ChannelPostResponseType> =
+		models.ChannelPostResponse || model<ChannelPostResponseType>("ChannelPostResponse", this.schema);
 
-    private static areIndexesInitialized = (() => {
+	modelInstance;
 
-        this.schema.index({ postId: 1, createdAt: 1 });
-    })()
-    
-    static model: Model<ChannelPostResponseType> = models.ChannelPostResponse || model<ChannelPostResponseType>("ChannelPostResponse", this.schema);
+	constructor(dataToConstruct: ChannelPostResponseType) {
+		super();
 
-    modelInstance;
+		this.modelInstance = new ChannelPostResponse.model(dataToConstruct);
+	}
 
-    constructor(dataToConstruct: ChannelPostResponseType){
+	async save() {
+		try {
+			await this.modelInstance.save();
+		} catch (error: any) {
+			throw new TracedError("collectionSaving", error.message);
+		}
+	}
 
-        super();
-
-        this.modelInstance = new ChannelPostResponse.model(dataToConstruct);
-
-    }
-
-    async save(){
-
-        try {
-            
-            await this.modelInstance.save();
-
-        } catch (error: any) {
-            
-            throw new TracedError("collectionSaving", error.message);
-        }
-    }
-
-    static async flushAll() {
-        
-        return this.model.deleteMany({});
-    }
-};
+	static async flushAll() {
+		return this.model.deleteMany({});
+	}
+}

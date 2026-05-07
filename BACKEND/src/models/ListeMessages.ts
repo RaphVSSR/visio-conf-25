@@ -1,19 +1,14 @@
-type MessageDomain = { emitted: string[], received: string[] }
+type MessageDomain = { emitted: string[]; received: string[] };
 
 const MessageRegistry: Record<string, MessageDomain> = {
-
 	socket: {
 		emitted: ["socket_disconnect"],
 		received: [],
 	},
 
 	auth: {
-		emitted: [
-			"login", "register", "authenticate",
-		],
-		received: [
-			"login_response", "register_response", "authenticate_response",
-		],
+		emitted: ["login", "register", "authenticate"],
+		received: ["login_response", "register_response", "authenticate_response"],
 	},
 
 	user: {
@@ -33,13 +28,29 @@ const MessageRegistry: Record<string, MessageDomain> = {
 
 	call: {
 		emitted: [
-			"call:initiate", "call:accept", "call:reject", "call:hangup",
-			"call:mute-toggle", "call:camera-toggle", "call:offer", "call:answer", "call:ice-candidate",
+			"call:initiate",
+			"call:accept",
+			"call:reject",
+			"call:hangup",
+			"call:mute-toggle",
+			"call:camera-toggle",
+			"call:offer",
+			"call:answer",
+			"call:ice-candidate",
 		],
 		received: [
-			"call:incoming", "call:user-joined", "call:user-left", "call:user-rejected",
-			"call:participants-list", "call:offer", "call:answer", "call:ice-candidate",
-			"call:mute-toggle", "call:camera-toggle", "call:ended", "call:error",
+			"call:incoming",
+			"call:user-joined",
+			"call:user-left",
+			"call:user-rejected",
+			"call:participants-list",
+			"call:offer",
+			"call:answer",
+			"call:ice-candidate",
+			"call:mute-toggle",
+			"call:camera-toggle",
+			"call:ended",
+			"call:error",
 		],
 	},
 
@@ -53,14 +64,28 @@ const MessageRegistry: Record<string, MessageDomain> = {
 	},
 	files: {
 		emitted: [
-			"get_files", "upload_file", "update_file", "delete_file",
-			"create_space", "get_spaces", "delete_space", "rename_space",
-			"resolve_path", "update_space_members"
+			"get_files",
+			"upload_file",
+			"update_file",
+			"delete_file",
+			"create_space",
+			"get_spaces",
+			"delete_space",
+			"rename_space",
+			"resolve_path",
+			"update_space_members",
 		],
 		received: [
-			"files", "file_uploading_status", "file_updating_status", "file_deleting_status",
-			"spaces", "space_creating_status", "space_deleting_status", "space_renaming_status",
-			"resolved_path", "space_members_updating_status"
+			"files",
+			"file_uploading_status",
+			"file_updating_status",
+			"file_deleting_status",
+			"spaces",
+			"space_creating_status",
+			"space_deleting_status",
+			"space_renaming_status",
+			"resolved_path",
+			"space_members_updating_status",
 		],
 	},
 	directory: {
@@ -69,15 +94,27 @@ const MessageRegistry: Record<string, MessageDomain> = {
 	},
 	roles: {
 		emitted: ["get_roles", "get_role", "create_role", "update_role", "delete_role"],
-		received: ["roles", "role", "role_creating_status", "role_already_exists", "role_updating_status", "role_deleting_status"]
+		received: [
+			"roles",
+			"role",
+			"role_creating_status",
+			"role_already_exists",
+			"role_updating_status",
+			"role_deleting_status",
+		],
 	},
-}
+};
 
 export function getMessagesByDomain(domain: string): MessageDomain {
-	return MessageRegistry[domain] ?? { emitted: [], received: [] }
+	return MessageRegistry[domain] ?? { emitted: [], received: [] };
 }
 
-export const ListeMessagesEmis = Object.values(MessageRegistry).flatMap(domain => domain.emitted)
-export const ListeMessagesRecus = Object.values(MessageRegistry).flatMap(domain => domain.received)
+export const ListeMessagesEmis = Object.values(MessageRegistry).flatMap((domain) => domain.emitted);
+export const ListeMessagesRecus = Object.values(MessageRegistry).flatMap((domain) => domain.received);
 
-export default MessageRegistry
+export type Message = {
+	id?: string;
+	[action: string]: any;
+};
+
+export default MessageRegistry;

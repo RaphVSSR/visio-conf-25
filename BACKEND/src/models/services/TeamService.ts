@@ -1,99 +1,95 @@
-import { getMessagesByDomain } from "../ListeMessages.ts"
-import SessionManager from "./authentication/SessionManager.ts"
-import BroadcastTargets from "./BroadcastTargets.ts"
-import Team from "../Team.ts"
-import TeamMember from "../TeamMember.ts"
-import Channel from "../Channel.ts"
-import ChannelMember from "../ChannelMember.ts"
-import ChannelPost from "../ChannelPost.ts"
-import ChannelPostResponse from "../ChannelPostResponse.ts"
+import { getMessagesByDomain } from "../ListeMessages.ts";
+import SessionManager from "./authentication/SessionManager.ts";
+import BroadcastTargets from "./BroadcastTargets.ts";
+import Team from "../Team.ts";
+import TeamMember from "../TeamMember.ts";
+import Channel from "../Channel.ts";
+import ChannelMember from "../ChannelMember.ts";
+import ChannelPost from "../ChannelPost.ts";
+import ChannelPostResponse from "../ChannelPostResponse.ts";
 
-type MessageHandler = (socketId: string, payload: any) => void
+type MessageHandler = (socketId: string, payload: any) => void;
 
 export default class TeamService {
-
-	controleur: any
-	nomDInstance: string
-	private handlers = new Map<string, MessageHandler>()
+	controleur: any;
+	nomDInstance: string;
+	private handlers = new Map<string, MessageHandler>();
 
 	constructor(controleur: any, name: string) {
-		this.controleur = controleur
-		this.nomDInstance = name
+		this.controleur = controleur;
+		this.nomDInstance = name;
 	}
 
 	private registerHandler(messageName: string, handler: MessageHandler) {
-		this.handlers.set(messageName, handler)
+		this.handlers.set(messageName, handler);
 	}
 
 	private send(socketIds: string | string[], messageName: string, payload: unknown) {
-		const ids = Array.isArray(socketIds) ? socketIds : [socketIds]
-		this.controleur.envoie(this, { [messageName]: payload, id: ids })
+		const ids = Array.isArray(socketIds) ? socketIds : [socketIds];
+		this.controleur.envoie(this, { [messageName]: payload, id: ids });
 	}
 
 	traitementMessage(msg: any) {
-		const action = Object.keys(msg).find(prop => prop !== "id")
-		if (!action) return
-		const handler = this.handlers.get(action)
-		if (handler) handler(msg.id, msg[action])
+		const action = Object.keys(msg).find((prop) => prop !== "id");
+		if (!action) return;
+		const handler = this.handlers.get(action);
+		if (handler) handler(msg.id, msg[action]);
 	}
 
 	register() {
-		this.registerHandler("team_get", this.handleTeamQuery)
-		this.registerHandler("team_action", this.handleTeamAction)
-		this.registerHandler("team_member", this.handleTeamMember)
+		this.registerHandler("team_get", this.handleTeamQuery);
+		this.registerHandler("team_action", this.handleTeamAction);
+		this.registerHandler("team_member", this.handleTeamMember);
 
-		this.controleur.inscription(this, getMessagesByDomain("team").received, [...this.handlers.keys()])
+		this.controleur.inscription(this, getMessagesByDomain("team").received, [...this.handlers.keys()]);
 	}
 
 	private resolveUserId(socketId: string): string | null {
-		return SessionManager.getUserId(socketId)
+		return SessionManager.getUserId(socketId);
 	}
 
 	private handleTeamQuery = (socketId: string, payload: any) => {
-
 		const dispatchers: Record<string, () => void> = {
 			list: () => this.getTeamsList(socketId),
 			all: () => this.getAllTeams(socketId),
-		}
+		};
 
-		dispatchers[payload.type]?.()
-	}
+		dispatchers[payload.type]?.();
+	};
 
 	private handleTeamAction = (socketId: string, payload: any) => {
-
 		const dispatchers: Record<string, () => void> = {
 			create: () => this.createTeam(socketId, payload),
 			update: () => this.updateTeam(socketId, payload),
 			delete: () => this.deleteTeam(socketId, payload),
 			leave: () => this.leaveTeam(socketId, payload),
-		}
+		};
 
-		dispatchers[payload.type]?.()
-	}
+		dispatchers[payload.type]?.();
+	};
 
 	private handleTeamMember = (socketId: string, payload: any) => {
-
 		const dispatchers: Record<string, () => void> = {
 			list: () => this.getTeamMembers(socketId, payload),
 			add: () => this.addTeamMember(socketId, payload),
 			remove: () => this.removeTeamMember(socketId, payload),
-		}
+		};
 
-		dispatchers[payload.type]?.()
-	}
+		dispatchers[payload.type]?.();
+	};
 
 	private getTeamsList = async (socketId: string) => {
+		const userId = this.resolveUserId(socketId);
+		if (!userId)
+			return this.send(socketId, "team_get_response", { type: "list", etat: false, error: "not_authenticated" });
 
-		const userId = this.resolveUserId(socketId)
-		if (!userId) return this.send(socketId, "team_get_response", { type: "list", etat: false, error: "not_authenticated" })
+		const memberships = await TeamMember.model.find({ id: userId }).lean();
+		const teamIds = memberships.map((membership) => membership.teamId);
 
-		const memberships = await TeamMember.model.find({ id: userId }).lean()
-		const teamIds = memberships.map(membership => membership.teamId)
+		const teams = await Team.model.find({ _id: { $in: teamIds } }).lean();
 
-		const teams = await Team.model.find({ _id: { $in: teamIds } }).lean()
-
-		const formattedTeams = teams.map(team => {
-			const membership = memberships.find(m => m.teamId.toString() === team._id!.toString())
+		const formattedTeams = teams.map((team) => {
+			const membership = memberships.find((m) => m.teamId.toString() === team._id!.toString());
 			return {
 				id: team._id!.toString(),
 				name: team.name,
@@ -103,25 +99,23 @@ export default class TeamService {
 				createdAt: team.createdAt,
 				updatedAt: team.updatedAt,
 				role: membership?.role ?? "member",
-			}
-		})
+			};
+		});
 
-		this.send(socketId, "team_get_response", { type: "list", etat: true, teams: formattedTeams })
-	}
+		this.send(socketId, "team_get_response", { type: "list", etat: true, teams: formattedTeams });
+	};
 
 	private getAllTeams = async (socketId: string) => {
+		const userId = this.resolveUserId(socketId);
+		if (!userId)
+			return this.send(socketId, "team_get_response", { type: "all", etat: false, error: "not_authenticated" });
 
-		const userId = this.resolveUserId(socketId)
-		if (!userId) return this.send(socketId, "team_get_response", { type: "all", etat: false, error: "not_authenticated" })
+		const teams = await Team.model.find({}).lean();
 
-		const teams = await Team.model.find({}).lean()
+		const counts = await TeamMember.model.aggregate([{ $group: { _id: "$teamId", count: { $sum: 1 } } }]);
+		const countByTeam = new Map<string, number>(counts.map((c: any) => [c._id.toString(), c.count]));
 
-		const counts = await TeamMember.model.aggregate([
-			{ $group: { _id: "$teamId", count: { $sum: 1 } } },
-		])
-		const countByTeam = new Map<string, number>(counts.map((c: any) => [c._id.toString(), c.count]))
-
-		const formattedTeams = teams.map(team => ({
+		const formattedTeams = teams.map((team) => ({
 			id: team._id!.toString(),
 			name: team.name,
 			description: team.description,
@@ -130,40 +124,43 @@ export default class TeamService {
 			createdAt: team.createdAt,
 			updatedAt: team.updatedAt,
 			memberCount: countByTeam.get(team._id!.toString()) ?? 0,
-		}))
+		}));
 
-		this.send(socketId, "team_get_response", { type: "all", etat: true, teams: formattedTeams })
-	}
+		this.send(socketId, "team_get_response", { type: "all", etat: true, teams: formattedTeams });
+	};
 
-	private createTeam = async (socketId: string, payload: { name: string, description?: string, picture?: string, members: string[] }) => {
+	private createTeam = async (
+		socketId: string,
+		payload: { name: string; description?: string; picture?: string; members: string[] },
+	) => {
+		const userId = this.resolveUserId(socketId);
+		if (!userId)
+			return this.send(socketId, "team_action_response", { type: "create", etat: false, error: "not_authenticated" });
 
-		const userId = this.resolveUserId(socketId)
-		if (!userId) return this.send(socketId, "team_action_response", { type: "create", etat: false, error: "not_authenticated" })
+		const { name, description, picture, members } = payload;
 
-		const { name, description, picture, members } = payload
+		const newTeam = new Team({ name, description, picture, createdBy: userId as any });
+		await newTeam.save();
 
-		const newTeam = new Team({ name, description, picture, createdBy: userId as any })
-		await newTeam.save()
+		const teamId = newTeam.modelInstance._id!;
 
-		const teamId = newTeam.modelInstance._id!
+		const creatorMember = new TeamMember({ id: userId as any, role: "admin", teamId: teamId as any });
+		await creatorMember.save();
 
-		const creatorMember = new TeamMember({ id: userId as any, role: "admin", teamId: teamId as any })
-		await creatorMember.save()
-
-		const memberDocIds: string[] = [creatorMember.modelInstance._id!.toString()]
+		const memberDocIds: string[] = [creatorMember.modelInstance._id!.toString()];
 
 		if (members && members.length > 0) {
 			for (const memberId of members) {
-				if (memberId === userId) continue
+				if (memberId === userId) continue;
 
-				const teamMember = new TeamMember({ id: memberId as any, role: "member", teamId: teamId as any })
-				await teamMember.save()
-				memberDocIds.push(teamMember.modelInstance._id!.toString())
+				const teamMember = new TeamMember({ id: memberId as any, role: "member", teamId: teamId as any });
+				await teamMember.save();
+				memberDocIds.push(teamMember.modelInstance._id!.toString());
 			}
 		}
 
-		newTeam.modelInstance.members = memberDocIds as any
-		await newTeam.modelInstance.save()
+		newTeam.modelInstance.members = memberDocIds as any;
+		await newTeam.modelInstance.save();
 
 		const formattedTeam = {
 			id: teamId.toString(),
@@ -174,33 +171,42 @@ export default class TeamService {
 			createdAt: newTeam.modelInstance.createdAt,
 			updatedAt: newTeam.modelInstance.updatedAt,
 			role: "admin",
+		};
+
+		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId.toString());
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", {
+			type: "create",
+			etat: true,
+			team: formattedTeam,
+		});
+	};
+
+	private updateTeam = async (
+		socketId: string,
+		payload: { teamId: string; name?: string; description?: string; picture?: string },
+	) => {
+		const userId = this.resolveUserId(socketId);
+		if (!userId)
+			return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "not_authenticated" });
+
+		const { teamId, name, description, picture } = payload;
+
+		const team = await Team.model.findById(teamId);
+		if (!team)
+			return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "team_not_found" });
+
+		if (!SessionManager.isAdmin(socketId)) {
+			const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean();
+			if (!adminMembership)
+				return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "admin_required" });
 		}
 
-		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId.toString())
-		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", { type: "create", etat: true, team: formattedTeam })
-	}
+		if (name !== undefined) team.name = name;
+		if (description !== undefined) team.description = description;
+		if (picture !== undefined) team.picture = picture;
+		team.updatedAt = new Date();
 
-	private updateTeam = async (socketId: string, payload: { teamId: string, name?: string, description?: string, picture?: string }) => {
-
-		const userId = this.resolveUserId(socketId)
-		if (!userId) return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "not_authenticated" })
-
-		const { teamId, name, description, picture } = payload
-
-		const team = await Team.model.findById(teamId)
-		if (!team) return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "team_not_found" })
-
-		if (!SessionManager.isPlatformAdmin(socketId)) {
-			const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean()
-			if (!adminMembership) return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "admin_required" })
-		}
-
-		if (name !== undefined) team.name = name
-		if (description !== undefined) team.description = description
-		if (picture !== undefined) team.picture = picture
-		team.updatedAt = new Date()
-
-		await team.save()
+		await team.save();
 
 		const formattedTeam = {
 			id: team._id!.toString(),
@@ -211,87 +217,107 @@ export default class TeamService {
 			createdAt: team.createdAt,
 			updatedAt: team.updatedAt,
 			role: "admin",
-		}
+		};
 
-		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId)
-		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", { type: "update", etat: true, team: formattedTeam })
-	}
+		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId);
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", {
+			type: "update",
+			etat: true,
+			team: formattedTeam,
+		});
+	};
 
 	private deleteTeam = async (socketId: string, payload: { teamId: string }) => {
+		const userId = this.resolveUserId(socketId);
+		if (!userId)
+			return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "not_authenticated" });
 
-		const userId = this.resolveUserId(socketId)
-		if (!userId) return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "not_authenticated" })
+		const { teamId } = payload;
 
-		const { teamId } = payload
+		const team = await Team.model.findById(teamId);
+		if (!team)
+			return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "team_not_found" });
 
-		const team = await Team.model.findById(teamId)
-		if (!team) return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "team_not_found" })
-
-		if (!SessionManager.isPlatformAdmin(socketId)) {
-			const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean()
-			if (!adminMembership) return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "admin_required" })
+		if (!SessionManager.isAdmin(socketId)) {
+			const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean();
+			if (!adminMembership)
+				return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "admin_required" });
 		}
 
-		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId)
+		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId);
 
-		const channels = await Channel.model.find({ teamId }).lean()
+		const channels = await Channel.model.find({ teamId }).lean();
 		for (const channel of channels) {
-			const channelId = channel._id!.toString()
-			const posts = await ChannelPost.model.find({ channelId }).lean()
-			const postIds = posts.map((post: any) => post._id)
-			await ChannelPostResponse.model.deleteMany({ postId: { $in: postIds } })
-			await ChannelPost.model.deleteMany({ channelId })
-			await ChannelMember.model.deleteMany({ channelId })
+			const channelId = channel._id!.toString();
+			const posts = await ChannelPost.model.find({ channelId }).lean();
+			const postIds = posts.map((post: any) => post._id);
+			await ChannelPostResponse.model.deleteMany({ postId: { $in: postIds } });
+			await ChannelPost.model.deleteMany({ channelId });
+			await ChannelMember.model.deleteMany({ channelId });
 		}
-		await Channel.model.deleteMany({ teamId })
+		await Channel.model.deleteMany({ teamId });
 
-		await TeamMember.model.deleteMany({ teamId })
-		await Team.model.deleteOne({ _id: teamId })
+		await TeamMember.model.deleteMany({ teamId });
+		await Team.model.deleteOne({ _id: teamId });
 
-		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", { type: "delete", etat: true, teamId })
-	}
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", {
+			type: "delete",
+			etat: true,
+			teamId,
+		});
+	};
 
 	private leaveTeam = async (socketId: string, payload: { teamId: string }) => {
+		const userId = this.resolveUserId(socketId);
+		if (!userId)
+			return this.send(socketId, "team_action_response", { type: "leave", etat: false, error: "not_authenticated" });
 
-		const userId = this.resolveUserId(socketId)
-		if (!userId) return this.send(socketId, "team_action_response", { type: "leave", etat: false, error: "not_authenticated" })
+		const { teamId } = payload;
 
-		const { teamId } = payload
-
-		const membership = await TeamMember.model.findOne({ teamId, id: userId }).lean()
-		if (!membership) return this.send(socketId, "team_action_response", { type: "leave", etat: false, error: "not_a_member" })
+		const membership = await TeamMember.model.findOne({ teamId, id: userId }).lean();
+		if (!membership)
+			return this.send(socketId, "team_action_response", { type: "leave", etat: false, error: "not_a_member" });
 
 		if (membership.role === "admin") {
-			const adminCount = await TeamMember.model.countDocuments({ teamId, role: "admin" })
-			if (adminCount <= 1) return this.send(socketId, "team_action_response", { type: "leave", etat: false, error: "last_admin_cannot_leave" })
+			const adminCount = await TeamMember.model.countDocuments({ teamId, role: "admin" });
+			if (adminCount <= 1)
+				return this.send(socketId, "team_action_response", {
+					type: "leave",
+					etat: false,
+					error: "last_admin_cannot_leave",
+				});
 		}
 
-		const leaverSocketIds = SessionManager.getUserSocketIds(userId)
+		const leaverSocketIds = SessionManager.getUserSocketIds(userId);
 
-		await TeamMember.model.deleteOne({ _id: membership._id })
-		await Team.model.updateOne({ _id: teamId }, { $pull: { members: membership._id } })
+		await TeamMember.model.deleteOne({ _id: membership._id });
+		await Team.model.updateOne({ _id: teamId }, { $pull: { members: membership._id } });
 
-		const remainingSocketIds = await BroadcastTargets.forTeam(teamId)
-		const broadcastSocketIds = [...remainingSocketIds, ...leaverSocketIds]
-		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", { type: "leave", etat: true, teamId, userId })
-	}
+		const remainingSocketIds = await BroadcastTargets.forTeam(teamId);
+		const broadcastSocketIds = [...remainingSocketIds, ...leaverSocketIds];
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_action_response", {
+			type: "leave",
+			etat: true,
+			teamId,
+			userId,
+		});
+	};
 
 	private getTeamMembers = async (socketId: string, payload: { teamId: string }) => {
+		const userId = this.resolveUserId(socketId);
+		if (!userId)
+			return this.send(socketId, "team_member_response", { type: "list", etat: false, error: "not_authenticated" });
 
-		const userId = this.resolveUserId(socketId)
-		if (!userId) return this.send(socketId, "team_member_response", { type: "list", etat: false, error: "not_authenticated" })
+		const { teamId } = payload;
 
-		const { teamId } = payload
+		const team = await Team.model.findById(teamId).lean();
+		if (!team)
+			return this.send(socketId, "team_member_response", { type: "list", etat: false, error: "team_not_found" });
 
-		const team = await Team.model.findById(teamId).lean()
-		if (!team) return this.send(socketId, "team_member_response", { type: "list", etat: false, error: "team_not_found" })
-
-		const members = await TeamMember.model.find({ teamId })
-			.populate("id", "firstname lastname email picture")
-			.lean()
+		const members = await TeamMember.model.find({ teamId }).populate("id", "firstname lastname email picture").lean();
 
 		const formattedMembers = members.map((member: any) => {
-			const user = member.id as any
+			const user = member.id as any;
 			return {
 				id: member._id!.toString(),
 				userId: user?._id?.toString() ?? member.id.toString(),
@@ -300,60 +326,75 @@ export default class TeamService {
 				picture: user?.picture,
 				role: member.role,
 				joinedAt: member.joinedAt,
-			}
-		})
+			};
+		});
 
-		this.send(socketId, "team_member_response", { type: "list", etat: true, teamId, members: formattedMembers })
-	}
+		this.send(socketId, "team_member_response", { type: "list", etat: true, teamId, members: formattedMembers });
+	};
 
-	private addTeamMember = async (socketId: string, payload: { teamId: string, userId: string }) => {
+	private addTeamMember = async (socketId: string, payload: { teamId: string; userId: string }) => {
+		const requesterId = this.resolveUserId(socketId);
+		if (!requesterId)
+			return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "not_authenticated" });
 
-		const requesterId = this.resolveUserId(socketId)
-		if (!requesterId) return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "not_authenticated" })
+		const { teamId, userId: targetUserId } = payload;
 
-		const { teamId, userId: targetUserId } = payload
-
-		if (!SessionManager.isPlatformAdmin(socketId)) {
-			const adminMembership = await TeamMember.model.findOne({ teamId, id: requesterId, role: "admin" }).lean()
-			if (!adminMembership) return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "admin_required" })
+		if (!SessionManager.isAdmin(socketId)) {
+			const adminMembership = await TeamMember.model.findOne({ teamId, id: requesterId, role: "admin" }).lean();
+			if (!adminMembership)
+				return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "admin_required" });
 		}
 
-		const existingMember = await TeamMember.model.findOne({ teamId, id: targetUserId }).lean()
-		if (existingMember) return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "already_a_member" })
+		const existingMember = await TeamMember.model.findOne({ teamId, id: targetUserId }).lean();
+		if (existingMember)
+			return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "already_a_member" });
 
-		const teamMember = new TeamMember({ id: targetUserId as any, role: "member", teamId: teamId as any })
-		await teamMember.save()
+		const teamMember = new TeamMember({ id: targetUserId as any, role: "member", teamId: teamId as any });
+		await teamMember.save();
 
-		await Team.model.updateOne({ _id: teamId }, { $push: { members: teamMember.modelInstance._id } })
+		await Team.model.updateOne({ _id: teamId }, { $push: { members: teamMember.modelInstance._id } });
 
-		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId)
-		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_member_response", { type: "add", etat: true, teamId, userId: targetUserId })
-	}
+		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId);
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_member_response", {
+			type: "add",
+			etat: true,
+			teamId,
+			userId: targetUserId,
+		});
+	};
 
-	private removeTeamMember = async (socketId: string, payload: { teamId: string, userId: string }) => {
+	private removeTeamMember = async (socketId: string, payload: { teamId: string; userId: string }) => {
+		const requesterId = this.resolveUserId(socketId);
+		if (!requesterId)
+			return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "not_authenticated" });
 
-		const requesterId = this.resolveUserId(socketId)
-		if (!requesterId) return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "not_authenticated" })
+		const { teamId, userId: targetUserId } = payload;
 
-		const { teamId, userId: targetUserId } = payload
-
-		if (!SessionManager.isPlatformAdmin(socketId)) {
-			const adminMembership = await TeamMember.model.findOne({ teamId, id: requesterId, role: "admin" }).lean()
-			if (!adminMembership) return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "admin_required" })
+		if (!SessionManager.isAdmin(socketId)) {
+			const adminMembership = await TeamMember.model.findOne({ teamId, id: requesterId, role: "admin" }).lean();
+			if (!adminMembership)
+				return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "admin_required" });
 		}
 
-		const targetMembership = await TeamMember.model.findOne({ teamId, id: targetUserId }).lean()
-		if (!targetMembership) return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "not_a_member" })
+		const targetMembership = await TeamMember.model.findOne({ teamId, id: targetUserId }).lean();
+		if (!targetMembership)
+			return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "not_a_member" });
 
-		if (targetMembership.role === "admin") return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "cannot_remove_admin" })
+		if (targetMembership.role === "admin")
+			return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "cannot_remove_admin" });
 
-		const targetSocketIds = SessionManager.getUserSocketIds(targetUserId)
+		const targetSocketIds = SessionManager.getUserSocketIds(targetUserId);
 
-		await TeamMember.model.deleteOne({ _id: targetMembership._id })
-		await Team.model.updateOne({ _id: teamId }, { $pull: { members: targetMembership._id } })
+		await TeamMember.model.deleteOne({ _id: targetMembership._id });
+		await Team.model.updateOne({ _id: teamId }, { $pull: { members: targetMembership._id } });
 
-		const remainingSocketIds = await BroadcastTargets.forTeam(teamId)
-		const broadcastSocketIds = [...remainingSocketIds, ...targetSocketIds]
-		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_member_response", { type: "remove", etat: true, teamId, userId: targetUserId })
-	}
+		const remainingSocketIds = await BroadcastTargets.forTeam(teamId);
+		const broadcastSocketIds = [...remainingSocketIds, ...targetSocketIds];
+		this.send(BroadcastTargets.pick(broadcastSocketIds, socketId), "team_member_response", {
+			type: "remove",
+			etat: true,
+			teamId,
+			userId: targetUserId,
+		});
+	};
 }

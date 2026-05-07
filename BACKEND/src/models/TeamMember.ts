@@ -1,80 +1,62 @@
-import mongoose, { model, Model, Schema, Types } from "mongoose"
-import Collection from "./Core/Collection.ts"
+import mongoose, { model, Model, Schema, Types } from "mongoose";
+import Collection from "./Core/Collection.ts";
 import TracedError from "./Core/TracedError.ts";
 
 const { models } = mongoose;
 
-
 export type TeamMemberType = {
-
-    id: Types.ObjectId,
-    role?: string,
-    joinedAt?: Date,
-    teamId: Types.ObjectId
-
-}
+	id: Types.ObjectId;
+	role?: string;
+	joinedAt?: Date;
+	teamId: Types.ObjectId;
+};
 
 export default class TeamMember extends Collection {
+	static schema = new Schema<TeamMemberType>({
+		id: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
+		role: {
+			type: String,
+			enum: ["admin", "member"],
+			default: "member",
+		},
+		joinedAt: {
+			type: Date,
+			default: Date.now,
+		},
+		teamId: {
+			type: Schema.Types.ObjectId,
+			ref: "Team",
+			required: true,
+		},
+	});
 
-    static schema = new Schema<TeamMemberType>({
+	private static areIndexesInitialized = (() => {
+		this.schema.index({ teamId: 1, id: 1 }, { unique: true });
+	})();
 
-        id: {
+	static model: Model<TeamMemberType> = models.TeamMember || model<TeamMemberType>("TeamMember", this.schema);
 
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-        role: {
+	modelInstance;
 
-            type: String,
-            enum: ["admin", "member"],
-            default: "member",
-        },
-        joinedAt: {
+	constructor(dataToConstruct: TeamMemberType) {
+		super();
 
-            type: Date,
-            default: Date.now,
-        },
-        teamId: {
+		this.modelInstance = new TeamMember.model(dataToConstruct);
+	}
 
-            type: Schema.Types.ObjectId,
-            ref: "Team",
-            required: true,
-        },
+	async save() {
+		try {
+			await this.modelInstance.save();
+		} catch (error: any) {
+			throw new TracedError("collectionSaving", error.message);
+		}
+	}
 
-    })
-
-    private static areIndexesInitialized = (() => {
-
-        this.schema.index({ teamId: 1, id: 1 }, { unique: true });
-    })()
-    
-    static model: Model<TeamMemberType> = models.TeamMember || model<TeamMemberType>("TeamMember", this.schema);
-
-    modelInstance;
-
-    constructor(dataToConstruct: TeamMemberType){
-
-        super();
-
-        this.modelInstance = new TeamMember.model(dataToConstruct);
-
-    }
-
-    async save(){
-
-        try {
-            
-            await this.modelInstance.save();
-
-        } catch (error: any) {
-            
-            throw new TracedError("collectionSaving", error.message);
-        }
-    }
-
-    static async flushAll() {
-        
-        return this.model.deleteMany({});
-    }
+	static async flushAll() {
+		return this.model.deleteMany({});
+	}
 }

@@ -6,338 +6,318 @@ import Collection from "./Core/Collection.ts";
 const { models } = mongoose;
 
 export type PermType = {
-
-    _id?: Types.ObjectId,
-    uuid: string,
-    label: string,
-    desc?: string,
-    default: boolean,
-
-}
+	_id?: Types.ObjectId;
+	uuid: string;
+	label: string;
+	desc?: string;
+	default: boolean;
+};
 
 export default class Permission extends Collection {
+	protected static schema = new Schema<PermType>({
+		uuid: {
+			type: String,
+			required: true,
+			description: "Message identifier",
+		},
+		label: {
+			type: String,
+			required: true,
+			description: "Name of the permission",
+		},
+		desc: {
+			type: String,
+			description: "Permission's description",
+		},
+		default: {
+			type: Boolean,
+			required: true,
+			description: "Does this permission needs to be by default affected ?",
+		},
+	});
 
-    protected static schema = new Schema<PermType>({
+	static model: Model<PermType> = models.Permission || model<PermType>("Permission", this.schema);
 
-        uuid: {
-            type: String,
-            required: true,
-            description: "Message identifier",
-        },
-        label: {
-            type: String,
-            required: true,
-            description: "Name of the permission",
-        },
-        desc: {
-            type: String,
-            description: "Permission's description",
-        },
-        default: {
-            type: Boolean,
-            required: true,
-            description: "Does this permission needs to be by default affected ?",
-        },
+	modelInstance;
 
-    });
-    
-    static model: Model<PermType> = models.Permission || model<PermType>("Permission", this.schema);
+	constructor(dataToConstruct: PermType) {
+		super();
+		this.modelInstance = new Permission.model(dataToConstruct);
+	}
 
-    modelInstance;
+	static async inject() {
+		const perms = [
+			{
+				uuid: "naviguer_vers",
+				label: "Naviguer vers",
+				default: true,
+			},
+			{
+				uuid: "admin_demande_liste_utilisateurs",
+				label: "Lister les utilisateurs",
+				default: false,
+			},
+			{
+				uuid: "admin_ajouter_utilisateur",
+				label: "Ajouter un utilisateur",
+				default: false,
+			},
+			{
+				uuid: "admin_desactiver_utilisateur",
+				label: "DÃ©sactive un utilisateur",
+				default: false,
+			},
+			{
+				uuid: "admin_demande_utilisateur_details",
+				label: "DÃ©tails de l'utilisateur",
+				default: false,
+			},
+			{
+				uuid: "admin_supprimer_utilisateur",
+				label: "Supprimer un utilisateur",
+				default: false,
+			},
+			{
+				uuid: "admin_modifier_utilisateur",
+				label: "Modifier un utilisateur",
+				default: false,
+			},
+			{
+				uuid: "admin_demande_liste_roles",
+				label: "Lister les rÃ´les",
+				default: false,
+			},
+			{
+				uuid: "admin_modifier_role",
+				label: "Modifier un rÃ´le",
+				default: false,
+			},
+			{
+				uuid: "admin_supprimer_role",
+				label: "Supprimer un rÃ´le",
+				default: false,
+			},
+			{
+				uuid: "admin_demande_liste_permissions",
+				label: "Lister les permissions",
+				default: false,
+			},
+			{
+				uuid: "admin_ajouter_permission",
+				label: "CrÃ©er les permissions",
+				default: false,
+			},
+			{
+				uuid: "admin_modifier_permission",
+				label: "Modifier les permissions",
+				default: false,
+			},
+			{
+				uuid: "admin_demande_liste_equipes",
+				label: "Lister les Ã©quipes",
+				default: false,
+			},
+			{
+				uuid: "admin_ajouter_equipe",
+				label: "CrÃ©er les Ã©quipes",
+				default: false,
+			},
+			{
+				uuid: "admin_modifier_equipe",
+				label: "Modifier les Ã©quipes",
+				default: false,
+			},
+			{
+				uuid: "admin_supprimer_equipe",
+				label: "Supprimer les Ã©quipes",
+				default: false,
+			},
+			{
+				uuid: "admin_ajouter_role",
+				label: "Ajouter un rÃ´le",
+				default: false,
+			},
+			{
+				uuid: "admin_dupliquer_role",
+				label: "Dupliquer un rÃ´le",
+				default: false,
+			},
+			{
+				uuid: "admin_demande_role_details",
+				label: "DÃ©tails du rÃ´le",
+				default: false,
+			},
+			{
+				uuid: "demande_liste_utilisateurs",
+				label: "Lister les utilisateurs",
+				default: false,
+			},
+			{
+				uuid: "demande_annuaire",
+				label: "Annuaire",
+				default: false,
+			},
+			{
+				uuid: "demande_info_utilisateur",
+				label: "Information sur un utilisateur",
+				default: false,
+			},
+			{
+				uuid: "envoie_message",
+				label: "Envoyer un message",
+				default: false,
+			},
+			{
+				uuid: "demande_liste_discussions",
+				label: "Lister les discussions",
+				default: false,
+			},
+			{
+				uuid: "demande_historique_discussion",
+				label: "Historique des discussions",
+				default: false,
+			},
+			{
+				uuid: "demande_notifications",
+				label: "Notifications",
+				default: false,
+			},
+			{
+				uuid: "demande_changement_status",
+				label: "Changement de status",
+				default: false,
+			},
+			{
+				uuid: "update_notifications",
+				label: "Mise Ã  jour des notifications",
+				default: false,
+			},
+			{
+				uuid: "update_profil",
+				label: "Mise Ã  jour du profil",
+				default: false,
+			},
+			{
+				uuid: "update_picture",
+				label: "Mise Ã  jour de la photo de profil",
+				default: false,
+			},
+			{
+				uuid: "demande_creation_discussion",
+				label: "CrÃ©ation d'une discussion",
+				default: false,
+			},
+			{
+				uuid: "demande_discussion_info",
+				label: "Information sur une discussion",
+				default: false,
+			},
+			{
+				uuid: "new_call",
+				label: "Nouvel appel",
+				default: true,
+			},
+			{
+				uuid: "send_ice_candidate",
+				label: "Envoi de candidat ICE",
+				default: true,
+			},
+			{
+				uuid: "send_offer",
+				label: "Envoi d'offre",
+				default: true,
+			},
+			{
+				uuid: "send_answer",
+				label: "Envoi de rÃ©ponse",
+				default: true,
+			},
+			{
+				uuid: "reject_offer",
+				label: "Rejet d'offre",
+				default: true,
+			},
+			{
+				uuid: "hang_up",
+				label: "Raccrocher",
+				default: true,
+			},
+			{
+				uuid: "receive_offer",
+				label: "RÃ©ception d'offre",
+				default: true,
+			},
+			{
+				uuid: "receive_answer",
+				label: "RÃ©ception de rÃ©ponse",
+				default: true,
+			},
+			{
+				uuid: "receive_ice_candidate",
+				label: "RÃ©ception de candidat ICE",
+				default: true,
+			},
+			{
+				uuid: "offer_rejected",
+				label: "Offre rejetÃ©e",
+				default: true,
+			},
+			{
+				uuid: "call_created",
+				label: "Appel crÃ©Ã©",
+				default: true,
+			},
+			{
+				uuid: "hung_up",
+				label: "RaccrochÃ©",
+				default: true,
+			},
+			{
+				uuid: "call_connected_users",
+				label: "Utilisateurs connectÃ©s",
+				default: true,
+			},
+		];
 
-    constructor(dataToConstruct: PermType){
+		for (const perm of perms) {
+			const newPerm = new Permission(perm as any);
+			await newPerm.save();
+		}
+	}
 
-        super();
-        this.modelInstance = new Permission.model(dataToConstruct);
+	async save() {
+		try {
+			await this.modelInstance.save();
+		} catch (error: any) {
+			throw new TracedError("collectionSaving", error.message);
+		}
+	}
 
-    }
+	static async getPerm(label: string) {
+		return this.model.findOne({ label: label });
+	}
 
-    static async inject(){
+	static async getPerms(labels: string[]) {
+		return this.model.find({ label: { $in: labels } });
+	}
 
-        const perms = [
-            {
-                uuid: "naviguer_vers",
-                label: "Naviguer vers",
-                default: true,
-            },
-            {
-                uuid: "admin_demande_liste_utilisateurs",
-                label: "Lister les utilisateurs",
-                default: false,
-            },
-            {
-                uuid: "admin_ajouter_utilisateur",
-                label: "Ajouter un utilisateur",
-                default: false,
-            },
-            {
-                uuid: "admin_desactiver_utilisateur",
-                label: "DÃ©sactive un utilisateur",
-                default: false,
-            },
-            {
-                uuid: "admin_demande_utilisateur_details",
-                label: "DÃ©tails de l'utilisateur",
-                default: false,
-            },
-            {
-                uuid: "admin_supprimer_utilisateur",
-                label: "Supprimer un utilisateur",
-                default: false,
-            },
-            {
-                uuid: "admin_modifier_utilisateur",
-                label: "Modifier un utilisateur",
-                default: false,
-            },
-            {
-                uuid: "admin_demande_liste_roles",
-                label: "Lister les rÃ´les",
-                default: false,
-            },
-            {
-                uuid: "admin_modifier_role",
-                label: "Modifier un rÃ´le",
-                default: false,
-            },
-            {
-                uuid: "admin_supprimer_role",
-                label: "Supprimer un rÃ´le",
-                default: false,
-            },
-            {
-                uuid: "admin_demande_liste_permissions",
-                label: "Lister les permissions",
-                default: false,
-            },
-            {
-                uuid: "admin_ajouter_permission",
-                label: "CrÃ©er les permissions",
-                default: false,
-            },
-            {
-                uuid: "admin_modifier_permission",
-                label: "Modifier les permissions",
-                default: false,
-            },
-            {
-                uuid: "admin_demande_liste_equipes",
-                label: "Lister les Ã©quipes",
-                default: false,
-            },
-            {
-                uuid: "admin_ajouter_equipe",
-                label: "CrÃ©er les Ã©quipes",
-                default: false,
-            },
-            {
-                uuid: "admin_modifier_equipe",
-                label: "Modifier les Ã©quipes",
-                default: false,
-            },
-            {
-                uuid: "admin_supprimer_equipe",
-                label: "Supprimer les Ã©quipes",
-                default: false,
-            },
-            {
-                uuid: "admin_ajouter_role",
-                label: "Ajouter un rÃ´le",
-                default: false,
-            },
-            {
-                uuid: "admin_dupliquer_role",
-                label: "Dupliquer un rÃ´le",
-                default: false,
-            },
-            {
-                uuid: "admin_demande_role_details",
-                label: "DÃ©tails du rÃ´le",
-                default: false,
-            },
-            {
-                uuid: "demande_liste_utilisateurs",
-                label: "Lister les utilisateurs",
-                default: false,
-            },
-            { 
-                uuid: "demande_annuaire", 
-                label: "Annuaire",
-                default: false,
-             },
-            {
-                uuid: "demande_info_utilisateur",
-                label: "Information sur un utilisateur",
-                default: false,
-            },
-            {
-                uuid: "envoie_message",
-                label: "Envoyer un message",
-                default: false,
-            },
-            {
-                uuid: "demande_liste_discussions",
-                label: "Lister les discussions",
-                default: false,
-            },
-            {
-                uuid: "demande_historique_discussion",
-                label: "Historique des discussions",
-                default: false,
-            },
-            {
-                uuid: "demande_notifications",
-                label: "Notifications",
-                default: false,
-            },
-            {
-                uuid: "demande_changement_status",
-                label: "Changement de status",
-                default: false,
-            },
-            {
-                uuid: "update_notifications",
-                label: "Mise Ã  jour des notifications",
-                default: false,
-            },
-            {
-                uuid: "update_profil",
-                label: "Mise Ã  jour du profil",
-                default: false,
-            },
-            {
-                uuid: "update_picture",
-                label: "Mise Ã  jour de la photo de profil",
-                default: false,
-            },
-            {
-                uuid: "demande_creation_discussion",
-                label: "CrÃ©ation d'une discussion",
-                default: false,
-            },
-            {
-                uuid: "demande_discussion_info",
-                label: "Information sur une discussion",
-                default: false,
-            },
-            {
-                uuid: "new_call",
-                label: "Nouvel appel",
-                default: true,
-            },
-            {
-                uuid: "send_ice_candidate",
-                label: "Envoi de candidat ICE",
-                default: true,
-            },
-            {
-                uuid: "send_offer",
-                label: "Envoi d'offre",
-                default: true,
-            },
-            {
-                uuid: "send_answer",
-                label: "Envoi de rÃ©ponse",
-                default: true,
-            },
-            {
-                uuid: "reject_offer",
-                label: "Rejet d'offre",
-                default: true,
-            },
-            {
-                uuid: "hang_up",
-                label: "Raccrocher",
-                default: true,
-            },
-            {
-                uuid: "receive_offer",
-                label: "RÃ©ception d'offre",
-                default: true,
-            },
-            {
-                uuid: "receive_answer",
-                label: "RÃ©ception de rÃ©ponse",
-                default: true,
-            },
-            {
-                uuid: "receive_ice_candidate",
-                label: "RÃ©ception de candidat ICE",
-                default: true,
-            },
-            {
-                uuid: "offer_rejected",
-                label: "Offre rejetÃ©e",
-                default: true,
-            },
-            {
-                uuid: "call_created",
-                label: "Appel crÃ©Ã©",
-                default: true,
-            },
-            {
-                uuid: "hung_up",
-                label: "RaccrochÃ©",
-                default: true,
-            },
-            {
-                uuid: "call_connected_users",
-                label: "Utilisateurs connectÃ©s",
-                default: true,
-            },
-        ];
+	static async updatePerm(label: string, newData: Partial<PermType>) {
+		return this.model.updateOne({ email: label }, { $set: newData });
+	}
 
-        for (const perm of perms) {
-            const newPerm = new Permission(perm as any);
-            await newPerm.save();
-        }
-    }
+	static async updatePerms(labels: string[], newData: Partial<PermType>) {
+		return this.model.updateMany({ email: { $in: labels } }, { $set: newData });
+	}
 
-    async save(){
+	static async deletePerm(label: string) {
+		return this.model.deleteOne({ label: label });
+	}
 
-        try {
-            
-            await this.modelInstance.save();
+	static async deletePerms(labels: string[]) {
+		return this.model.deleteMany({ label: { $in: labels } });
+	}
 
-        } catch (error: any) {
-            
-            throw new TracedError("collectionSaving", error.message);
-        }
-    }
-
-    static async getPerm(label: string) {
-
-        return this.model.findOne({label: label});
-    }
-
-    static async getPerms(labels: string[]) {
-
-        return this.model.find({ label: {$in: labels}});
-    }
-
-    static async updatePerm(label: string, newData: Partial<PermType>) {
-
-        return this.model.updateOne({email: label}, { $set: newData });
-    }
-
-    static async updatePerms(labels: string[], newData: Partial<PermType>) {
-
-        return this.model.updateMany({ email: {$in: labels}}, { $set: newData });
-    }
-
-    static async deletePerm(label: string) {
-
-        return this.model.deleteOne({label: label});
-    }
-
-    static async deletePerms(labels: string[]) {
-
-        return this.model.deleteMany({ label: {$in: labels}});
-    }
-
-    static async flushAll() {
-
-        return this.model.deleteMany({});
-    }
-
+	static async flushAll() {
+		return this.model.deleteMany({});
+	}
 }

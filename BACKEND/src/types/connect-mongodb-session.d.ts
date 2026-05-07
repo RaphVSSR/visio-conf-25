@@ -1,21 +1,20 @@
 declare module "connect-mongodb-session" {
+	import type { Store } from "express-session";
 
-	import type { Store } from "express-session"
-
-	type Connect = { Store: typeof Store }
+	type Connect = { Store: typeof Store };
 
 	type Options = {
-		uri: string
-		collection?: string
-		databaseName?: string
-		expires?: number
-		idField?: string
-		connectionOptions?: Record<string, unknown>
-	}
+		uri: string;
+		collection?: string;
+		databaseName?: string;
+		expires?: number;
+		idField?: string;
+		connectionOptions?: Record<string, unknown>;
+	};
 
-	type StoreConstructor = new (options: Options) => Store
+	type StoreConstructor = new (options: Options) => Store;
 
-	function MongoDBStoreFactory(connect: Connect): StoreConstructor
+	function MongoDBStoreFactory(connect: Connect): StoreConstructor;
 
-	export default MongoDBStoreFactory
+	export default MongoDBStoreFactory;
 }

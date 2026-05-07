@@ -1,6 +1,4 @@
-
 const ErrorsType = {
-
 	dbConnect: {
 		id: "dbConnect",
 		message: "❌ Error during the MongoDB connection process.\n",
@@ -65,18 +63,15 @@ const ErrorsType = {
 		id: "injectAdmin",
 		message: "❌ Error during admin user injection.\n",
 	},
-
 } as const;
 
 type ErrorsType = typeof ErrorsType;
 
 export default class TracedError extends Error {
-
 	id: ErrorsType[keyof ErrorsType]["id"];
 	reason?: string;
 
-	constructor(type: keyof ErrorsType, reason?: string){
-
+	constructor(type: keyof ErrorsType, reason?: string) {
 		super(ErrorsType[type].message);
 
 		this.id = ErrorsType[type].id;
@@ -85,21 +80,13 @@ export default class TracedError extends Error {
 		Object.setPrototypeOf(this, TracedError.prototype);
 
 		if (Error.captureStackTrace) Error.captureStackTrace(this, TracedError);
-
 	}
 
-	static errorHandler(error: any){
-
-		if (error instanceof TracedError){
-
+	static errorHandler(error: any) {
+		if (error instanceof TracedError) {
 			console.error(error.message, error.reason ? `Reason: ${error.reason}\n` : "\n", error.stack + "\n");
-
-		}else {
-
+		} else {
 			console.trace(`❌ Unknown error `, error.message + "\n", error.stack + "\n");
-
 		}
-
 	}
-
-};
+}

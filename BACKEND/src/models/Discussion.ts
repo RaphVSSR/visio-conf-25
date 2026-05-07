@@ -1,335 +1,321 @@
-import mongoose, { type HydratedDocument, model, Schema, Types } from "mongoose"
-import crypto from "crypto"
-import Collection from "./Core/Collection.ts"
-import { Model } from "mongoose"
-import TracedError from "./Core/TracedError.ts"
-import User, { type UserType } from "./User.ts"
+import mongoose, { type HydratedDocument, model, Schema, Types } from "mongoose";
+import crypto from "crypto";
+import Collection from "./Core/Collection.ts";
+import { Model } from "mongoose";
+import TracedError from "./Core/TracedError.ts";
+import User, { type UserType } from "./User.ts";
 
 const { models } = mongoose;
 
-
 export type DiscuType = {
-
-    uuid: string,
-    name: string,
-    description?: string,
-    creator: Types.ObjectId,
-    type?: string,
-    members: Types.ObjectId[],
-    date_created?: Date,
-    messages?: {
-
-        uuid: string,
-        content: string,
-        sender: Types.ObjectId,
-        date_created: Date,
-        react_list?: {
-
-            user: Types.ObjectId,
-            type: string,
-        },
-        status?: string,
-    }[],
-
-}
+	uuid: string;
+	name: string;
+	description?: string;
+	creator: Types.ObjectId;
+	type?: string;
+	members: Types.ObjectId[];
+	date_created?: Date;
+	messages?: {
+		uuid: string;
+		content: string;
+		sender: Types.ObjectId;
+		date_created: Date;
+		react_list?: {
+			user: Types.ObjectId;
+			type: string;
+		};
+		status?: string;
+	}[];
+};
 
 export default class Discussion extends Collection {
+	protected static schema = new Schema<DiscuType>({
+		uuid: { type: String, required: true },
+		name: { type: String, default: "" },
+		description: { type: String, default: "" },
+		creator: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
+		type: {
+			type: String,
+			required: true,
+			default: "unique",
+			enum: ["unique", "group"],
+			description: "Choose discussion type between : unique, group",
+		},
+		members: [{ type: Schema.Types.ObjectId, ref: "User", required: true }],
+		date_created: { type: Date, required: true, default: Date.now },
+		messages: [
+			{
+				uuid: { type: String, required: true },
+				content: { type: String, required: true },
+				sender: {
+					type: Schema.Types.ObjectId,
+					ref: "User",
+					required: true,
+				},
+				date_created: {
+					type: Date,
+					required: true,
+					default: Date.now,
+				},
+				react_list: [
+					{
+						user: {
+							type: Schema.Types.ObjectId,
+							ref: "User",
+							required: true,
+						},
+						type: {
+							type: String,
+							required: true,
+							default: "like",
+							enum: ["like", "love", "haha", "wow", "sad", "angry"],
+							description: "Choose react type between : like, love, haha, wow, sad, angry",
+						},
+					},
+				],
+				status: {
+					type: String,
+					required: true,
+					default: "sent",
+					enum: ["sent", "read"],
+					description: "Choose message status between : sent, received, read",
+				},
+			},
+		],
+	});
 
-    protected static schema = new Schema<DiscuType>({
+	static model: Model<DiscuType> = models.Discussion || model<DiscuType>("Discussion", this.schema);
 
-        uuid: { type: String, required: true },
-        name: { type: String, default: "" },
-        description: { type: String, default: "" },
-        creator: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-        type: {
-            type: String,
-            required: true,
-            default: "unique",
-            enum: ["unique", "group"],
-            description: "Choose discussion type between : unique, group",
-        },
-        members: [
-            { type: Schema.Types.ObjectId, ref: "User", required: true },
-        ],
-        date_created: { type: Date, required: true, default: Date.now },
-        messages: [
-            {
-                uuid: { type: String, required: true },
-                content: { type: String, required: true },
-                sender: {
-                    type: Schema.Types.ObjectId,
-                    ref: "User",
-                    required: true,
-                },
-                date_created: {
-                    type: Date,
-                    required: true,
-                    default: Date.now,
-                },
-                react_list: [
-                    {
-                        user: {
-                            type: Schema.Types.ObjectId,
-                            ref: "User",
-                            required: true,
-                        },
-                        type: {
-                            type: String,
-                            required: true,
-                            default: "like",
-                            enum: ["like", "love", "haha", "wow", "sad", "angry"],
-                            description:
-                                "Choose react type between : like, love, haha, wow, sad, angry",
-                        },
-                    },
-                ],
-                status: {
-                    type: String,
-                    required: true,
-                    default: "sent",
-                    enum: ["sent", "read"],
-                    description:
-                        "Choose message status between : sent, received, read",
-                },
-            },
-        ],
-    });
-    
-    static model: Model<DiscuType> = models.Discussion || model<DiscuType>("Discussion", this.schema);
+	private static areVirtualsInitialized = (() => {
+		this.schema.virtual("discussionMembersCount").get(function (this: HydratedDocument<DiscuType>): number {
+			return this.members.length;
+		});
 
-    private static areVirtualsInitialized = (() => {
-    
-        this.schema.virtual("discussionMembersCount").get(function ( this: HydratedDocument<DiscuType>): number {
-            return this.members.length;
-        });
+		this.schema.virtual("discussionMessagesCount").get(function (this: HydratedDocument<DiscuType>): number {
+			return this.messages?.length ?? 0;
+		});
 
-        this.schema.virtual("discussionMessagesCount").get(function ( this: HydratedDocument<DiscuType>): number {
-            return this.messages?.length ?? 0;
-        });
+		this.schema.virtual("info").get(function (this: HydratedDocument<DiscuType>): DiscuType {
+			return {
+				uuid: this.uuid,
+				name: this.name,
+				description: this.description,
+				creator: this.creator,
+				type: this.type,
+				members: this.members,
+				date_created: this.date_created,
+			};
+		});
 
-        this.schema.virtual("info").get(function ( this: HydratedDocument<DiscuType>): DiscuType {
-            return {
-                uuid: this.uuid,
-                name: this.name,
-                description: this.description,
-                creator: this.creator,
-                type: this.type,
-                members: this.members,
-                date_created: this.date_created,
-            }
-        });
+		return true;
+	})();
+	private static areMethodsInitialized = (() => {
+		this.schema.methods.findLastMessage = function () {
+			return this.discussion_messages[this.discussion_messages.length - 1];
+		};
 
-        return true;
+		return true;
+	})();
 
-    })()
-    private static areMethodsInitialized = (() => {
-    
-        this.schema.methods.findLastMessage = function () {
+	modelInstance;
 
-            return this.discussion_messages[this.discussion_messages.length - 1];
-        }
+	constructor(dataToConstruct: DiscuType) {
+		super();
 
-        return true;
+		this.modelInstance = new Discussion.model(dataToConstruct);
+	}
 
-    })()
+	async save() {
+		try {
+			await this.modelInstance.save();
+		} catch (error: any) {
+			throw new TracedError("collectionSaving", error.message);
+		}
+	}
 
-    modelInstance;
+	static async flushAll() {
+		return this.model.deleteMany({});
+	}
 
-    constructor(dataToConstruct: DiscuType){
+	static async injectTest() {
+		if (process.env.VERBOSE === "true") {
+			console.group("ðŸ’‰ Injecting testing discussions..");
+		}
 
-        super();
+		if ((await User.model.countDocuments({})) < 2)
+			throw new Error("âŒ Pas assez d'utilisateurs pour crÃ©er des discussions");
 
-        this.modelInstance = new Discussion.model(dataToConstruct);
+		const users: (UserType & { _id: Types.ObjectId })[] = await User.model
+			.find(
+				{
+					$or: [
+						{ firstname: { $regex: "^John$", $options: "i" } },
+						{ firstname: { $regex: "^Janny$", $options: "i" } },
+						{ firstname: { $regex: "^Jean$", $options: "i" } },
+						{ firstname: { $regex: "^HÃ©lios$", $options: "i" } },
+						{ firstname: { $regex: "^Sophie$", $options: "i" } },
+						{ firstname: { $regex: "^Marie$", $options: "i" } },
+					],
+				},
+				{ _id: 1, firstname: 1 },
+			)
+			.lean();
 
-    }
+		const discussionsToInsert = [
+			{
+				uuid: crypto.randomUUID(),
+				creator: users.find((user) => user.firstname === "John")!._id,
+				members: [
+					users.find((user) => user.firstname === "John")!._id,
+					users.find((user) => user.firstname === "Janny")!._id,
+				],
+				name: "Discussion John et Janny",
+				messages: [
+					{
+						uuid: crypto.randomUUID(),
+						content: "Salut Janny, comment vas-tu ?",
+						sender: users.find((user) => user.firstname === "John")!._id,
+						date_created: new Date(),
+					},
+					{
+						uuid: crypto.randomUUID(),
+						content: "TrÃ¨s bien John, merci !",
+						sender: users.find((user) => user.firstname === "John")!._id,
+						date_created: new Date(),
+					},
+				],
+			},
+			{
+				uuid: crypto.randomUUID(),
+				creator: users.find((user) => user.firstname === "Jean")!._id,
+				members: [
+					users.find((user) => user.firstname === "Jean")!._id,
+					users.find((user) => user.firstname === "HÃ©lios")!._id,
+				],
+				name: "Discussion Jean et HÃ©lios",
+				messages: [
+					{
+						uuid: crypto.randomUUID(),
+						content: "HÃ©lios, tu as avancÃ© sur le projet ?",
+						sender: users.find((user) => user.firstname === "Jean")!._id,
+						date_created: new Date(),
+					},
+					{
+						uuid: crypto.randomUUID(),
+						content: "Oui Jean, je t'envoie Ã§a ce soir.",
+						sender: users.find((user) => user.firstname === "HÃ©lios")!._id,
+						date_created: new Date(),
+					},
+				],
+			},
+			{
+				uuid: crypto.randomUUID(),
+				creator: users.find((user) => user.firstname === "John")!._id,
+				members: [
+					users.find((user) => user.firstname === "John")!._id,
+					users.find((user) => user.firstname === "Jean")!._id,
+					users.find((user) => user.firstname === "Sophie")!._id,
+				],
+				name: "Ã‰quipe pÃ©dagogique",
+				type: "group",
+				messages: [
+					{
+						uuid: crypto.randomUUID(),
+						content: "RÃ©union demain Ã  10h.",
+						sender: users.find((user) => user.firstname === "John")!._id,
+						date_created: new Date(),
+					},
+				],
+			},
+			{
+				uuid: crypto.randomUUID(),
+				creator: users.find((user) => user.firstname === "HÃ©lios")!._id,
+				members: [users.find((user) => user.firstname === "HÃ©lios")!._id, users[5]!._id],
+				name: "Projet Ã©tudiant",
+				type: "group",
+				messages: [
+					{
+						uuid: crypto.randomUUID(),
+						content: "On commence le projet aujourd'hui !",
+						sender: users.find((user) => user.firstname === "HÃ©lios")!._id,
+						date_created: new Date(),
+					},
+				],
+			},
+			{
+				uuid: crypto.randomUUID(),
+				creator: users.find((user) => user.firstname === "Sophie")!._id,
+				members: [
+					users.find((user) => user.firstname === "Sophie")!._id,
+					users.find((user) => user.firstname === "Marie")!._id,
+				],
+				name: "Discussion Sophie et Marie",
+				messages: [
+					{
+						uuid: crypto.randomUUID(),
+						content: "Marie, peux-tu m'envoyer le planning ?",
+						sender: users.find((user) => user.firstname === "Sophie")!._id,
+						date_created: new Date(),
+					},
+				],
+			},
+		];
 
-    async save(){
+		for (const discussion of discussionsToInsert) {
+			if (!(await this.model.findOne({ name: discussion.name }))) {
+				const newDiscussion = new Discussion(discussion);
+				await newDiscussion.save();
 
-        try {
-            
-            await this.modelInstance.save();
+				if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3")
+					console.log(`ðŸ’¾ New discussion "${discussion.name}" created`);
+			} else {
+				if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3")
+					console.log(`ðŸ’¾ Discussion "${discussion.name}" already exists`);
+			}
+		}
 
-        } catch (error: any) {
-            
-            throw new TracedError("collectionSaving", error.message);
-        }
-    }
+		if (process.env.VERBOSE === "true") {
+			console.log(`âœ… ${await Discussion.model.countDocuments({})} discussions created`);
+			console.groupEnd();
+			console.log("");
+		}
+	}
 
-    static async flushAll() {
-        
-        return this.model.deleteMany({});
-    }
+	static async findManyByUser(user: UserType & { _id: number }) {
+		return await this.model
+			.find({
+				members: user._id,
+			})
+			.populate({
+				path: "members",
+				model: "User",
+				select: "firstname lastname picture socket_id uuid",
+			})
+			.populate({
+				path: "messages.sender",
+				model: "User",
+				select: "firstname lastname picture socket_id uuid",
+			});
+	}
 
-    static async injectTest(){
-            
-        if (process.env.VERBOSE === "true"){
-            
-            console.group("ðŸ’‰ Injecting testing discussions..");
-        }
-
-        if (await User.model.countDocuments({}) < 2)  throw new Error("âŒ Pas assez d'utilisateurs pour crÃ©er des discussions");
-
-        const users: (UserType & { _id: Types.ObjectId })[] = await User.model.find({
-
-            $or: [
-                { firstname: {$regex: "^John$", $options: "i"}},
-                { firstname: {$regex: "^Janny$", $options: "i"}},
-                { firstname: {$regex: "^Jean$", $options: "i"}},
-                { firstname: {$regex: "^HÃ©lios$", $options: "i"}},
-                { firstname: {$regex: "^Sophie$", $options: "i"}},
-                { firstname: {$regex: "^Marie$", $options: "i"}}
-            ]
-        
-        }, {_id: 1, firstname: 1}).lean();
-
-        const discussionsToInsert = [
-            {
-                uuid: crypto.randomUUID(),
-                creator: users.find(user => user.firstname === "John")!._id,
-                members: [users.find(user => user.firstname === "John")!._id, users.find(user => user.firstname === "Janny")!._id],
-                name: "Discussion John et Janny",
-                messages: [
-                    {
-                        uuid: crypto.randomUUID(),
-                        content: "Salut Janny, comment vas-tu ?",
-                        sender: users.find(user => user.firstname === "John")!._id,
-                        date_created: new Date(),
-                    },
-                    {
-                        uuid: crypto.randomUUID(),
-                        content: "TrÃ¨s bien John, merci !",
-                        sender: users.find(user => user.firstname === "John")!._id,
-                        date_created: new Date(),
-                    },
-                ],
-            },
-            {
-                uuid: crypto.randomUUID(),
-                creator: users.find(user => user.firstname === "Jean")!._id,
-                members: [users.find(user => user.firstname === "Jean")!._id, users.find(user => user.firstname === "HÃ©lios")!._id],
-                name: "Discussion Jean et HÃ©lios",
-                messages: [
-                    {
-                        uuid: crypto.randomUUID(),
-                        content: "HÃ©lios, tu as avancÃ© sur le projet ?",
-                        sender: users.find(user => user.firstname === "Jean")!._id,
-                        date_created: new Date(),
-                    },
-                    {
-                        uuid: crypto.randomUUID(),
-                        content: "Oui Jean, je t'envoie Ã§a ce soir.",
-                        sender: users.find(user => user.firstname === "HÃ©lios")!._id,
-                        date_created: new Date(),
-                    },
-                ],
-            },
-            {
-                uuid: crypto.randomUUID(),
-                creator: users.find(user => user.firstname === "John")!._id,
-                members: [users.find(user => user.firstname === "John")!._id, users.find(user => user.firstname === "Jean")!._id, users.find(user => user.firstname === "Sophie")!._id],
-                name: "Ã‰quipe pÃ©dagogique",
-                type: "group",
-                messages: [
-                    {
-                        uuid: crypto.randomUUID(),
-                        content: "RÃ©union demain Ã  10h.",
-                        sender: users.find(user => user.firstname === "John")!._id,
-                        date_created: new Date(),
-                    },
-                ],
-            },
-            {
-                uuid: crypto.randomUUID(),
-                creator: users.find(user => user.firstname === "HÃ©lios")!._id,
-                members: [users.find(user => user.firstname === "HÃ©lios")!._id, users[5]!._id],
-                name: "Projet Ã©tudiant",
-                type: "group",
-                messages: [
-                    {
-                        uuid: crypto.randomUUID(),
-                        content: "On commence le projet aujourd'hui !",
-                        sender: users.find(user => user.firstname === "HÃ©lios")!._id,
-                        date_created: new Date(),
-                    },
-                ],
-            },
-            {
-                uuid: crypto.randomUUID(),
-                creator: users.find(user => user.firstname === "Sophie")!._id,
-                members: [users.find(user => user.firstname === "Sophie")!._id, users.find(user => user.firstname === "Marie")!._id],
-                name: "Discussion Sophie et Marie",
-                messages: [
-                    {
-                        uuid: crypto.randomUUID(),
-                        content: "Marie, peux-tu m'envoyer le planning ?",
-                        sender: users.find(user => user.firstname === "Sophie")!._id,
-                        date_created: new Date(),
-                    },
-                ],
-            },
-        ]
-
-        for (const discussion of discussionsToInsert) {
-
-            if (!await this.model.findOne({name: discussion.name})){
-
-                const newDiscussion = new Discussion(discussion);
-                await newDiscussion.save();
-    
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ New discussion "${discussion.name}" created`);
-
-            }else {
-
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ Discussion "${discussion.name}" already exists`);
-            }
-        }
-
-        if (process.env.VERBOSE === "true"){
-                    
-            console.log(`âœ… ${await Discussion.model.countDocuments({})} discussions created`);
-            console.groupEnd();
-            console.log("");
-        }
-    }
-
-    static async findManyByUser(user: UserType & { _id: number }) {
-
-        return await this.model
-            .find({
-                members: user._id,
-            })
-            .populate({
-                path: "members",
-                model: "User",
-                select: "firstname lastname picture socket_id uuid",
-            })
-            .populate({
-                path: "messages.sender",
-                model: "User",
-                select: "firstname lastname picture socket_id uuid",
-            })
-    }
-
-    static async findPopulateMembersByDiscussionId(uuid: string) {
-
-        return await this.model
-            .findOne({
-                uuid: uuid,
-            })
-            .populate({
-                path: "members",
-                model: "User",
-                select: "firstname lastname picture socket_id uuid is_online",
-            })
-            .populate({
-                path: "messages.sender",
-                model: "User",
-                select: "firstname lastname picture socket_id uuid is_online",
-            })
-    }
-
+	static async findPopulateMembersByDiscussionId(uuid: string) {
+		return await this.model
+			.findOne({
+				uuid: uuid,
+			})
+			.populate({
+				path: "members",
+				model: "User",
+				select: "firstname lastname picture socket_id uuid is_online",
+			})
+			.populate({
+				path: "messages.sender",
+				model: "User",
+				select: "firstname lastname picture socket_id uuid is_online",
+			});
+	}
 }

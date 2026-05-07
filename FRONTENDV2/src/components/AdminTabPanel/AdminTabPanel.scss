@@ -1,102 +1,34 @@
-
 @use "../../design-system/scss/global.scss" as *;
 
 #adminTab {
-
-	@extend %flex-col;
-	justify-content: space-between;
 	width: 100%;
-	height: 100vh;
-	padding: 40px 50px;
+	min-height: 100vh;
+	padding: 50px;
 
-	#tabHeader{
+	.adminTabPlaceholder {
+		@extend %flex-row-centered;
+		justify-content: space-between;
 
-		@extend %flex-col;
-		width: 100%;
-		gap: 10px;
-
-		#row1 {
-
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			
-			.col1 {
-
-				display: flex;
-				gap: 10px;
-
-				#tabTitle {
-	
-					font-size: 40px;
-				}
-			}
-
-			#backIco{
-
-				cursor: pointer;
-			}
-			
-		}
-
-		#tabOptions{
-
-			display: flex;
-			width: fit-content;
-			gap: 10px;
-			font-size: 12px;
-
-			.option {
-
-				cursor: pointer;
-				padding: 5px 10px;
-				border: solid 2px black;
-				border-radius: 20px;
-				text-align: center;
-			}
+		h2 {
+			font-size: 32px;
+			font-weight: 800;
+			color: $tab-heading;
 		}
 	}
 
+	.adminTabClose {
+		padding: 10px 18px;
+		border-radius: 12px;
+		border: 1px solid $bg-divider;
+		background: $bg-white;
+		cursor: pointer;
+		font-weight: 600;
 
+		&:hover { background: $bg-hover; }
+	}
 
-
-}
-
-.menuTitle {
-  color: $tab-heading;
-  font-family: inherit;
-  font-style: normal;
-  line-height: normal;
-}
-
-.infosContainer{
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  font-family: inherit;
-}
-
-.infos{
-  width: 500px;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 30px;
-  border-radius: 20px;
-  border-style: solid;
-  font-size: 20px;
-}
-
-.icons{
-  width: 64px;
-  height: 64px;
-  border-radius: 50px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.emphasis{
-  font-size: 40px;
-  font-weight: 700;
+	.adminTabPlaceholderHint {
+		margin-top: 24px;
+		color: $text-subtle;
+	}
 }

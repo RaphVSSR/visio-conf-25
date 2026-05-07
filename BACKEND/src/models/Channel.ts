@@ -1,4 +1,4 @@
-import mongoose, { model, Model, Schema, Types } from "mongoose"
+import mongoose, { model, Model, Schema, Types } from "mongoose";
 import Collection from "./Core/Collection.ts";
 import TracedError from "./Core/TracedError.ts";
 import Team from "./Team.ts";
@@ -7,265 +7,231 @@ import TeamMember, { type TeamMemberType } from "./TeamMember.ts";
 
 const { models } = mongoose;
 
-
 export type ChannelType = {
-
-    name: string,
-    teamId: Types.ObjectId,
-    isPublic: boolean,
-    createdBy: Types.ObjectId,
-    createdAt?: Date,
-    updatedAt?: Date,
-    members?: Types.ObjectId[],
-
-}
+	name: string;
+	teamId: Types.ObjectId;
+	isPublic: boolean;
+	createdBy: Types.ObjectId;
+	createdAt?: Date;
+	updatedAt?: Date;
+	members?: Types.ObjectId[];
+};
 
 export default class Channel extends Collection {
+	protected static schema = new Schema<ChannelType>({
+		name: {
+			type: String,
+			required: true,
+			trim: true,
+		},
+		teamId: {
+			type: Schema.Types.ObjectId,
+			required: true,
+		},
+		isPublic: {
+			type: Boolean,
+			default: true,
+		},
+		createdBy: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
+		createdAt: {
+			type: Date,
+			default: Date.now,
+		},
+		updatedAt: {
+			type: Date,
+			default: Date.now,
+		},
+		members: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: "ChannelMember",
+			},
+		],
+	});
 
-    protected static schema = new Schema<ChannelType>({
+	static model: Model<ChannelType> = models.Channel || model<ChannelType>("Channel", this.schema);
 
-        name: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        teamId: {
-            type: Schema.Types.ObjectId,
-            required: true,
-        },
-        isPublic: {
-            type: Boolean,
-            default: true,
-        },
-        createdBy: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-        createdAt: {
-            type: Date,
-            default: Date.now,
-        },
-        updatedAt: {
-            type: Date,
-            default: Date.now,
-        },
-        members: [{
-            
-            type: Schema.Types.ObjectId,
-            ref: "ChannelMember",
-        }],
-    });
-    
-    static model: Model<ChannelType> = models.Channel || model<ChannelType>("Channel", this.schema);
+	modelInstance;
 
-    modelInstance;
+	constructor(dataToConstruct: ChannelType) {
+		super();
 
-    constructor(dataToConstruct: ChannelType){
+		this.modelInstance = new Channel.model(dataToConstruct);
+	}
 
-        super();
+	async save() {
+		try {
+			await this.modelInstance.save();
+		} catch (error: any) {
+			throw new TracedError("collectionSaving", error.message);
+		}
+	}
 
-        this.modelInstance = new Channel.model(dataToConstruct);
+	static async flushAll() {
+		return this.model.deleteMany({});
+	}
 
-    }
+	static async injectTest() {
+		if (process.env.VERBOSE === "true") {
+			console.group("ðŸ’‰ Injecting testing channels..");
+		}
 
-    async save(){
+		if ((await Team.model.countDocuments({})) === 0) throw new TracedError("noTeamsFound");
 
-        try {
-            
-            await this.modelInstance.save();
+		try {
+			for (const team of await Team.model.find({})) {
+				const generalChannel = new Channel({
+					name: "GÃ©nÃ©ral",
+					teamId: team._id,
+					isPublic: true,
+					createdBy: team.createdBy,
+				});
 
-        } catch (error: any) {
-            
-            throw new TracedError("collectionSaving", error.message);
-        }
-    }
+				if (team.members) {
+					generalChannel.modelInstance.members = await Promise.all(
+						team.members.map(async (memberId: Types.ObjectId) => {
+							const newMember = new ChannelMember({
+								channelId: generalChannel.modelInstance._id,
+								userId: memberId,
+								role: (await TeamMember.model.findOne({ _id: memberId }, { _id: 0, role: 1 }).lean())?.role,
+							});
 
-    static async flushAll() {
-        
-        return this.model.deleteMany({});
-    }
+							await newMember.save();
 
-    static async injectTest(){
+							return newMember.modelInstance._id;
+						}),
+					);
+				}
 
-        if (process.env.VERBOSE === "true"){
-            
-            console.group("ðŸ’‰ Injecting testing channels..");
-        }
+				await generalChannel.save();
 
-        if (await Team.model.countDocuments({}) === 0) throw new TracedError("noTeamsFound");
+				if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3")
+					console.log(`ðŸ’¾ New channel "${generalChannel.modelInstance.name}" created`);
 
-        try {
-            
-            for (const team of await Team.model.find({})) {
+				async function injectAdditionalChannels(additionalChannels: any) {
+					for (const channel of additionalChannels) {
+						const newChannel = new Channel({
+							name: channel.name,
+							teamId: team._id,
+							isPublic: channel.isPublic,
+							createdBy: channel.createdBy,
+						});
 
-                const generalChannel = new Channel({
-                    name: "GÃ©nÃ©ral",
-                    teamId: team._id,
-                    isPublic: true,
-                    createdBy: team.createdBy,
-                });
+						if (channel.members) {
+							newChannel.modelInstance.members = await Promise.all(
+								channel.members.map(async (memberId: Types.ObjectId) => {
+									const newMember = new ChannelMember({
+										userId: memberId,
+										role: (await TeamMember.model.findOne({ _id: memberId }, { _id: 0, role: 1 }).lean())?.role,
+										channelId: newChannel.modelInstance._id,
+									});
 
-                if (team.members){
-                    
-                    generalChannel.modelInstance.members = await Promise.all(team.members.map(async (memberId: Types.ObjectId) => {
+									await newMember.save();
 
-                        const newMember = new ChannelMember({
+									return newMember.modelInstance._id;
+								}),
+							);
+						} else if (channel.isPublic) {
+							newChannel.modelInstance.members = await Promise.all(
+								team.members!.map(async (memberId: Types.ObjectId) => {
+									const newMember = new ChannelMember({
+										userId: memberId,
+										role: (await TeamMember.model.findOne({ _id: memberId }, { _id: 0, role: 1 }).lean())?.role,
+										channelId: newChannel.modelInstance._id,
+									});
 
-                            channelId: generalChannel.modelInstance._id,
-                            userId: memberId,
-                            role: (await TeamMember.model.findOne({_id: memberId}, {_id: 0, role: 1}).lean())?.role,
-                        });
+									await newMember.save();
 
-                        await newMember.save();
+									return newMember.modelInstance._id;
+								}),
+							);
+						}
 
-                        return newMember.modelInstance._id;
-                    }))
-                }
+						await newChannel.save();
 
-                await generalChannel.save();
+						if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3")
+							console.log(`ðŸ’¾ New channel "${newChannel.modelInstance.name}" created`);
+					}
+				}
 
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ New channel "${generalChannel.modelInstance.name}" created`);
+				switch (team.name) {
+					case "DÃ©partement MMI": {
+						await injectAdditionalChannels([
+							{
+								name: "RÃ©unions",
+								isPublic: true,
+								createdBy: team.createdBy,
+							},
+							{
+								name: "Ã‰vÃ©nements",
+								isPublic: true,
+								createdBy: team.createdBy,
+							},
+							{
+								name: "Direction",
+								isPublic: false,
+								createdBy: team.createdBy,
+								members: await TeamMember.model.find({ role: "admin" }, { _id: 1 }),
+							},
+						]);
 
-                async function injectAdditionalChannels(additionalChannels: any){
+						break;
+					}
 
+					case "Projet Web AvancÃ©": {
+						await injectAdditionalChannels([
+							{
+								name: "Frontend",
+								isPublic: true,
+								createdBy: team.createdBy,
+							},
+							{
+								name: "Backend",
+								isPublic: true,
+								createdBy: team.createdBy,
+							},
+							{
+								name: "Design",
+								isPublic: true,
+								createdBy: team.createdBy,
+							},
+						]);
 
-                    for (const channel of additionalChannels) {
-                            
-                        const newChannel = new Channel({
-                            name: channel.name,
-                            teamId: team._id,
-                            isPublic: channel.isPublic,
-                            createdBy: channel.createdBy,
-                        })
+						break;
+					}
 
-                        if (channel.members) {
+					case "Administration": {
+						await injectAdditionalChannels([
+							{
+								name: "Plannings",
+								isPublic: true,
+								createdBy: team.createdBy,
+							},
+							{
+								name: "Budget",
+								isPublic: false,
+								createdBy: team.createdBy,
+								members: await TeamMember.model.find({ role: "admin" }, { _id: 1 }),
+							},
+						]);
 
-                            newChannel.modelInstance.members = await Promise.all(channel.members.map(async (memberId: Types.ObjectId) => {
+						break;
+					}
+				}
+			}
 
-                                const newMember = new ChannelMember({
-
-                                    userId: memberId,
-                                    role: (await TeamMember.model.findOne({_id: memberId}, {_id: 0, role: 1}).lean())?.role,
-                                    channelId: newChannel.modelInstance._id,
-
-                                })
-
-                                await newMember.save();
-
-                                return newMember.modelInstance._id;
-                            }))
-
-                        } else if (channel.isPublic) {
-                            
-                            newChannel.modelInstance.members = await Promise.all(team.members!.map(async (memberId: Types.ObjectId) => {
-
-                                const newMember = new ChannelMember({
-
-                                    userId: memberId,
-                                    role: (await TeamMember.model.findOne({_id: memberId}, {_id: 0, role: 1}).lean())?.role,
-                                    channelId: newChannel.modelInstance._id,
-
-                                });
-
-                                await newMember.save();
-
-                                return newMember.modelInstance._id;
-                            }))
-                        }
-
-                        await newChannel.save();
-
-                        if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ New channel "${newChannel.modelInstance.name}" created`);
-                    }
-                }
-
-                switch (team.name) {
-
-                    case "DÃ©partement MMI": {
-
-                        await injectAdditionalChannels(
-
-                            [{
-                                name: "RÃ©unions",
-                                isPublic: true,
-                                createdBy: team.createdBy,
-                            },
-                            {
-                                name: "Ã‰vÃ©nements",
-                                isPublic: true,
-                                createdBy: team.createdBy,
-                            },
-                            {
-                                name: "Direction",
-                                isPublic: false,
-                                createdBy: team.createdBy,
-                                members: await TeamMember.model.find({role: "admin"}, {_id: 1}),
-                            }]
-                        );
-
-                        break;
-                    }
-
-                    case "Projet Web AvancÃ©": {
-
-                        await injectAdditionalChannels(
-
-                            [{
-                                name: "Frontend",
-                                isPublic: true,
-                                createdBy: team.createdBy,
-                            },
-                            {
-                                name: "Backend",
-                                isPublic: true,
-                                createdBy: team.createdBy,
-                            },
-                            {
-                                name: "Design",
-                                isPublic: true,
-                                createdBy: team.createdBy,
-                            }]
-                        );
-
-                        break;
-                    }
-
-                    case "Administration": {
-
-                        await injectAdditionalChannels(
-
-                            [{
-                                name: "Plannings",
-                                isPublic: true,
-                                createdBy: team.createdBy,
-                            },
-                            {
-                                name: "Budget",
-                                isPublic: false,
-                                createdBy: team.createdBy,
-                                members: await TeamMember.model.find({role: "admin"}, {_id: 1}),
-
-                            }]
-                        );
-
-                        break;
-                    }
-                }
-            }
-
-            if (process.env.VERBOSE === "true"){
-                                    
-                console.log(`âœ… ${await Channel.model.countDocuments({})} channels created`);
-                console.groupEnd();
-                console.log("");
-            }
-
-        } catch (error: any) {
-
-            console.trace(error);
-            throw new Error(error.message);
-        }
-    }
-
+			if (process.env.VERBOSE === "true") {
+				console.log(`âœ… ${await Channel.model.countDocuments({})} channels created`);
+				console.groupEnd();
+				console.log("");
+			}
+		} catch (error: any) {
+			console.trace(error);
+			throw new Error(error.message);
+		}
+	}
 }
