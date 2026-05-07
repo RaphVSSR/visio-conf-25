@@ -18,7 +18,7 @@ export type CardProps = PropsWithChildren<(
 	}
 ) & {
 	borderColor?: string,
-}> & Omit<HTMLMotionProps<"div">, "style">;
+}> & HTMLMotionProps<"div">;
 
 export const Card: FC<CardProps> = ({
 
@@ -35,7 +35,10 @@ export const Card: FC<CardProps> = ({
 	<motion.div
 		className="card"
 		whileHover={{ scale: 1.02 }}
-		style={borderColor ? { "--card-border-color": borderColor } as React.CSSProperties : undefined}
+		style={{
+			...(props.style as any),
+			...(borderColor ? { "--card-border-color": borderColor } : {})
+		}}
 		{...props}
 	>
 		{icon && iconPosition === 'left' && <LucideIcons name={icon} className='cardIco' size={iconSize}/>}

@@ -28,6 +28,8 @@ export const Files: FC = () => {
   const [currentPath, setCurrentPath] = useState<any[]>([]);
   const [previewFile, setPreviewFile] = useState<any | null>(null);
 
+  const isAdmin = user?.roles?.some((r: any) => r.label?.toLowerCase() === 'admin');
+
   useEffect(() => {
     if (!socket || !user) return;
 
@@ -62,8 +64,9 @@ export const Files: FC = () => {
     socket.on("space_deleting_status", handleSpaceDeletingStatus);
 
     socket.onReady(() => {
-      socket.send("get_files", { userId: user._id, spaceId: currentSpaceId, category: 'personal' });
-      socket.send("get_spaces", { userId: user._id, parentId: currentSpaceId, category: 'personal' });
+      // On demande les fichiers et dossiers globaux
+      socket.send("get_files", { userId: user._id, spaceId: currentSpaceId, category: 'global' });
+      socket.send("get_spaces", { userId: user._id, parentId: currentSpaceId, category: 'global' });
     });
 
     return () => {
@@ -77,31 +80,35 @@ export const Files: FC = () => {
   }, [socket, user, currentSpaceId]);
 
   const handleCreateFolder = () => {
+    if (!isAdmin) return;
     const name = prompt("Nom du nouveau dossier :");
     if (name && socket) {
       socket.send("create_space", {
         name,
         userId: user?._id,
         parentId: currentSpaceId,
-        category: 'personal'
+        category: 'global'
       });
     }
   };
 
   const handleDeleteSpace = (e: React.MouseEvent, spaceId: string) => {
     e.stopPropagation();
+    if (!isAdmin) return;
     if (confirm("Supprimer ce dossier ?") && socket) {
       socket.send("delete_space", { spaceId, userId: user?._id });
     }
   };
 
   const handleDeleteFile = (fileId: string) => {
+    if (!isAdmin) return;
     if (confirm("Supprimer ce fichier ?") && socket) {
       socket.send("delete_file", { fileId, userId: user?._id });
     }
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAdmin) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -117,10 +124,10 @@ export const Files: FC = () => {
         name: file.name,
         size: file.size,
         type: file.type,
-        url: URL.createObjectURL(file), // Using local URL for preview in this demo
+        url: URL.createObjectURL(file), 
         userId: user?._id,
         spaceId: currentSpaceId,
-        category: 'personal'
+        category: 'global'
       });
     }
   };
@@ -171,18 +178,18 @@ export const Files: FC = () => {
           )}
           <div className="headerInfo">
             <h1 className="pageTitle">
-              <FilesIcon size={24} /> Gestion des fichiers
+              <FilesIcon size={24} /> Espace de fichiers partagés
             </h1>
             <p className="pageSubtitle">
               {currentPath.length > 0 
                 ? currentPath.map(s => s.name).join(' / ') 
-                : "Stockez et partagez vos documents en toute sécurité"
+                : "Accédez aux documents partagés de l'organisation"
               }
             </p>
           </div>
         </div>
         
-        {user && (
+        {isAdmin && (
           <div className="headerActions">
             <button className="actionBtn secondary" onClick={handleCreateFolder}>
               <FolderPlus size={18} /> Nouveau dossier
@@ -205,11 +212,13 @@ export const Files: FC = () => {
                 <span className="itemName">{space.name}</span>
                 <span className="itemMeta">Dossier</span>
               </div>
-              <div className="itemActions">
-                <button title="Supprimer" className="danger" onClick={(e) => handleDeleteSpace(e, space._id)}>
-                  <Trash2 size={16} />
-                </button>
-              </div>
+              {isAdmin && (
+                <div className="itemActions">
+                  <button title="Supprimer" className="danger" onClick={(e) => handleDeleteSpace(e, space._id)}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
             </Card>
           ))}
 
@@ -226,9 +235,11 @@ export const Files: FC = () => {
               <div className="itemActions">
                 <button title="Prévisualiser" onClick={() => setPreviewFile(file)}><Eye size={16} /></button>
                 <button title="Télécharger" onClick={() => handleDownload(file)}><Download size={16} /></button>
-                <button title="Supprimer" className="danger" onClick={() => handleDeleteFile(file._id)}>
-                  <Trash2 size={16} />
-                </button>
+                {isAdmin && (
+                  <button title="Supprimer" className="danger" onClick={() => handleDeleteFile(file._id)}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             </Card>
           ))}
