@@ -53,36 +53,15 @@ try {
 
 	const socketServer = new Server(HTTPServer.server, {
 		cors: {
-			origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-				const allowedOrigins = [process.env.FRONTEND_URL || "http://localhost:3000"]
-
-				// socket.io peut parfois se connecter sans header Origin (ex: certains clients / outils)
-				if (!origin) return callback(null, true)
-
-				// Autoriser l'origine configurée côté backend + les dev locaux (http/https)
-				// Note: on compare host+port pour être tolérant entre http/https.
-				const normalizeHostPort = (value: string) => {
-					try {
-						return new URL(value).host
-					} catch {
-						return value
-					}
-				}
-				const isAllowedOrigin =
-					allowedOrigins.includes(origin) ||
-					allowedOrigins.map(normalizeHostPort).includes(normalizeHostPort(origin))
-				const isLocalOrigin =
-					/^http(s)?:\/\/localhost:\d+$/.test(origin) ||
-					/^http(s)?:\/\/127\.0\.0\.1:\d+$/.test(origin)
-
-				if (isAllowedOrigin || isLocalOrigin) return callback(null, true)
-
-				console.log(`Socket.IO CORS: Origin ${origin} not allowed`)
-				return callback(new Error("Not allowed by CORS"))
-			},
+			origin: [
+				process.env.FRONTEND_URL || "http://localhost:3000",
+				"http://127.0.0.1:3000",
+				"http://localhost:3001",
+				"https://dev.visioconf.xyz",
+			],
 			methods: ["GET", "POST"],
 			credentials: true,
-		}
+		},
 	})
 	SessionManager.bindToServer(socketServer)
 	socketServer.engine.use(RestService.sessionMiddleware)
