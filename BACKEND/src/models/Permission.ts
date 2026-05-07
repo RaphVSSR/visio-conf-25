@@ -1,7 +1,7 @@
 import mongoose, { Model, Schema, Types } from "mongoose";
-import TracedError from "./core/TracedError.ts";
+import TracedError from "./Core/TracedError.ts";
 import { model } from "mongoose";
-import Collection from "./core/Collection.ts";
+import Collection from "./Core/Collection.ts";
 
 const { models } = mongoose;
 
@@ -72,12 +72,12 @@ export default class Permission extends Collection {
             },
             {
                 uuid: "admin_desactiver_utilisateur",
-                label: "Désactive un utilisateur",
+                label: "DÃ©sactive un utilisateur",
                 default: false,
             },
             {
                 uuid: "admin_demande_utilisateur_details",
-                label: "Détails de l'utilisateur",
+                label: "DÃ©tails de l'utilisateur",
                 default: false,
             },
             {
@@ -92,17 +92,17 @@ export default class Permission extends Collection {
             },
             {
                 uuid: "admin_demande_liste_roles",
-                label: "Lister les rôles",
+                label: "Lister les rÃ´les",
                 default: false,
             },
             {
                 uuid: "admin_modifier_role",
-                label: "Modifier un rôle",
+                label: "Modifier un rÃ´le",
                 default: false,
             },
             {
                 uuid: "admin_supprimer_role",
-                label: "Supprimer un rôle",
+                label: "Supprimer un rÃ´le",
                 default: false,
             },
             {
@@ -112,7 +112,7 @@ export default class Permission extends Collection {
             },
             {
                 uuid: "admin_ajouter_permission",
-                label: "Créer les permissions",
+                label: "CrÃ©er les permissions",
                 default: false,
             },
             {
@@ -122,37 +122,37 @@ export default class Permission extends Collection {
             },
             {
                 uuid: "admin_demande_liste_equipes",
-                label: "Lister les équipes",
+                label: "Lister les Ã©quipes",
                 default: false,
             },
             {
                 uuid: "admin_ajouter_equipe",
-                label: "Créer les équipes",
+                label: "CrÃ©er les Ã©quipes",
                 default: false,
             },
             {
                 uuid: "admin_modifier_equipe",
-                label: "Modifier les équipes",
+                label: "Modifier les Ã©quipes",
                 default: false,
             },
             {
                 uuid: "admin_supprimer_equipe",
-                label: "Supprimer les équipes",
+                label: "Supprimer les Ã©quipes",
                 default: false,
             },
             {
                 uuid: "admin_ajouter_role",
-                label: "Ajouter un rôle",
+                label: "Ajouter un rÃ´le",
                 default: false,
             },
             {
                 uuid: "admin_dupliquer_role",
-                label: "Dupliquer un rôle",
+                label: "Dupliquer un rÃ´le",
                 default: false,
             },
             {
                 uuid: "admin_demande_role_details",
-                label: "Détails du rôle",
+                label: "DÃ©tails du rÃ´le",
                 default: false,
             },
             {
@@ -197,22 +197,22 @@ export default class Permission extends Collection {
             },
             {
                 uuid: "update_notifications",
-                label: "Mise à jour des notifications",
+                label: "Mise Ã  jour des notifications",
                 default: false,
             },
             {
                 uuid: "update_profil",
-                label: "Mise à jour du profil",
+                label: "Mise Ã  jour du profil",
                 default: false,
             },
             {
                 uuid: "update_picture",
-                label: "Mise à jour de la photo de profil",
+                label: "Mise Ã  jour de la photo de profil",
                 default: false,
             },
             {
                 uuid: "demande_creation_discussion",
-                label: "Création d'une discussion",
+                label: "CrÃ©ation d'une discussion",
                 default: false,
             },
             {
@@ -237,7 +237,7 @@ export default class Permission extends Collection {
             },
             {
                 uuid: "send_answer",
-                label: "Envoi de réponse",
+                label: "Envoi de rÃ©ponse",
                 default: true,
             },
             {
@@ -252,37 +252,37 @@ export default class Permission extends Collection {
             },
             {
                 uuid: "receive_offer",
-                label: "Réception d'offre",
+                label: "RÃ©ception d'offre",
                 default: true,
             },
             {
                 uuid: "receive_answer",
-                label: "Réception de réponse",
+                label: "RÃ©ception de rÃ©ponse",
                 default: true,
             },
             {
                 uuid: "receive_ice_candidate",
-                label: "Réception de candidat ICE",
+                label: "RÃ©ception de candidat ICE",
                 default: true,
             },
             {
                 uuid: "offer_rejected",
-                label: "Offre rejetée",
+                label: "Offre rejetÃ©e",
                 default: true,
             },
             {
                 uuid: "call_created",
-                label: "Appel créé",
+                label: "Appel crÃ©Ã©",
                 default: true,
             },
             {
                 uuid: "hung_up",
-                label: "Raccroché",
+                label: "RaccrochÃ©",
                 default: true,
             },
             {
                 uuid: "call_connected_users",
-                label: "Utilisateurs connectés",
+                label: "Utilisateurs connectÃ©s",
                 default: true,
             },
         ];

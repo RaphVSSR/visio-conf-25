@@ -1,6 +1,6 @@
 import mongoose, { model, Model, Schema, Types } from "mongoose";
-import Collection from "./core/Collection.ts";
-import TracedError from "./core/TracedError.ts";
+import Collection from "./Core/Collection.ts";
+import TracedError from "./Core/TracedError.ts";
 import Permission from "./Permission.ts";
 
 const { models } = mongoose;
@@ -57,7 +57,7 @@ export default class Role extends Collection {
 
         if (process.env.VERBOSE === "true"){
             
-            console.group("💉 Injecting Roles..");
+            console.group("ðŸ’‰ Injecting Roles..");
         }
 
         if (await Permission.model.countDocuments({}) === 0) throw new Error("The permissions collection needs to be initialized before roles injection..");
@@ -84,18 +84,18 @@ export default class Role extends Collection {
                 const newRole = new Role(role);
                 await newRole.save()
 
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 New role "${role.label}" created`);
+                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ New role "${role.label}" created`);
 
             } else {
 
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 Role "${role.label}" already exists`);
+                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ Role "${role.label}" already exists`);
 
             }
         }
 
         if (process.env.VERBOSE === "true"){
             
-            console.log(`✅ ${await Role.model.countDocuments({})} roles created`);
+            console.log(`âœ… ${await Role.model.countDocuments({})} roles created`);
             console.groupEnd();
             console.log("");
         }

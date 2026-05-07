@@ -1,8 +1,8 @@
 import mongoose, { type HydratedDocument, model, Schema, Types } from "mongoose"
 import crypto from "crypto"
-import Collection from "./core/Collection.ts"
+import Collection from "./Core/Collection.ts"
 import { Model } from "mongoose"
-import TracedError from "./core/TracedError.ts"
+import TracedError from "./Core/TracedError.ts"
 import User, { type UserType } from "./User.ts"
 
 const { models } = mongoose;
@@ -168,10 +168,10 @@ export default class Discussion extends Collection {
             
         if (process.env.VERBOSE === "true"){
             
-            console.group("💉 Injecting testing discussions..");
+            console.group("ðŸ’‰ Injecting testing discussions..");
         }
 
-        if (await User.model.countDocuments({}) < 2)  throw new Error("❌ Pas assez d'utilisateurs pour créer des discussions");
+        if (await User.model.countDocuments({}) < 2)  throw new Error("âŒ Pas assez d'utilisateurs pour crÃ©er des discussions");
 
         const users: (UserType & { _id: Types.ObjectId })[] = await User.model.find({
 
@@ -179,7 +179,7 @@ export default class Discussion extends Collection {
                 { firstname: {$regex: "^John$", $options: "i"}},
                 { firstname: {$regex: "^Janny$", $options: "i"}},
                 { firstname: {$regex: "^Jean$", $options: "i"}},
-                { firstname: {$regex: "^Hélios$", $options: "i"}},
+                { firstname: {$regex: "^HÃ©lios$", $options: "i"}},
                 { firstname: {$regex: "^Sophie$", $options: "i"}},
                 { firstname: {$regex: "^Marie$", $options: "i"}}
             ]
@@ -201,7 +201,7 @@ export default class Discussion extends Collection {
                     },
                     {
                         uuid: crypto.randomUUID(),
-                        content: "Très bien John, merci !",
+                        content: "TrÃ¨s bien John, merci !",
                         sender: users.find(user => user.firstname === "John")!._id,
                         date_created: new Date(),
                     },
@@ -210,19 +210,19 @@ export default class Discussion extends Collection {
             {
                 uuid: crypto.randomUUID(),
                 creator: users.find(user => user.firstname === "Jean")!._id,
-                members: [users.find(user => user.firstname === "Jean")!._id, users.find(user => user.firstname === "Hélios")!._id],
-                name: "Discussion Jean et Hélios",
+                members: [users.find(user => user.firstname === "Jean")!._id, users.find(user => user.firstname === "HÃ©lios")!._id],
+                name: "Discussion Jean et HÃ©lios",
                 messages: [
                     {
                         uuid: crypto.randomUUID(),
-                        content: "Hélios, tu as avancé sur le projet ?",
+                        content: "HÃ©lios, tu as avancÃ© sur le projet ?",
                         sender: users.find(user => user.firstname === "Jean")!._id,
                         date_created: new Date(),
                     },
                     {
                         uuid: crypto.randomUUID(),
-                        content: "Oui Jean, je t'envoie ça ce soir.",
-                        sender: users.find(user => user.firstname === "Hélios")!._id,
+                        content: "Oui Jean, je t'envoie Ã§a ce soir.",
+                        sender: users.find(user => user.firstname === "HÃ©lios")!._id,
                         date_created: new Date(),
                     },
                 ],
@@ -231,12 +231,12 @@ export default class Discussion extends Collection {
                 uuid: crypto.randomUUID(),
                 creator: users.find(user => user.firstname === "John")!._id,
                 members: [users.find(user => user.firstname === "John")!._id, users.find(user => user.firstname === "Jean")!._id, users.find(user => user.firstname === "Sophie")!._id],
-                name: "Équipe pédagogique",
+                name: "Ã‰quipe pÃ©dagogique",
                 type: "group",
                 messages: [
                     {
                         uuid: crypto.randomUUID(),
-                        content: "Réunion demain à 10h.",
+                        content: "RÃ©union demain Ã  10h.",
                         sender: users.find(user => user.firstname === "John")!._id,
                         date_created: new Date(),
                     },
@@ -244,15 +244,15 @@ export default class Discussion extends Collection {
             },
             {
                 uuid: crypto.randomUUID(),
-                creator: users.find(user => user.firstname === "Hélios")!._id,
-                members: [users.find(user => user.firstname === "Hélios")!._id, users[5]!._id],
-                name: "Projet étudiant",
+                creator: users.find(user => user.firstname === "HÃ©lios")!._id,
+                members: [users.find(user => user.firstname === "HÃ©lios")!._id, users[5]!._id],
+                name: "Projet Ã©tudiant",
                 type: "group",
                 messages: [
                     {
                         uuid: crypto.randomUUID(),
                         content: "On commence le projet aujourd'hui !",
-                        sender: users.find(user => user.firstname === "Hélios")!._id,
+                        sender: users.find(user => user.firstname === "HÃ©lios")!._id,
                         date_created: new Date(),
                     },
                 ],
@@ -280,17 +280,17 @@ export default class Discussion extends Collection {
                 const newDiscussion = new Discussion(discussion);
                 await newDiscussion.save();
     
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 New discussion "${discussion.name}" created`);
+                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ New discussion "${discussion.name}" created`);
 
             }else {
 
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 Discussion "${discussion.name}" already exists`);
+                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ Discussion "${discussion.name}" already exists`);
             }
         }
 
         if (process.env.VERBOSE === "true"){
                     
-            console.log(`✅ ${await Discussion.model.countDocuments({})} discussions created`);
+            console.log(`âœ… ${await Discussion.model.countDocuments({})} discussions created`);
             console.groupEnd();
             console.log("");
         }

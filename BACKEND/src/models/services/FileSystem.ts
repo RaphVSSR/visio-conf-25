@@ -1,7 +1,7 @@
 import mongoose, { model, Schema, type Document, type HydratedDocument, type Model, type Types } from "mongoose";
 import crypto from "crypto"
-import Collection from "../core/Collection.ts";
-import TracedError from "../core/TracedError.ts";
+import Collection from "../Core/Collection.ts";
+import TracedError from "../Core/TracedError.ts";
 import path from "path";
 import { fileURLToPath } from 'url';
 import fs from "fs"
@@ -299,7 +299,7 @@ export default class FileSystem {
             
     		if (process.env.VERBOSE === "true") {
                 
-                console.group("⚙️ Copying test files..");
+                console.group("âš™ï¸ Copying test files..");
             }
 
             const testFilesPath = path.join(__dirname, "..", "..", "uploads", "usersFilesTest", testFileName);
@@ -309,7 +309,7 @@ export default class FileSystem {
 
             fs.copyFileSync(testFilesPath, targetPath);
             
-            if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`📄 File copied : ${testFileName} -> ${targetPath}`);
+            if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ“„ File copied : ${testFileName} -> ${targetPath}`);
 
             if (process.env.VERBOSE === "true") {
                 
@@ -342,7 +342,7 @@ export default class FileSystem {
             fs.rmSync(this.filesDir, { recursive: true, force: true });
             fs.mkdirSync(this.filesDir, { recursive: true });
 
-			if (process.env.VERBOSE === "true") console.log("✅ Local upload dir flushed successfully");
+			if (process.env.VERBOSE === "true") console.log("âœ… Local upload dir flushed successfully");
 
         } catch (error: any) {
 

@@ -6,7 +6,7 @@ import session from "express-session"
 import ConnectMongoDBSession from "connect-mongodb-session"
 import cors from "cors"
 import AuthRoutes from "../../routes/AuthRoutes.ts"
-import TracedError from "../core/TracedError.ts";
+import TracedError from "../Core/TracedError.ts";
 import SessionManager from "./authentication/SessionManager.ts";
 
 const MongoDBStore = ConnectMongoDBSession(session)
@@ -22,7 +22,7 @@ export default class RestService {
 
 	static async implement(){
 
-		if (process.env.VERBOSE === "true" && (process.env.VERBOSE_LVL ?? "0") >= "2") console.group("⚙️ Implementing Express server..");
+		if (process.env.VERBOSE === "true" && (process.env.VERBOSE_LVL ?? "0") >= "2") console.group("âš™ï¸ Implementing Express server..");
 
 		this.server.use(express.json());
 		this.corsDef();
@@ -34,7 +34,7 @@ export default class RestService {
 
 		if (process.env.VERBOSE === "true" && (process.env.VERBOSE_LVL ?? "0") >= "2") {
 
-			console.log("✅ Success");
+			console.log("âœ… Success");
 			console.groupEnd();
 		}
 
@@ -69,7 +69,7 @@ export default class RestService {
 
 		this.server.use(this.sessionMiddleware)
 
-		if (process.env.VERBOSE === "true") console.log("✅ Session middleware configured (connect-mongodb-session)")
+		if (process.env.VERBOSE === "true") console.log("âœ… Session middleware configured (connect-mongodb-session)")
 	}
 
 	private static corsDef(){
@@ -106,7 +106,7 @@ export default class RestService {
 				})
 			);
 
-			if (process.env.VERBOSE === "true") console.log(`✅ CORS fully defined`);
+			if (process.env.VERBOSE === "true") console.log(`âœ… CORS fully defined`);
 
 		} catch (error: any) {
 
@@ -125,7 +125,7 @@ export default class RestService {
 
 			this.server.use(process.env.API_BASE_PREFIX?.startsWith("/") ? process.env.API_BASE_PREFIX : "/", coreRouter);
 
-			if (process.env.VERBOSE === "true") console.log(`✅ Routes fully initialized\n`);
+			if (process.env.VERBOSE === "true") console.log(`âœ… Routes fully initialized\n`);
 
 		} catch (error: any) {
 

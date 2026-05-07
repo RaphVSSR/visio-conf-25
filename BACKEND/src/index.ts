@@ -1,12 +1,12 @@
 import dotenv from "dotenv"
 import { Server } from "socket.io"
 import Database from "./models/services/Database.ts"
-import TracedError from "./models/core/TracedError.ts"
-import HTTPServer from "./models/core/HTTPServer.ts"
+import TracedError from "./models/Core/TracedError.ts"
+import HTTPServer from "./models/Core/HTTPServer.ts"
 import RestService from "./models/services/RestService.ts"
 import SessionManager from "./models/services/authentication/SessionManager.ts"
-import Controleur from "./controller/controleur.js"
-import CanalSocketIO from "./controller/canalsocketio.js"
+import Controleur from "./Controller/controleur.js"
+import CanalSocketIO from "./Controller/canalsocketio.js"
 import User from "./models/User.ts"
 import Permission from "./models/Permission.ts"
 import Role from "./models/Role.ts"
@@ -68,7 +68,7 @@ try {
 
 	HTTPServer.listen()
 
-	if (process.env.VERBOSE === "true") console.log("✅ All services registered & server listening")
+	if (process.env.VERBOSE === "true") console.log("âœ… All services registered & server listening")
 
 } catch (error) {
 

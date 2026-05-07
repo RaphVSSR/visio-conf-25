@@ -1,5 +1,5 @@
-import Controleur from "controller/controleur.js"
-import CanalSocketio from "controller/canalsocketio.js"
+import Controleur from "Controller/controleur.js"
+import CanalSocketio from "Controller/canalsocketio.js"
 
 type MessageHandler = (payload: any) => void
 

@@ -1,6 +1,6 @@
 import mongoose, { model, Model, Schema, Types } from "mongoose"
-import Collection from "./core/Collection.ts"
-import TracedError from "./core/TracedError.ts";
+import Collection from "./Core/Collection.ts"
+import TracedError from "./Core/TracedError.ts";
 import User, { type UserType } from "./User.ts";
 import TeamMember, { type TeamMemberType } from "./TeamMember.ts";
 import Channel from "./Channel.ts";
@@ -90,12 +90,12 @@ export default class Team extends Collection {
 
         if (process.env.VERBOSE === "true"){
             
-            console.group("💉 Injecting testing teams..");
+            console.group("ðŸ’‰ Injecting testing teams..");
         }
 
         try {
             
-            if (await User.model.countDocuments({}) < 2)  throw new Error("❌ Pas assez d'utilisateurs pour créer des discussions");
+            if (await User.model.countDocuments({}) < 2)  throw new Error("âŒ Pas assez d'utilisateurs pour crÃ©er des discussions");
 
             const users: (UserType & { _id: Types.ObjectId })[] = await User.model.find({
             
@@ -103,7 +103,7 @@ export default class Team extends Collection {
                     { firstname: {$regex: "^John$", $options: "i"}},
                     { firstname: {$regex: "^Janny$", $options: "i"}},
                     { firstname: {$regex: "^Jean$", $options: "i"}},
-                    { firstname: {$regex: "^Hélios$", $options: "i"}},
+                    { firstname: {$regex: "^HÃ©lios$", $options: "i"}},
                     { firstname: {$regex: "^Sophie$", $options: "i"}},
                     { firstname: {$regex: "^Marie$", $options: "i"}}
                 ]
@@ -112,21 +112,21 @@ export default class Team extends Collection {
 
             const teamsToInject = [
                 {
-                    name: "Département MMI",
+                    name: "DÃ©partement MMI",
                     description:
-                        "Équipe des enseignants et personnels du département MMI",
+                        "Ã‰quipe des enseignants et personnels du dÃ©partement MMI",
                     createdBy: users.find(user => user.firstname === "John")!._id,
                     members: [
                         { id: users.find(user => user.firstname === "John")!._id, role: "admin" },
                         { id: users.find(user => user.firstname === "Janny")!._id, role: "member" },
                         { id: users.find(user => user.firstname === "Jean")!._id, role: "member" },
-                        { id: users.find(user => user.firstname === "Hélios")!._id, role: "member" },
+                        { id: users.find(user => user.firstname === "HÃ©lios")!._id, role: "member" },
                         { id: users.find(user => user.firstname === "Marie")!._id, role: "member" },
                     ],
                 },
                 {
-                    name: "Projet Web Avancé",
-                    description: "Équipe de développement pour le projet web avancé",
+                    name: "Projet Web AvancÃ©",
+                    description: "Ã‰quipe de dÃ©veloppement pour le projet web avancÃ©",
                     createdBy: users.find(user => user.firstname === "Jean")!._id,
                     members: [
                         { id: users.find(user => user.firstname === "Jean")!._id, role: "admin" },
@@ -135,12 +135,12 @@ export default class Team extends Collection {
                 },
                 {
                     name: "Administration",
-                    description: "Équipe administrative de l'université",
+                    description: "Ã‰quipe administrative de l'universitÃ©",
                     createdBy: users.find(user => user.firstname === "Marie")!._id,
                     members: [
                         { id: users.find(user => user.firstname === "Marie")!._id, role: "admin" },
                         { id: users.find(user => user.firstname === "John")!._id, role: "member" },
-                        { id: users.find(user => user.firstname === "Hélios")!._id, role: "member" },
+                        { id: users.find(user => user.firstname === "HÃ©lios")!._id, role: "member" },
                     ],
                 },
             ]
@@ -166,17 +166,17 @@ export default class Team extends Collection {
                     await newTeam.save();
 
 
-                    if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 New team "${team.name}" created`);
+                    if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ New team "${team.name}" created`);
 
                 }else {
 
-                    if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 Team "${team.name}" already exists`);
+                    if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ Team "${team.name}" already exists`);
                 }
             }
 
             if (process.env.VERBOSE === "true"){
                                 
-                console.log(`✅ ${await Team.model.countDocuments({})} teams created`);
+                console.log(`âœ… ${await Team.model.countDocuments({})} teams created`);
                 console.groupEnd();
                 console.log("");
             }

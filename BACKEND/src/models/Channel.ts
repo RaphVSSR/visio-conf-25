@@ -1,6 +1,6 @@
 import mongoose, { model, Model, Schema, Types } from "mongoose"
-import Collection from "./core/Collection.ts";
-import TracedError from "./core/TracedError.ts";
+import Collection from "./Core/Collection.ts";
+import TracedError from "./Core/TracedError.ts";
 import Team from "./Team.ts";
 import ChannelMember, { type ChannelMemberType } from "./ChannelMember.ts";
 import TeamMember, { type TeamMemberType } from "./TeamMember.ts";
@@ -90,7 +90,7 @@ export default class Channel extends Collection {
 
         if (process.env.VERBOSE === "true"){
             
-            console.group("💉 Injecting testing channels..");
+            console.group("ðŸ’‰ Injecting testing channels..");
         }
 
         if (await Team.model.countDocuments({}) === 0) throw new TracedError("noTeamsFound");
@@ -100,7 +100,7 @@ export default class Channel extends Collection {
             for (const team of await Team.model.find({})) {
 
                 const generalChannel = new Channel({
-                    name: "Général",
+                    name: "GÃ©nÃ©ral",
                     teamId: team._id,
                     isPublic: true,
                     createdBy: team.createdBy,
@@ -125,7 +125,7 @@ export default class Channel extends Collection {
 
                 await generalChannel.save();
 
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 New channel "${generalChannel.modelInstance.name}" created`);
+                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ New channel "${generalChannel.modelInstance.name}" created`);
 
                 async function injectAdditionalChannels(additionalChannels: any){
 
@@ -176,23 +176,23 @@ export default class Channel extends Collection {
 
                         await newChannel.save();
 
-                        if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 New channel "${newChannel.modelInstance.name}" created`);
+                        if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`ðŸ’¾ New channel "${newChannel.modelInstance.name}" created`);
                     }
                 }
 
                 switch (team.name) {
 
-                    case "Département MMI": {
+                    case "DÃ©partement MMI": {
 
                         await injectAdditionalChannels(
 
                             [{
-                                name: "Réunions",
+                                name: "RÃ©unions",
                                 isPublic: true,
                                 createdBy: team.createdBy,
                             },
                             {
-                                name: "Événements",
+                                name: "Ã‰vÃ©nements",
                                 isPublic: true,
                                 createdBy: team.createdBy,
                             },
@@ -207,7 +207,7 @@ export default class Channel extends Collection {
                         break;
                     }
 
-                    case "Projet Web Avancé": {
+                    case "Projet Web AvancÃ©": {
 
                         await injectAdditionalChannels(
 
@@ -256,7 +256,7 @@ export default class Channel extends Collection {
 
             if (process.env.VERBOSE === "true"){
                                     
-                console.log(`✅ ${await Channel.model.countDocuments({})} channels created`);
+                console.log(`âœ… ${await Channel.model.countDocuments({})} channels created`);
                 console.groupEnd();
                 console.log("");
             }

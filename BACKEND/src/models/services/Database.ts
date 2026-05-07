@@ -2,7 +2,7 @@
 import { connect, disconnect, type ConnectOptions } from "mongoose"
 import fs from "fs"
 import User from "../User.ts"
-import TracedError from "../core/TracedError.ts"
+import TracedError from "../Core/TracedError.ts"
 import FileSystem, { Folder } from "./FileSystem.ts"
 import Channel from "../Channel.ts"
 import Discussion from "../Discussion.ts"
@@ -27,7 +27,7 @@ export default class Database {
 
 			await connect(process.env.MONGO_URI, process.env.MONGO_USER && process.env.MONGO_PASSWORD ? mongoOptions : undefined);
 
-			if (process.env.VERBOSE === "true") console.log("✅ Connection succeed");
+			if (process.env.VERBOSE === "true") console.log("âœ… Connection succeed");
 
 
 		} catch (error: any) {
@@ -55,7 +55,7 @@ export default class Database {
 			await Channel.flushAll();
 			await User.model.deleteMany({});
 
-			if (process.env.VERBOSE === "true") console.log("✅ DB flushed successfully");
+			if (process.env.VERBOSE === "true") console.log("âœ… DB flushed successfully");
 
 		} catch (error: any) {
 
@@ -83,7 +83,7 @@ export default class Database {
 
 			await admin.save();
 
-			if (process.env.VERBOSE === "true") console.log("✅ Admin user injected");
+			if (process.env.VERBOSE === "true") console.log("âœ… Admin user injected");
 
 		} catch (error: any) {
 
@@ -98,7 +98,7 @@ export default class Database {
 			if (!fs.existsSync(FileSystem.uploadsDir)) fs.mkdirSync(FileSystem.uploadsDir, { recursive: true });
 			if (!fs.existsSync(FileSystem.filesDir)) fs.mkdirSync(FileSystem.filesDir, { recursive: true });
 
-			if (process.env.VERBOSE === "true") console.log("✅ Upload environement integrity verified");
+			if (process.env.VERBOSE === "true") console.log("âœ… Upload environement integrity verified");
 
 		} catch (error: any) {
 
@@ -112,7 +112,7 @@ export default class Database {
 
 			await disconnect();
 
-			if (process.env.VERBOSE === "true") console.log(`✅ MongoDb connection closed successfully\n`);
+			if (process.env.VERBOSE === "true") console.log(`âœ… MongoDb connection closed successfully\n`);
 
 		} catch (error: any) {
 

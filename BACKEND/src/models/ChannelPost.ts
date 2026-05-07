@@ -1,6 +1,6 @@
 import mongoose, { model, Model, Schema, Types } from "mongoose"
-import Collection from "./core/Collection.ts"
-import TracedError from "./core/TracedError.ts"
+import Collection from "./Core/Collection.ts"
+import TracedError from "./Core/TracedError.ts"
 import Channel from "./Channel.ts";
 import ChannelPostResponse from "./ChannelPostResponse.ts";
 import User from "./User.ts";
@@ -90,7 +90,7 @@ export default class ChannelPost extends Collection {
 
         if (process.env.VERBOSE === "true"){
             
-            console.group("💉 Injecting channels posts..");
+            console.group("ðŸ’‰ Injecting channels posts..");
         }
 
         try {
@@ -135,13 +135,13 @@ export default class ChannelPost extends Collection {
 
                 if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3"){
                                                     
-                    console.log(`💾 ${await ChannelPost.model.countDocuments({channelId: channel._id})} posts created for "${channel.name}"`);
+                    console.log(`ðŸ’¾ ${await ChannelPost.model.countDocuments({channelId: channel._id})} posts created for "${channel.name}"`);
                 }
             };
 
             if (process.env.VERBOSE === "true"){
                                                     
-                console.log(`✅ ${await ChannelPost.model.countDocuments({})} posts created in total`);
+                console.log(`âœ… ${await ChannelPost.model.countDocuments({})} posts created in total`);
                 console.groupEnd();
                 console.log("");
             }
