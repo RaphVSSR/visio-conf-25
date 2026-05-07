@@ -1,0 +1,163 @@
+@use "../../../design-system/scss/global.scss" as *;
+
+.teamsPanel {
+	@extend %flex-col;
+	gap: 28px;
+	padding: 50px;
+	min-height: 100vh;
+	background: $bg-page;
+	position: relative;
+
+	.teamsPanelHeader {
+		@extend %flex-row-centered;
+		justify-content: space-between;
+
+		.teamsPanelTitle {
+			@extend %flex-col;
+			gap: 6px;
+
+			h2 {
+				font-size: 36px;
+				font-weight: 800;
+				color: $tab-heading;
+				letter-spacing: -0.01em;
+			}
+
+			.teamsPanelCount {
+				color: $text-subtle;
+				font-size: 14px;
+			}
+		}
+
+		.teamsPanelClose {
+			@extend %flex-row-centered;
+			width: 48px;
+			height: 48px;
+			border-radius: 14px;
+			border: 1px solid $bg-divider;
+			background: $bg-white;
+			cursor: pointer;
+
+			&:hover { background: $bg-hover; }
+		}
+	}
+
+	.teamsPanelToolbar {
+		@extend %flex-row-centered;
+		justify-content: space-between;
+		gap: 18px;
+
+		.teamsPanelSearch {
+			@extend %flex-row-centered;
+			gap: 10px;
+			flex: 1;
+			padding: 12px 18px;
+			border-radius: 14px;
+			border: 1px solid $bg-divider;
+			background: $bg-white;
+			color: $text-subtle;
+
+			input {
+				flex: 1;
+				border: none;
+				outline: none;
+				background: transparent;
+				font-size: 15px;
+				color: $text;
+
+				&::placeholder { color: $text-subtle; }
+			}
+		}
+
+		.teamsPanelCreate {
+			@extend %flex-row-centered;
+			gap: 8px;
+			padding: 12px 22px;
+			border: none;
+			border-radius: 14px;
+			background: $tab-teams;
+			color: $bg-white;
+			font-weight: 700;
+			cursor: pointer;
+			transition: filter 160ms ease;
+
+			&:hover { filter: brightness(1.1); }
+		}
+	}
+
+	.teamPicture {
+		@extend %flex-row-centered;
+		width: 56px;
+		height: 56px;
+		border-radius: 14px;
+		background: $bg-muted;
+		color: $tab-teams;
+		overflow: hidden;
+		flex-shrink: 0;
+
+		img { width: 100%; height: 100%; object-fit: cover; }
+	}
+
+	.teamName {
+		font-size: 17px;
+		font-weight: 700;
+		color: $text;
+	}
+
+	.teamDescription {
+		color: $text-subtle;
+		font-size: 14px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.iconBtn {
+		@extend %flex-row-centered;
+		width: 38px;
+		height: 38px;
+		border-radius: 10px;
+		border: 1px solid $bg-divider;
+		background: $bg-white;
+		cursor: pointer;
+		color: $text-body;
+		transition: background-color 160ms ease, color 160ms ease;
+
+		&:hover { background: $bg-hover; }
+
+		&--danger:hover { background: $danger; color: $bg-white; border-color: $danger; }
+		&--confirm { background: $success; color: $bg-white; border-color: $success; }
+	}
+
+	.confirmLabel {
+		color: $danger;
+		font-weight: 600;
+		font-size: 14px;
+	}
+
+	.teamsPanelDrawer {
+		position: fixed;
+		top: 0;
+		right: 0;
+		height: 100vh;
+		width: min(560px, 100vw);
+		background: $bg-white;
+		box-shadow: -16px 0 40px rgba(15, 23, 42, 0.12);
+		overflow-y: auto;
+		z-index: 50;
+	}
+
+	.teamsPanelToast {
+		position: fixed;
+		bottom: 32px;
+		right: 32px;
+		padding: 14px 22px;
+		border-radius: 12px;
+		font-weight: 600;
+		color: $bg-white;
+		z-index: 60;
+
+		&--success { background: $success; }
+		&--error { background: $danger; }
+	}
+}

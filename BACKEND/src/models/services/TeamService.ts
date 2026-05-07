@@ -116,6 +116,11 @@ export default class TeamService {
 
 		const teams = await Team.model.find({}).lean()
 
+		const counts = await TeamMember.model.aggregate([
+			{ $group: { _id: "$teamId", count: { $sum: 1 } } },
+		])
+		const countByTeam = new Map<string, number>(counts.map((c: any) => [c._id.toString(), c.count]))
+
 		const formattedTeams = teams.map(team => ({
 			id: team._id!.toString(),
 			name: team.name,
@@ -124,6 +129,7 @@ export default class TeamService {
 			createdBy: team.createdBy.toString(),
 			createdAt: team.createdAt,
 			updatedAt: team.updatedAt,
+			memberCount: countByTeam.get(team._id!.toString()) ?? 0,
 		}))
 
 		this.send(socketId, "team_get_response", { type: "all", etat: true, teams: formattedTeams })
@@ -184,8 +190,10 @@ export default class TeamService {
 		const team = await Team.model.findById(teamId)
 		if (!team) return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "team_not_found" })
 
-		const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean()
-		if (!adminMembership) return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "admin_required" })
+		if (!SessionManager.isPlatformAdmin(socketId)) {
+			const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean()
+			if (!adminMembership) return this.send(socketId, "team_action_response", { type: "update", etat: false, error: "admin_required" })
+		}
 
 		if (name !== undefined) team.name = name
 		if (description !== undefined) team.description = description
@@ -219,8 +227,10 @@ export default class TeamService {
 		const team = await Team.model.findById(teamId)
 		if (!team) return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "team_not_found" })
 
-		const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean()
-		if (!adminMembership) return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "admin_required" })
+		if (!SessionManager.isPlatformAdmin(socketId)) {
+			const adminMembership = await TeamMember.model.findOne({ teamId, id: userId, role: "admin" }).lean()
+			if (!adminMembership) return this.send(socketId, "team_action_response", { type: "delete", etat: false, error: "admin_required" })
+		}
 
 		const broadcastSocketIds = await BroadcastTargets.forTeam(teamId)
 
@@ -303,8 +313,10 @@ export default class TeamService {
 
 		const { teamId, userId: targetUserId } = payload
 
-		const adminMembership = await TeamMember.model.findOne({ teamId, id: requesterId, role: "admin" }).lean()
-		if (!adminMembership) return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "admin_required" })
+		if (!SessionManager.isPlatformAdmin(socketId)) {
+			const adminMembership = await TeamMember.model.findOne({ teamId, id: requesterId, role: "admin" }).lean()
+			if (!adminMembership) return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "admin_required" })
+		}
 
 		const existingMember = await TeamMember.model.findOne({ teamId, id: targetUserId }).lean()
 		if (existingMember) return this.send(socketId, "team_member_response", { type: "add", etat: false, error: "already_a_member" })
@@ -325,8 +337,10 @@ export default class TeamService {
 
 		const { teamId, userId: targetUserId } = payload
 
-		const adminMembership = await TeamMember.model.findOne({ teamId, id: requesterId, role: "admin" }).lean()
-		if (!adminMembership) return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "admin_required" })
+		if (!SessionManager.isPlatformAdmin(socketId)) {
+			const adminMembership = await TeamMember.model.findOne({ teamId, id: requesterId, role: "admin" }).lean()
+			if (!adminMembership) return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "admin_required" })
+		}
 
 		const targetMembership = await TeamMember.model.findOne({ teamId, id: targetUserId }).lean()
 		if (!targetMembership) return this.send(socketId, "team_member_response", { type: "remove", etat: false, error: "not_a_member" })

@@ -1,7 +1,9 @@
 # Référence de la classe abstraite ControllerService — VisioConf (Frontend)
 
-**Fichier source** : `FRONTENDV2/src/Controller/Controller.service.ts`
-**Types** : `FRONTENDV2/src/Controller/Controller.types.ts`
+**Fichiers source** :
+- `FRONTENDV2/src/controller/controleur.js` (bus, identique au backend)
+- `FRONTENDV2/src/controller/canalsocketio.js` (pont Socket.io frontend)
+- `FRONTENDV2/src/services/MessageClientAdapter.ts` (subscriber `ReactBridge`)
 
 ---
 
@@ -73,7 +75,8 @@ type ControllerMessage = { id: string } & Record<string, unknown>
 
 | Service | nomDInstance | Émis | Reçus |
 |---------|-------------|------|-------|
-| `CanalSocketio` | `"canalsocketio"` | (tous les messages Socket.io) | (tous les messages Socket.io) |
+| `CanalSocketio` | `"canalsocketio"` | listes reçues du serveur via `donne_liste` | listes reçues du serveur via `donne_liste` |
+| `MessageClientAdapter` | `"ReactBridge"` | dynamique (chaque appel `send()` inscrit le message) | dynamique (chaque appel `on()` inscrit le message) |
 | `AuthService` | `"AuthService"` | 6 messages auth | 13 messages auth |
 
 ---
@@ -85,7 +88,9 @@ Serveur
     ↕ Socket.io
 CanalSocketio (canalsocketio.js — OFF-LIMITS)
     ↕ controleur.envoie() / traitementMessage()
-AuthService (ou autre ControllerService)
+MessageClientAdapter (ReactBridge)
+    ↕ on() / send()
+AuthSync / call hooks (ou autre ControllerService)
     ↕ setState()
 React Context (AuthContext)
     ↕ useAuth()

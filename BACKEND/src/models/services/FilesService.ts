@@ -558,7 +558,7 @@ export default class FilesService {
                 this.controleur.envoie(this, response);
 
                 const ownerIdStr = updatedSpace.owner._id ? updatedSpace.owner._id.toString() : updatedSpace.owner.toString();
-                const newMemberIdsStr = updatedSpace.members.map((m: any) => (m._id || m).toString());
+                const newMemberIdsStr = (updatedSpace.members || []).map((m: any) => (m._id || m).toString());
                 const allUsersToNotify = Array.from(new Set([...oldMemberIdsStr, ...newMemberIdsStr]));
 
                 await this.broadcastToAuthorized(socketId,

@@ -3,22 +3,31 @@ import type { Server } from "socket.io"
 export default class SessionManager {
 
 	private static io: Server
+	private static adminSocketIds: Set<string> = new Set()
+	private static readonly ADMIN_ROLE = "admin"
 
 	static bindToServer(io: Server) {
 		this.io = io
 	}
 
-	static bind(socketId: string, userId: string) {
+	static bind(socketId: string, userId: string, roles: string[] = []) {
 		const socket = this.io.sockets.sockets.get(socketId)
 		if (!socket) return
 
 		;(socket.request as any).session.userId = userId
 		;(socket.request as any).session.save()
 		socket.join(userId)
+
+		if (roles.includes(this.ADMIN_ROLE)) {
+			this.adminSocketIds.add(socketId)
+		} else {
+			this.adminSocketIds.delete(socketId)
+		}
 	}
 
 	static unbind(socketId: string) {
 		const socket = this.io.sockets.sockets.get(socketId)
+		this.adminSocketIds.delete(socketId)
 		if (!socket) return
 
 		const userId = (socket.request as any).session?.userId
@@ -37,6 +46,19 @@ export default class SessionManager {
 	static getUserSocketIds(userId: string): string[] {
 		const room = this.io.sockets.adapter.rooms.get(userId)
 		return room ? [...room] : []
+	}
+
+	static isPlatformAdmin(socketId: string): boolean {
+		return this.adminSocketIds.has(socketId)
+	}
+
+	static refreshUserRoles(userId: string, roles: string[]) {
+		const socketIds = this.getUserSocketIds(userId)
+		const isAdmin = roles.includes(this.ADMIN_ROLE)
+		for (const socketId of socketIds) {
+			if (isAdmin) this.adminSocketIds.add(socketId)
+			else this.adminSocketIds.delete(socketId)
+		}
 	}
 
 	static refreshSession(socketId: string) {

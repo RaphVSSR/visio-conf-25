@@ -21,11 +21,11 @@
 
     "module": "esnext",
     "moduleResolution": "node",
+    "baseUrl": "./src",
     "noEmit": true,
-    
+
     "isolatedModules": true,
-    "jsx": "react-jsx",
-    "baseUrl": "./src"
+    "jsx": "react-jsx"
   },
   "include": [
     "src"

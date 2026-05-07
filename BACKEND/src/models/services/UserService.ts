@@ -70,9 +70,8 @@ export default class UserService {
 		const userId = this.resolveUserId(socketId)
 		if (!userId) return this.send(socketId, "user_get_response", { type: "list", etat: false, error: "not_authenticated" })
 
-		// On récupère tous les utilisateurs (actifs ou en attente) pour l'annuaire en dev
-		const users = await User.model.find({})
-			.select("firstname lastname email picture is_online job roles desc phone status")
+		const users = await User.model.find({ status: "active" })
+			.select("firstname lastname email picture is_online job")
 			.lean()
 
 		const formattedUsers = users.map(user => ({
@@ -190,6 +189,7 @@ export default class UserService {
 		const { userId, roles } = payload
 
 		await User.model.updateOne({ _id: userId }, { $set: { roles } })
+		SessionManager.refreshUserRoles(userId, roles)
 
 		this.send(socketId, "user_update_response", { type: "roles", etat: true, userId, roles })
 	}

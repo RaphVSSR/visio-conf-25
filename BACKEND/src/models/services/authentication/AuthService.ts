@@ -58,7 +58,7 @@ export default class AuthService {
 		const userDetails = AuthService.sanitizeUser(user.toObject())
 		const userId = user._id!.toString()
 
-		const expiresAt = AuthService.bindSession(socketId, userId)
+		const expiresAt = AuthService.bindSession(socketId, userId, user.roles ?? [])
 		this.send(socketId, "login_response", { status: "success", user: userDetails, expiresAt })
 	}
 
@@ -70,7 +70,7 @@ export default class AuthService {
 		const user = await User.model.findById(userId).select("-password").lean()
 		if (!user) return this.send(socketId, "authenticate_response", { status: "failure", reason: "user_not_found" })
 
-		const expiresAt = AuthService.bindSession(socketId, userId)
+		const expiresAt = AuthService.bindSession(socketId, userId, (user as any).roles ?? [])
 		this.send(socketId, "authenticate_response", { status: "success", user, expiresAt })
 	}
 
@@ -90,7 +90,7 @@ export default class AuthService {
 			await newUser.save()
 
 			const userId = newUser.modelInstance._id!.toString()
-			const expiresAt = AuthService.bindSession(socketId, userId)
+			const expiresAt = AuthService.bindSession(socketId, userId, newUser.modelInstance.roles ?? [])
 			const userDetails = AuthService.sanitizeUser(newUser.modelInstance.toObject())
 
 			this.send(socketId, "register_response", { status: "success", user: userDetails, expiresAt })
@@ -113,9 +113,9 @@ export default class AuthService {
 		}
 	}
 
-	private static bindSession(socketId: string, userId: string): number {
+	private static bindSession(socketId: string, userId: string, roles: string[] = []): number {
 		const expiresAt = Date.now() + SessionManager.getSessionDurationMs()
-		SessionManager.bind(socketId, userId)
+		SessionManager.bind(socketId, userId, roles)
 		User.model.updateOne({ _id: userId }, { is_online: true }).catch(() => {})
 		User.model.updateOne({ _id: userId, disturb_status: "offline" }, { disturb_status: "available" }).catch(() => {})
 		return expiresAt

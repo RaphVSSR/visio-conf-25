@@ -1,7 +1,6 @@
-import React, { Dispatch, FC, SetStateAction, useState } from 'react'
+import React, { Dispatch, FC, SetStateAction } from 'react'
 import "./AdminTabPanel.scss";
 import { Drama, ListChecks, LucideIcon, MessagesSquare, UsersRound, X } from 'lucide-react';
-import { RoleManagement } from 'components/RoleManagement/RoleManagement';
 
 export type AdminTabType = {
 
@@ -27,8 +26,6 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 	setTabSelected
 
 }) => {
-
-	const [subOptionSelected, setSubOptionSelected] = useState<string | null>(null);
 
 	const tabsData = [
         {
@@ -137,23 +134,13 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 			<ul id="tabOptions">
 				{tabDataSelected.subOption.map((option, index) =>
 
-					<li
-						key={index}
-						className={`option ${subOptionSelected === option.label ? "option--active" : ""}`}
-						onClick={() => setSubOptionSelected(option.label)}
-					>
+					<li key={index} className='option'>
 						<p className="optionLabel">{option.label}</p>
 					</li>
 				)}
 			</ul>
 
 
-		</section>
-
-		<section id="tabContent">
-			{tabSelected === "Rôles" && (
-				<RoleManagement activeAction={subOptionSelected} />
-			)}
 		</section>
 	</section>
   )

@@ -53,21 +53,13 @@
 				border: solid 2px black;
 				border-radius: 20px;
 				text-align: center;
-				transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-
-				&--active {
-					background-color: $primary;
-					color: white;
-					border-color: $primary;
-				}
 			}
 		}
 	}
 
-	#tabContent {
-		flex: 1;
-		padding-top: 20px;
-	}
+
+
+
 }
 
 .menuTitle {

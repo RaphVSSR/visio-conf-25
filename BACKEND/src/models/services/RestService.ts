@@ -81,12 +81,18 @@ export default class RestService {
 				cors({
 
 					origin: (origin, callback) => {
+
+						if (!origin) return callback(null, true)
+
 						const allowedOrigins = [
-							process.env.FRONTEND_URL || "http://localhost:3000",
+							process.env.FRONTEND_URL ?? "http://localhost:3000",
 							"http://127.0.0.1:3000",
-							"http://localhost:3001"
 						]
-						if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)) {
+
+						const ipPattern =
+							/^http:\/\/((192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|127\.0\.0\.1)\d{1,3}\.\d{1,3}|localhost):3000$/
+
+						if (allowedOrigins.includes(origin) || ipPattern.test(origin)) {
 							callback(null, true)
 						} else {
 							console.log(`CORS: Origin ${origin} not allowed`)

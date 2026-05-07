@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FC, type FormEvent } from "react"
+import { useState, useEffect, useRef, type FC, type FormEvent } from "react"
 import "./ChannelForm.scss"
 import { useAuth } from "hooks/useAuth"
 import {
@@ -36,81 +36,94 @@ const ChannelForm: FC<ChannelFormProps> = ({
 	const [isLoadingMembers, setIsLoadingMembers] = useState(false)
 	const [isDeleting, setIsDeleting] = useState(false)
 
-	const handleChannelActionResponse = useCallback((data: any) => {
-		switch (data.type) {
-			case "create":
-				setIsLoading(false)
-				if (data.etat) {
-					onChannelCreated(data.channel)
-				} else {
-					setError(data.error || "Erreur lors de la creation du canal")
-				}
-				break
+	const onChannelCreatedRef = useRef(onChannelCreated)
+	const channelToEditRef = useRef(channelToEdit)
+	const userIdRef = useRef(user?._id)
 
-			case "update":
-				setIsLoading(false)
-				if (data.etat) {
-					onChannelCreated(data.channel)
-				} else {
-					setError(data.error || "Erreur lors de la mise a jour du canal")
-				}
-				break
-
-			case "delete":
-				setIsDeleting(false)
-				if (data.etat) {
-					onChannelCreated({
-						...channelToEdit,
-						deleted: true,
-						id: channelToEdit.id,
-					})
-				} else {
-					setError(data.error || "Erreur lors de la suppression du canal")
-				}
-				break
-		}
-	}, [onChannelCreated, channelToEdit])
-
-	const handleTeamMemberResponse = useCallback((data: any) => {
-		if (data.type !== "list") return
-		setIsLoadingMembers(false)
-		if (data.etat) {
-			const teamMembersData = data.members || []
-			const membersConverted: Member[] = teamMembersData
-				.filter((member: any) => member.userId !== user?._id)
-				.map((member: any) => ({
-					id: member.userId,
-					firstname: member.firstname,
-					lastname: member.lastname,
-					picture: member.picture,
-					isSelected: false,
-				}))
-			setMembers(membersConverted)
-		}
-	}, [user?._id])
-
-	const handleChannelMemberResponse = useCallback((data: any) => {
-		if (data.type !== "list") return
-		if (data.etat) {
-			const channelMembersData = data.members || []
-			setMembers((prevMembers) =>
-				prevMembers.map((member) => ({
-					...member,
-					isSelected: channelMembersData.some(
-						(channelMember: any) =>
-							channelMember.userId === member.id
-					),
-				}))
-			)
-		}
-	}, [])
+	useEffect(() => { onChannelCreatedRef.current = onChannelCreated }, [onChannelCreated])
+	useEffect(() => { channelToEditRef.current = channelToEdit }, [channelToEdit])
+	useEffect(() => { userIdRef.current = user?._id }, [user?._id])
 
 	useEffect(() => {
 		if (!socket) return
 
+		const handleChannelActionResponse = (data: any) => {
+			switch (data.type) {
+				case "create":
+					setIsLoading(false)
+					if (data.etat) onChannelCreatedRef.current(data.channel)
+					else setError(data.error || "Erreur lors de la creation du canal")
+					break
+
+				case "update":
+					setIsLoading(false)
+					if (data.etat) onChannelCreatedRef.current(data.channel)
+					else setError(data.error || "Erreur lors de la mise a jour du canal")
+					break
+
+				case "delete":
+					setIsDeleting(false)
+					if (data.etat) {
+						const edit = channelToEditRef.current
+						onChannelCreatedRef.current({
+							...edit,
+							deleted: true,
+							id: edit.id,
+						})
+					} else {
+						setError(data.error || "Erreur lors de la suppression du canal")
+					}
+					break
+			}
+		}
+
+		const handleTeamMemberResponse = (data: any) => {
+			if (data.type !== "list") return
+			setIsLoadingMembers(false)
+			if (data.etat) {
+				const teamMembersData = data.members || []
+				const membersConverted: Member[] = teamMembersData
+					.filter((member: any) => member.userId !== userIdRef.current)
+					.map((member: any) => ({
+						id: member.userId,
+						firstname: member.firstname,
+						lastname: member.lastname,
+						picture: member.picture,
+						isSelected: false,
+					}))
+				setMembers(membersConverted)
+			}
+		}
+
+		const handleChannelMemberResponse = (data: any) => {
+			if (data.type !== "list") return
+			if (data.etat) {
+				const channelMembersData = data.members || []
+				setMembers((prevMembers) =>
+					prevMembers.map((member) => ({
+						...member,
+						isSelected: channelMembersData.some(
+							(channelMember: any) =>
+								channelMember.userId === member.id
+						),
+					}))
+				)
+			}
+		}
+
 		socket.on("channel_action_response", handleChannelActionResponse)
 		socket.on("team_member_response", handleTeamMemberResponse)
 		socket.on("channel_member_response", handleChannelMemberResponse)
+
+		return () => {
+			socket.off("channel_action_response", handleChannelActionResponse)
+			socket.off("team_member_response", handleTeamMemberResponse)
+			socket.off("channel_member_response", handleChannelMemberResponse)
+		}
+	}, [socket])
+
+	useEffect(() => {
+		if (!socket) return
 
 		setIsLoadingMembers(true)
 		socket.send("team_member", { type: "list", teamId: team.id })
@@ -128,20 +141,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 			setIsPublic(true)
 			setIsEditing(false)
 		}
-
-		return () => {
-			socket.off("channel_action_response", handleChannelActionResponse)
-			socket.off("team_member_response", handleTeamMemberResponse)
-			socket.off("channel_member_response", handleChannelMemberResponse)
-		}
-	}, [
-		socket,
-		channelToEdit?.id,
-		team.id,
-		handleChannelActionResponse,
-		handleTeamMemberResponse,
-		handleChannelMemberResponse,
-	])
+	}, [socket, channelToEdit?.id, team.id])
 
 	const handleSubmit = (e: FormEvent) => {
 		e.preventDefault()

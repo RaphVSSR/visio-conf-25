@@ -1,0 +1,43 @@
+@use "../../../scss/global.scss" as *;
+
+.listItem {
+	--listItem-accent: #{$bg-divider};
+
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	padding: 20px 28px;
+	background-color: $bg-white;
+	border: 1px solid $bg-divider;
+	border-left: 8px solid var(--listItem-accent);
+	border-radius: 16px;
+	transition: background-color 160ms ease, box-shadow 160ms ease;
+
+	.itemMain {
+		@extend %flex-col;
+		flex: 1;
+		min-width: 0;
+		gap: 4px;
+	}
+
+	.itemMeta {
+		@extend %flex-row-centered;
+		gap: 18px;
+		color: $text-subtle;
+		font-size: 14px;
+	}
+
+	.itemActions {
+		@extend %flex-row-centered;
+		gap: 12px;
+	}
+
+	&--interactive {
+		cursor: pointer;
+
+		&:hover {
+			background-color: $bg-hover;
+			box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+		}
+	}
+}
