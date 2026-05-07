@@ -18,6 +18,36 @@ export default class MessageClientAdapter {
 			transports: ["websocket", "polling"]
 		})
 
+		this.socket.on("connect", () => {
+			console.log("[socket] connected", {
+				id: this.socket.id,
+				transport: this.socket.io.engine.transport.name,
+				url,
+			})
+		})
+
+		this.socket.on("connect_error", (err: any) => {
+			console.error("[socket] connect_error", {
+				message: err?.message,
+				description: err?.description,
+				context: err?.context,
+				type: err?.type,
+				url,
+			})
+		})
+
+		this.socket.on("disconnect", (reason) => {
+			console.warn("[socket] disconnect", { reason })
+		})
+
+		this.socket.io.on("reconnect_attempt", (attempt) => {
+			console.warn("[socket] reconnect_attempt", { attempt })
+		})
+
+		this.socket.io.engine.on("upgrade", (transport) => {
+			console.log("[socket] upgraded transport", { transport: transport.name })
+		})
+
 		this.socket.on("message", (raw: string) => {
 			const parsed = JSON.parse(raw)
 			const action = Object.keys(parsed)[0]
