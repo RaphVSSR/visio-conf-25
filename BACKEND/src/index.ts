@@ -55,7 +55,10 @@ try {
 		cors: {
 			origin: [
 				process.env.FRONTEND_URL || "http://localhost:3000",
+				"https://dev.visioconf.xyz",
+				"https://visioconf.xyz",
 				"http://127.0.0.1:3000",
+				"http://localhost:3000",
 				"http://localhost:3001",
 			],
 			methods: ["GET", "POST"],
