@@ -64,9 +64,10 @@ try {
 			methods: ["GET", "POST"],
 			credentials: true,
 		},
+		allowEIO3: true,
 	})
 	SessionManager.bindToServer(socketServer)
-	// socketServer.engine.use(RestService.sessionMiddleware)
+	socketServer.engine.use(RestService.sessionMiddleware)
 
 	const controleur = new Controleur()
 	new CanalSocketIO(socketServer, controleur, "canalsocketio")
