@@ -31,7 +31,7 @@ function registerServices(controleur: any, io: any) {
 	new CallSignaling(controleur, "CallSignaling").register()
 	new ContactsService(controleur, "ContactsService").register()
 	new ChatService(controleur, "ChatService").register()
-	new FilesService(controleur, io, "FilesService").register()
+	new FilesService(controleur, "FilesService").register()
 }
 
 try {
@@ -50,6 +50,21 @@ try {
 
 	const expressApp = await RestService.implement()
 	HTTPServer.createFromExpress(expressApp)
+
+<<<<<<< HEAD
+    const socketServer = new Server(HTTPServer.server, {
+        cors: {
+            origin: (origin, callback) => {
+                if (RestService.isOriginAllowed(origin)) {
+                    callback(null, true)
+                } else {
+                    callback(new Error("Not allowed by CORS"))
+                }
+            },
+            methods: ["GET", "POST"],
+            credentials: true,
+        }
+    })
 
     const socketServer = new Server(HTTPServer.server, {
         cors: {
