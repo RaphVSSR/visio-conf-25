@@ -1,18 +1,20 @@
 import { Drama, ListChecks, MessagesSquare, PhoneCall, UserRound, UsersRound } from "lucide-react";
 import { FC, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./AdminPanel.scss"
 import { AdminTabPanel } from "components";
 
 export const AdminPanel: FC = () => {
 
     const [tabSelected, setTabSelected] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     const tabs = [
         {
 			name : "Utilisateurs",
 			icon : <UsersRound size={60}/>,
 			modifier : "users",
-			click : () => setTabSelected("Utilisateurs")
+			click : () => navigate("/users")
 		},
         {
 			name : "Rôles",
