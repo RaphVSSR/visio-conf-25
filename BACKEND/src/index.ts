@@ -31,7 +31,7 @@ function registerServices(controleur: any, io: any) {
 	new CallSignaling(controleur, "CallSignaling").register()
 	new ContactsService(controleur, "ContactsService").register()
 	new ChatService(controleur, "ChatService").register()
-	new FilesService(controleur, io, "FilesService").register()
+	new FilesService(controleur, "FilesService").register()
 }
 
 try {

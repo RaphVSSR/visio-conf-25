@@ -120,27 +120,46 @@ export const Directory: FC = () => {
           </div>
         </header>
 
-        {/* Current User Profile Shortcut */}
+        {/* Profile Banner Section */}
         {currentUser && !searchTerm && (
-          <section className="myProfileSection">
-            <Card className="myProfileCard">
-              <div className="profileIconLarge" style={{ background: getAbstractColor(currentUser._id || "me") }}>
-                <UserIcon size={40} color="white" />
-                <div className="onlineIndicator online" />
-              </div>
-              <div className="profileInfo">
-                <div className="profileMeta">
-                  <div className="nameWrapper">
-                    <h2 className="profileName">{currentUser.firstname} {currentUser.lastname}</h2>
-                    {currentUser.job && <span className="profileJob">{currentUser.job}</span>}
+          <section className="myProfileBanner">
+            <Card className="bannerCard" style={{ background: `linear-gradient(135deg, ${getAbstractColor(currentUser._id || "1")}11, ${getAbstractColor(currentUser._id || "2")}22)` }}>
+              <div className="bannerContent">
+                <div className="profileIdentity">
+                  <div className="profileAvatarWrapper">
+                    <div className="profileIconLarge" style={{ background: getAbstractColor(currentUser._id || "me") }}>
+                      <UserIcon size={40} color="white" />
+                      <div className={`statusIndicator ${currentUser.is_online ? 'online' : 'offline'}`} />
+                    </div>
                   </div>
-                  <span className={`roleBadge ${getRoleBadgeClass(currentUser.roles)}`}>
-                    {getRoleLabel(currentUser.roles)} (Moi)
-                  </span>
+                  
+                  <div className="profileText">
+                    <div className="nameRow">
+                      <h2 className="profileName">{currentUser.firstname} {currentUser.lastname}</h2>
+                    </div>
+                    
+                    <div className="infoRow">
+                      {currentUser.job && <span className="profileJob">{currentUser.job}</span>}
+                      {currentUser.job && currentUser.desc && <span className="separator">•</span>}
+                      <p className="profileBio">
+                        {currentUser.desc || "Aucune description de profil"}
+                      </p>
+                    </div>
+
+                    <div className="bannerFooter">
+                      <span className={`roleBadge ${getRoleBadgeClass(currentUser.roles)}`}>
+                        {getRoleLabel(currentUser.roles)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <p className="profileBio">{currentUser.desc || "Aucune description"}</p>
+
+                <div className="bannerActions">
+                  <button className="manageProfileBtn" onClick={() => navigate('/profile')}>
+                    Gérer mon profil
+                  </button>
+                </div>
               </div>
-              <button className="manageProfileBtn" onClick={() => navigate('/profile')}>Gérer mon profil</button>
             </Card>
           </section>
         )}
