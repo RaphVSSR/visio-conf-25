@@ -15,7 +15,7 @@ export default class MessageClientAdapter {
 			autoConnect: true, 
 			reconnection: true, 
 			withCredentials: true,
-			transports: ["websocket", "polling"]
+			transports: ["polling", "websocket"]
 		})
 
 		this.socket.on("connect", () => {
@@ -36,15 +36,15 @@ export default class MessageClientAdapter {
 			})
 		})
 
-		this.socket.on("disconnect", (reason) => {
+		this.socket.on("disconnect", (reason: string) => {
 			console.warn("[socket] disconnect", { reason })
 		})
 
-		this.socket.io.on("reconnect_attempt", (attempt) => {
+		this.socket.io.on("reconnect_attempt", (attempt: number) => {
 			console.warn("[socket] reconnect_attempt", { attempt })
 		})
 
-		this.socket.io.engine.on("upgrade", (transport) => {
+		this.socket.io.engine.on("upgrade", (transport: { name: string }) => {
 			console.log("[socket] upgraded transport", { transport: transport.name })
 		})
 

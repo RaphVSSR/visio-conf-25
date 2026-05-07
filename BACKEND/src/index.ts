@@ -51,33 +51,18 @@ try {
 	const expressApp = await RestService.implement()
 	HTTPServer.createFromExpress(expressApp)
 
-    const socketServer = new Server(HTTPServer.server, {
-        cors: {
-            origin: (origin, callback) => {
-                if (RestService.isOriginAllowed(origin)) {
-                    callback(null, true)
-                } else {
-                    callback(new Error("Not allowed by CORS"))
-                }
-            },
-            methods: ["GET", "POST"],
-            credentials: true,
-        }
-    })
-
-    const socketServer = new Server(HTTPServer.server, {
-        cors: {
-            origin: (origin, callback) => {
-                if (RestService.isOriginAllowed(origin)) {
-                    callback(null, true)
-                } else {
-                    callback(new Error("Not allowed by CORS"))
-                }
-            },
-            methods: ["GET", "POST"],
-            credentials: true,
-        }
-    })
+	const socketServer = new Server(HTTPServer.server, {
+		cors: {
+			origin: [
+				process.env.FRONTEND_URL || "http://localhost:3000",
+				"https://dev.visioconf.xyz",
+				"http://127.0.0.1:3000",
+				"http://localhost:3001",
+			],
+			methods: ["GET", "POST"],
+			credentials: true,
+		},
+	})
 	SessionManager.bindToServer(socketServer)
 	socketServer.engine.use(RestService.sessionMiddleware)
 
