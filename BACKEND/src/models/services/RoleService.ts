@@ -1,4 +1,6 @@
 import { getMessagesByDomain } from "../ListeMessages.ts"
+import mongoose from "mongoose"
+import Permission from "../Permission.ts"
 import Role from "../Role.ts"
 import AccessRoleGuard from "./AccessRoleGuard.ts"
 
@@ -24,6 +26,20 @@ export default class RoleService {
 		this.controleur.envoie(this, { [messageName]: payload, id: ids })
 	}
 
+	private async sanitizePermissionIds(permissionIds: unknown[] = []) {
+		const validIds = permissionIds
+			.filter((permissionId): permissionId is string => typeof permissionId === "string")
+			.filter(permissionId => mongoose.Types.ObjectId.isValid(permissionId))
+
+		if (validIds.length === 0) return []
+
+		const permissions = await Permission.model
+			.find({ _id: { $in: validIds } }, { _id: 1 })
+			.lean()
+
+		return permissions.map(permission => permission._id)
+	}
+
 	traitementMessage(msg: any) {
 		const action = Object.keys(msg).find(prop => prop !== "id")
 		if (!action) return
@@ -43,7 +59,10 @@ export default class RoleService {
 
 	private handleGetRoles = async (socketId: string) => {
 		try {
-			const roles = await Role.model.find().lean()
+			const roles = await Role.model
+				.find()
+				.populate("permissions", "_id label uuid default")
+				.lean()
 			this.send(socketId, "roles", roles)
 		} catch (err) {
 			console.error("INFO (" + this.nomDInstance + "): erreur get_roles", err)
@@ -52,7 +71,10 @@ export default class RoleService {
 
 	private handleGetRole = async (socketId: string, payload: { role_id: string }) => {
 		try {
-			const role = await Role.model.findOne({ _id: payload.role_id }).lean()
+			const role = await Role.model
+				.findOne({ _id: payload.role_id })
+				.populate("permissions", "_id label uuid default")
+				.lean()
 			this.send(socketId, "role", role)
 		} catch (err) {
 			console.error("INFO (" + this.nomDInstance + "): erreur get_role", err)
@@ -66,10 +88,11 @@ export default class RoleService {
 
 			const existing = await Role.model.findOne({ label: payload.name })
 			if (existing == null) {
+				const permissions = await this.sanitizePermissionIds(payload.perms)
 				const newRole = new Role.model({
 					uuid: payload.name.toLowerCase().replace(/ /g, "_"),
 					label: payload.name,
-					permissions: payload.perms || [],
+					permissions,
 					default: false,
 				})
 				const r = await newRole.save()
@@ -93,7 +116,7 @@ export default class RoleService {
 				updateData.label = payload.name
 				updateData.uuid = payload.name.toLowerCase().replace(/ /g, "_")
 			}
-			if (payload.perms) updateData.permissions = payload.perms
+			if (payload.perms) updateData.permissions = await this.sanitizePermissionIds(payload.perms)
 
 			await Role.model.updateOne({ _id: payload.role_id }, { $set: updateData })
 			this.send(socketId, "role_updating_status", { success: true })
