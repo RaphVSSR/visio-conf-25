@@ -1,0 +1,74 @@
+.usersListCard {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+    padding: 24px;
+  }
+  
+  .usersEmpty {
+    margin: 0;
+    color: #64748b;
+  }
+  
+  .usersList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .userRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+  
+  .userInfo {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  
+  .userName {
+    margin: 0;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  
+  .userMeta {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 0.9rem;
+    word-break: break-word;
+  }
+  
+  .userActions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  
+  @media (max-width: 900px) {
+    .usersListCard {
+      padding: 18px;
+      border-radius: 14px;
+    }
+  
+    .userRow {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .userActions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }

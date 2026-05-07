@@ -17,8 +17,8 @@ const MessageRegistry: Record<string, MessageDomain> = {
 	},
 
 	user: {
-		emitted: ["user_get", "user_update"],
-		received: ["user_get_response", "user_update_response"],
+		emitted: ["edit_user_request"],
+		received: ["edit_user_answer"],
 	},
 
 	team: {
@@ -46,6 +46,10 @@ const MessageRegistry: Record<string, MessageDomain> = {
 	contacts: {
 		emitted: ["contacts:list"],
 		received: ["contacts:list:response"],
+	},
+	chat: {
+		emitted: ["chat_operation", "message_operation"],
+		received: ["chat_operation_result", "message_operation_result"],
 	},
 	files: {
 		emitted: [

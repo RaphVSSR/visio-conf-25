@@ -17,6 +17,7 @@ import TeamService from "./models/services/TeamService.ts"
 import UserService from "./models/services/UserService.ts"
 import CallSignaling from "./models/services/CallSignaling.ts"
 import ContactsService from "./models/services/ContactsService.ts"
+import ChatService from "./models/services/ChatService.ts"
 import FilesService from "./models/services/FilesService.ts"
 
 dotenv.config()
@@ -29,6 +30,7 @@ function registerServices(controleur: any, io: any) {
 	new UserService(controleur, "UserService").register()
 	new CallSignaling(controleur, "CallSignaling").register()
 	new ContactsService(controleur, "ContactsService").register()
+	new ChatService(controleur, "ChatService").register()
 	new FilesService(controleur, io, "FilesService").register()
 }
 
@@ -51,13 +53,7 @@ try {
 
 	const socketServer = new Server(HTTPServer.server, {
 		cors: {
-			origin: (origin, callback) => {
-				if (RestService.isOriginAllowed(origin)) {
-					callback(null, true)
-				} else {
-					callback(new Error("Not allowed by CORS"))
-				}
-			},
+			origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"],
 			methods: ["GET", "POST"],
 			credentials: true,
 		}

@@ -201,10 +201,6 @@ $rm-text-light: #6b7280;
 		gap: 16px;
 		max-width: 480px;
 
-		&--wide {
-			max-width: 100%;
-		}
-
 		&__label {
 			@extend %flex-col;
 			gap: 6px;
@@ -229,91 +225,6 @@ $rm-text-light: #6b7280;
 		&__buttons {
 			display: flex;
 			gap: 10px;
-		}
-	}
-
-	.rm-permissionSelector {
-		@extend %flex-col;
-		gap: 12px;
-		padding: 14px;
-		border: 1px solid $rm-border;
-		border-radius: 12px;
-		background: $rm-bg;
-
-		&__header {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: 12px;
-
-			h4 {
-				color: $rm-text;
-				font-size: 14px;
-				font-weight: 800;
-			}
-
-			span {
-				color: $rm-text-light;
-				font-size: 12px;
-				font-weight: 700;
-			}
-		}
-
-		&__grid {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-			gap: 10px;
-			max-height: 280px;
-			overflow-y: auto;
-			padding-right: 4px;
-		}
-	}
-
-	.rm-permissionChoice {
-		display: flex;
-		align-items: flex-start;
-		gap: 10px;
-		padding: 10px;
-		border: 1px solid $rm-border;
-		border-radius: 10px;
-		background: white;
-		cursor: pointer;
-		transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
-
-		&:hover {
-			border-color: rgba(99, 179, 103, 0.45);
-			box-shadow: 0 6px 14px rgba(31, 41, 55, 0.06);
-		}
-
-		&--checked {
-			border-color: $rm-primary;
-			background: #f0fdf4;
-		}
-
-		input {
-			margin-top: 3px;
-			accent-color: $rm-primary;
-		}
-
-		span {
-			@extend %flex-col;
-			gap: 3px;
-			min-width: 0;
-		}
-
-		strong {
-			color: $rm-text;
-			font-size: 13px;
-			line-height: 1.25;
-		}
-
-		small {
-			overflow: hidden;
-			color: $rm-text-light;
-			font-family: monospace;
-			font-size: 11px;
-			text-overflow: ellipsis;
-			white-space: nowrap;
 		}
 	}
 

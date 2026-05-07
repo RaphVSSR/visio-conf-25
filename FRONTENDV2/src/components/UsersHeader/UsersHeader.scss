@@ -1,0 +1,92 @@
+.usersHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  
+  .usersHeaderActions {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: 1 1 320px;
+  }
+  
+  .usersPageTitle {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1e293b;
+  }
+  
+  .usersSubtitle {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-weight: 500;
+  }
+  
+  .usersSearchInput {
+    min-width: 280px;
+    max-width: 380px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #fff;
+    font: inherit;
+    color: #0f172a;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+  }
+  
+  .usersSearchInput::placeholder {
+    color: #94a3b8;
+  }
+  
+  .usersSearchInput:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+  
+  .usersHeaderActions .btnPrimary {
+    min-height: 44px;
+    padding: 10px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+  }
+  
+  @media (max-width: 640px) {
+    .usersHeader {
+      align-items: stretch;
+    }
+  
+    .usersHeaderActions {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: stretch;
+    }
+  
+    .usersSearchInput {
+      min-width: 0;
+      max-width: none;
+      width: 100%;
+    }
+  
+    .usersHeaderActions .btnPrimary {
+      width: 100%;
+    }
+  
+    .usersPageTitle {
+      font-size: 1.6rem;
+    }
+  }

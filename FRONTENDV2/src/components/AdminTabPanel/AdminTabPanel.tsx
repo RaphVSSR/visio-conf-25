@@ -2,7 +2,6 @@ import React, { Dispatch, FC, SetStateAction, useState } from 'react'
 import "./AdminTabPanel.scss";
 import { Drama, ListChecks, LucideIcon, MessagesSquare, UsersRound, X } from 'lucide-react';
 import { RoleManagement } from 'components/RoleManagement/RoleManagement';
-import { PermissionsManager } from "components/PermissionsManager/PermissionsManager";
 
 export type AdminTabType = {
 
@@ -135,20 +134,18 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 				</div>
 
 			</div>
-			{tabSelected !== "Permissions" && (
-				<ul id="tabOptions">
-					{tabDataSelected.subOption.map((option, index) =>
+			<ul id="tabOptions">
+				{tabDataSelected.subOption.map((option, index) =>
 
-						<li
-							key={index}
-							className={`option ${subOptionSelected === option.label ? "option--active" : ""}`}
-							onClick={() => setSubOptionSelected(option.label)}
-						>
-							<p className="optionLabel">{option.label}</p>
-						</li>
-					)}
-				</ul>
-			)}
+					<li
+						key={index}
+						className={`option ${subOptionSelected === option.label ? "option--active" : ""}`}
+						onClick={() => setSubOptionSelected(option.label)}
+					>
+						<p className="optionLabel">{option.label}</p>
+					</li>
+				)}
+			</ul>
 
 
 		</section>
@@ -156,9 +153,6 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 		<section id="tabContent">
 			{tabSelected === "Rôles" && (
 				<RoleManagement activeAction={subOptionSelected} />
-			)}
-			{tabSelected === "Permissions" && (
-				<PermissionsManager />
 			)}
 		</section>
 	</section>

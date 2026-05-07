@@ -6,7 +6,6 @@ import session from "express-session"
 import ConnectMongoDBSession from "connect-mongodb-session"
 import cors from "cors"
 import AuthRoutes from "../../routes/AuthRoutes.ts"
-import PermissionRoutes from "../../routes/PermissionRoutes.ts"
 import TracedError from "../core/TracedError.ts";
 import SessionManager from "./authentication/SessionManager.ts";
 
@@ -20,34 +19,6 @@ export default class RestService {
 
 	private static server: Express = express();
 	static sessionMiddleware: RequestHandler;
-
-	private static getAllowedOrigins() {
-		const configuredOrigins = (process.env.FRONTEND_URL || "")
-			.split(",")
-			.map(origin => origin.trim())
-			.filter(Boolean)
-
-		const localOrigins = [
-			"http://localhost:3000",
-			"http://127.0.0.1:3000",
-			"http://localhost:3001",
-		]
-
-		return process.env.NODE_ENV === "prod" ? configuredOrigins : [...configuredOrigins, ...localOrigins]
-	}
-
-	static isOriginAllowed(origin?: string) {
-		if (!origin) return true
-
-		const allowedOrigins = this.getAllowedOrigins()
-		if (allowedOrigins.includes(origin)) return true
-
-		if (process.env.NODE_ENV !== "prod") {
-			return /^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)
-		}
-
-		return false
-	}
 
 	static async implement(){
 
@@ -91,7 +62,7 @@ export default class RestService {
 			cookie: {
 				maxAge: SessionManager.getSessionDurationMs(),
 				httpOnly: true,
-				sameSite: (process.env.SESSION_COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined) || (process.env.NODE_ENV === "prod" ? "none" : "lax"),
+				sameSite: "lax",
 				secure: process.env.NODE_ENV === "prod",
 			},
 		})
@@ -110,7 +81,12 @@ export default class RestService {
 				cors({
 
 					origin: (origin, callback) => {
-						if (this.isOriginAllowed(origin)) {
+						const allowedOrigins = [
+							process.env.FRONTEND_URL || "http://localhost:3000",
+							"http://127.0.0.1:3000",
+							"http://localhost:3001"
+						]
+						if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)) {
 							callback(null, true)
 						} else {
 							console.log(`CORS: Origin ${origin} not allowed`)
@@ -118,8 +94,8 @@ export default class RestService {
 						}
 					},
 					credentials: true,
-					methods: ["GET", "POST", "PUT", "DELETE"],
-					allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+					methods: ["GET", "POST"],
+					allowedHeaders: ["Content-Type", "Authorization"],
 
 				})
 			);
@@ -140,7 +116,6 @@ export default class RestService {
 			const coreRouter = Router();
 
 			coreRouter.use("/auth", AuthRoutes);
-			coreRouter.use("/permissions", PermissionRoutes);
 
 			this.server.use(process.env.API_BASE_PREFIX?.startsWith("/") ? process.env.API_BASE_PREFIX : "/", coreRouter);
 
