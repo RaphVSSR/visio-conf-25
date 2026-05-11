@@ -37,7 +37,7 @@ Aucune propriété persistante. Toutes les opérations sont statiques et sans é
 | `init` | — | `Promise<void>` | static | Point d'entrée. Enchaîne : connect → flushDb (conditionnel) → User.inject → Permission.inject → Role.inject → injectAdminUser → prepareProjectEnv. **En production** : `FLUSH_DB_ON_START` doit être `false`, seuls Permission.inject, Role.inject et injectAdminUser sont utiles au premier démarrage (seeding) |
 | `connect` | — | `Promise<void>` | `private static` | Connexion à MongoDB via `mongoose.connect()`. Utilise `MONGO_USER`/`MONGO_PASSWORD` si présents |
 | `flushDb` | — | `Promise<void>` | `private static` | **[DEV]** Vide toutes les collections et le répertoire d'upload. Ordre: Session → Folder → Role → Permission → Discussion → TeamMember → Team → ChannelPost → ChannelPostResponse → ChannelMember → Channel → User |
-| `injectAdminUser` | — | `Promise<void>` | `private static` | **[DEV+PROD]** Crée l'admin par défaut (`dev@visioconf.com` / `d3vV1s10C0nf`) avec le rôle admin, s'il n'existe pas déjà. En production, les credentials admin doivent être configurés dans `.env` |
+| `injectAdminUser` | — | `Promise<void>` | `private static` | **[DEV+PROD]** Crée l'admin par défaut avec le rôle admin s'il n'existe pas déjà. Les credentials sont chargés depuis l'environnement (`ADMIN_EMAIL` / `ADMIN_PASSWORD` dans `.env`) — ne jamais committer en clair |
 | `prepareProjectEnv` | — | `Promise<void>` | `private static` | Vérifie l'intégrité de l'environnement |
 | `verifyUploadsEnvIntegrity` | — | `void` | `private static` | Crée les répertoires `uploads/` et `uploads/files/` s'ils n'existent pas |
 | `disconnect` | — | `Promise<void>` | `private static` | Ferme la connexion MongoDB |

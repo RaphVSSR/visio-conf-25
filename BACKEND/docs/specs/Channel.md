@@ -145,41 +145,88 @@
 
 ## 5. Catalogue des messages associés
 
-### Client → Serveur (12 messages)
+Pattern consolidé : 4 messages C→S (`channel_get`, `channel_action`, `channel_member`, `channel_post`) avec champ `type` discriminant — 4 réponses S→C symétriques. Les réponses portent `type` (opération) + `etat` (`true`/`false`) + `error?` en cas d'échec.
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `channels_list_request` | `{ teamId: string }` | Demande les canaux d'une équipe |
-| `channel_create_request` | `{ teamId: string, name: string, isPublic?: boolean }` | Création d'un canal |
-| `channel_update_request` | `{ channelId: string, data: Partial<ChannelType> }` | Mise à jour d'un canal |
-| `channel_delete_request` | `{ channelId: string }` | Suppression d'un canal |
-| `channel_leave_request` | `{ channelId: string }` | Quitter un canal |
-| `channel_members_request` | `{ channelId: string }` | Demande la liste des membres d'un canal |
-| `channel_add_member_request` | `{ channelId: string, userId: string }` | Ajouter un membre à un canal |
-| `channel_remove_member_request` | `{ channelId: string, userId: string }` | Retirer un membre d'un canal |
-| `channel_posts_request` | `{ channelId: string }` | Demande les posts d'un canal |
-| `channel_post_create_request` | `{ channelId: string, content: string }` | Création d'un post |
-| `channel_post_responses_request` | `{ postId: string }` | Demande les réponses d'un post |
-| `channel_post_response_create_request` | `{ postId: string, content: string }` | Création d'une réponse |
+Service : `BACKEND/src/models/services/ChannelService.ts`. Domaine `channel` dans `ListeMessages.ts`. Le périmètre de diffusion dépend de `isPublic` :
+- Canal public → tous les sockets de l'équipe (via `TeamService.getTeamSocketIds`).
+- Canal privé → uniquement les sockets membres du canal (`ChannelService.getChannelSocketIds`).
 
-### Serveur → Client (12 messages)
+### Client → Serveur
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `channels_list_response` | `{ channels: Channel[] }` | Réponse avec les canaux |
-| `channel_create_response` | `{ channel: Channel }` | Confirmation de création |
-| `channel_update_response` | `{ channel: Channel }` | Confirmation de mise à jour |
-| `channel_delete_response` | `{ success: boolean }` | Confirmation de suppression |
-| `channel_leave_response` | `{ success: boolean }` | Confirmation de départ |
-| `channel_members_response` | `{ members: ChannelMember[] }` | Réponse avec les membres |
-| `channel_add_member_response` | `{ member: ChannelMember }` | Confirmation d'ajout |
-| `channel_remove_member_response` | `{ success: boolean }` | Confirmation de retrait |
-| `channel_posts_response` | `{ posts: ChannelPost[] }` | Réponse avec les posts |
-| `channel_post_create_response` | `{ post: ChannelPost }` | Confirmation de création |
-| `channel_post_responses_response` | `{ responses: ChannelPostResponse[] }` | Réponse avec les réponses |
-| `channel_post_response_create_response` | `{ response: ChannelPostResponse }` | Confirmation de création |
+| Message | `type` | Payload | Handler |
+|---------|--------|---------|---------|
+| `channel_get` | `list` | `{ teamId }` | `getChannels` (filtre la visibilité par membership pour les privés) |
+| `channel_get` | `single` | `{ channelId }` | `getChannel` |
+| `channel_action` | `create` | `{ teamId, name, isPublic, members?: string[] }` | `createChannel` (si public, attache tous les membres de l'équipe) |
+| `channel_action` | `update` | `{ channelId, name, isPublic, teamId, members?: string[] }` | `updateChannel` (admin uniquement, réconciliation membres) |
+| `channel_action` | `delete` | `{ channelId }` | `deleteChannel` (admin uniquement, cascade posts/responses/members) |
+| `channel_member` | `list` | `{ channelId }` | `getChannelMembers` (membres populés) |
+| `channel_member` | `add` | `{ channelId, userId }` | `addChannelMember` (admin uniquement) |
+| `channel_member` | `remove` | `{ channelId, userId }` | `removeChannelMember` (admin uniquement, refus si cible admin) |
+| `channel_member` | `leave` | `{ channelId }` | `leaveChannel` (refus si dernier admin) |
+| `channel_post` | `list` | `{ channelId }` | `getChannelPosts` (posts triés `createdAt` ASC, réponses incluses) |
+| `channel_post` | `user` | `{ channelId, userId }` | `getUserPost` (posts d'un utilisateur précis) |
+| `channel_post` | `publish` | `{ channelId, content }` | `publishPost` (membre uniquement) |
+| `channel_post` | `update` | `{ postId, content }` | `updatePost` (auteur uniquement) |
+| `channel_post` | `delete` | `{ postId }` | `deletePost` (auteur ou admin du canal) |
+| `channel_post` | `answer` | `{ postId, content }` | `answerPost` (membre, refus si auteur du post) |
 
-**Total : 12 client→serveur + 12 serveur→client = 24 messages**
+### Serveur → Client
+
+| Message | `type` | Payload (succès) | Diffusion |
+|---------|--------|------------------|-----------|
+| `channel_get_response` | `list` | `{ etat: true, channels: FormattedChannel[] }` | demandeur |
+| `channel_get_response` | `single` | `{ etat: true, channel: FormattedChannel }` | demandeur |
+| `channel_action_response` | `create` | `{ etat: true, channel }` | équipe (public) ou membres (privé) |
+| `channel_action_response` | `update` | `{ etat: true, channel }` | équipe ou membres |
+| `channel_action_response` | `delete` | `{ etat: true, channelId }` | équipe ou membres avant suppression |
+| `channel_member_response` | `list` | `{ etat: true, channelId, members: FormattedMember[] }` | demandeur |
+| `channel_member_response` | `add` | `{ etat: true, channelId, userId }` | membres du canal |
+| `channel_member_response` | `remove` | `{ etat: true, channelId, userId }` | membres restants + sockets de la cible |
+| `channel_member_response` | `leave` | `{ etat: true, channelId }` | demandeur |
+| `channel_post_response` | `list` | `{ etat: true, channelId, posts: FormattedPost[] }` | demandeur |
+| `channel_post_response` | `user` | `{ etat: true, posts: FormattedPost[] }` | demandeur |
+| `channel_post_response` | `publish` | `{ etat: true, post: FormattedPost }` | membres du canal |
+| `channel_post_response` | `update` | `{ etat: true, postId, channelId, content, updatedAt }` | membres du canal |
+| `channel_post_response` | `delete` | `{ etat: true, postId, channelId }` | membres du canal |
+| `channel_post_response` | `answer` | `{ etat: true, postId, response: FormattedResponse }` | membres du canal |
+
+Tous les échecs : `{ etat: false, type, error: <code> }`.
+
+### Codes d'erreur
+
+`not_authenticated`, `channel_not_found`, `post_not_found`, `not_a_member`, `already_a_member`, `admin_required`, `cannot_remove_admin`, `last_admin_cannot_leave`, `not_the_author`, `not_authorized`, `cannot_answer_own_post`.
+
+### Formats normalisés
+
+```ts
+type FormattedChannel = {
+    id: string, name: string, isPublic: boolean,
+    createdBy: string, createdAt: Date,
+}
+
+type FormattedMember = {
+    id: string, userId: string,
+    firstname?, lastname?, picture?,
+    role: "admin" | "member", joinedAt: Date,
+}
+
+type FormattedPost = {
+    id, channelId, content,
+    authorId, authorFirstname?, authorLastname?, authorPicture?,
+    createdAt, updatedAt,
+    responseCount: number,
+    responses: FormattedResponse[],
+}
+
+type FormattedResponse = {
+    id, postId, content,
+    authorId, authorFirstname?, authorLastname?, authorPicture?,
+    createdAt, updatedAt,
+}
+```
+
+**Total : 4 messages C→S × 15 dispatches + 4 messages S→C × 15 dispatches**
 
 ---
 
@@ -321,12 +368,12 @@ await response.save();
   "authorId": "ObjectId('u2...')", "createdAt": "2026-03-01T10:05:00.000Z" }
 ```
 
-### Message Socket.io — créer un post
+### Message Socket.io — publier un post
 
 ```typescript
 // Client
-{ id: socketId, channel_post_create_request: { channelId: "ch1...", content: "Hello tout le monde !" } }
+{ id: socketId, channel_post: { type: "publish", channelId: "ch1...", content: "Hello tout le monde !" } }
 
-// Serveur
-{ id: socketId, channel_post_create_response: { post: { channelId: "ch1...", content: "Hello tout le monde !", authorId: "u1...", responseCount: 0 } } }
+// Serveur (broadcast aux membres du canal)
+{ id: [s1, s2], channel_post_response: { type: "publish", etat: true, post: { id, channelId, content, authorId, responseCount: 0, responses: [] } } }
 ```

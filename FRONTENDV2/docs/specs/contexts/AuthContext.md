@@ -1,13 +1,16 @@
-# Référence du AuthContext — VisioConf
+# AuthContext — VisioConf (Frontend)
 
 **Fichier source** : `FRONTENDV2/src/contexts/AuthContext.tsx`
 **Type** : React Context Provider
+**Pendant logique** : `services/auth/AuthSync.ts` (voir `authentication/AuthSync.md`)
 
 ---
 
-## 1. Description
+## 1. À quoi ça sert
 
-`AuthContext` est le pont entre le service `AuthService` (logique métier pub/sub) et les composants React (UI). Le provider instancie le controleur, SocketIO, et AuthService au montage, expose le state d'authentification et les actions via React Context, et nettoie tout au démontage.
+Wrapper React minimal autour de `AuthSync`. Au montage, `AuthProvider` crée un `MessageClientAdapter` (transport Socket.io) et une instance `AuthSync` (handler des messages auth) ; il expose le `AuthState` + les actions à toute l'app via `AuthContext`. Au démontage, il détruit `AuthSync` et déconnecte le socket.
+
+Aucune logique métier ici : tout le pub/sub vit dans `AuthSync`. `AuthContext` n'est qu'un pont React ↔ service.
 
 ---
 
@@ -15,13 +18,12 @@
 
 | Export | Type | Description |
 |--------|------|-------------|
-| `AuthContext` | `Context<AuthContextType \| null>` | Le context React |
-| `AuthProvider` | `FC<PropsWithChildren>` | Le composant provider |
-| `AuthUser` | type (re-export) | Type utilisateur |
-| `PendingSessionRequest` | type (re-export) | Type demande multi-session |
-| `AuthState` | type (re-export) | Type state d'authentification |
-| `AuthActions` | type (re-export) | Type actions d'authentification |
-| `AuthContextType` | type (re-export) | Union AuthState & AuthActions |
+| `AuthContext` | `Context<AuthContextType \| null>` | Le React Context |
+| `AuthProvider` | `FC<PropsWithChildren>` | Provider à monter haut dans l'arbre |
+| `AuthUser` | type (re-export depuis `AuthSync.types`) | User exposé après authentification |
+| `AuthState` | type (re-export) | Forme du state d'auth |
+| `AuthActions` | type (re-export) | Actions exposées |
+| `AuthContextType` | type (re-export) | `AuthState & AuthActions & { socket }` |
 
 ---
 
@@ -31,37 +33,32 @@
 const INITIAL_STATE: AuthState = {
     user: null,
     isAuthenticated: false,
-    isLoading: true,          // true au démarrage (en attente de la vérification de session)
+    isLoading: true,
+    isRefreshing: false,
     expiresAt: null,
-    sessionId: null,
-    pendingLoginRequestId: null,
-    pendingSessionRequests: [],
     showExpiryWarning: false,
     loginRejected: false,
 }
 ```
 
+`isLoading: true` au démarrage : on attend la première réponse `authenticate_response` (envoyée automatiquement par `AuthSync` au boot).
+
 ---
 
 ## 4. Lifecycle du provider
 
-### Montage (useEffect)
+### Montage (`useEffect`)
 
 ```typescript
-1. new Controleur()                          // Crée le bus pub/sub
-2. controleur.verboseall = VERBOSE           // Configure le logging si REACT_APP_VERBOSE
-3. SocketIO.init(controleur)                 // Crée CanalSocketio + connexion Socket.io
-4. authRef.current = new AuthService(        // Crée le service d'auth inscrit au controleur
-       controleur, setState                  // setState = callback de mise à jour du state React
-   )
+1. new MessageClientAdapter(REACT_APP_BACKEND_API_URL)   // Socket.io + bus pub/sub
+2. authRef.current = new AuthSync(socket, setState)      // Inscrit les 3 handlers, envoie authenticate {}
 ```
 
 ### Démontage (cleanup)
 
 ```typescript
-1. authRef.current?.destroy()    // Désinscrit du controleur, clear timer
-2. authRef.current = null
-3. SocketIO.disconnect()         // Ferme le socket, reset SocketIO
+1. authRef.current?.destroy()    // Détache les handlers + clear timers
+2. socket.disconnect()           // Ferme la connexion Socket.io
 ```
 
 ---
@@ -70,52 +67,52 @@ const INITIAL_STATE: AuthState = {
 
 | Action | Paramètres | Description |
 |--------|------------|-------------|
-| `login` | `email: string, password: string` | Délègue à `AuthService.login()` |
-| `register` | `data: { password, firstname, lastname, email, phone }` | Délègue à `AuthService.register()` |
-| `logout` | — | Délègue à `AuthService.logout()` |
-| `refreshSession` | — | Délègue à `AuthService.refreshSession()` |
-| `respondToPendingSession` | `requestId: string, accepted: boolean` | Délègue à `AuthService.respondToPendingSession()` |
-| `dismissExpiryWarning` | — | `setState({ showExpiryWarning: false })` (action locale, pas de message serveur) |
+| `login` | `email : string, password : string` | Délègue à `AuthSync.login()` |
+| `register` | `{ password, firstname, lastname, email, phone }` | Délègue à `AuthSync.register()` |
+| `logout` | — | Délègue à `AuthSync.logout()` (`POST /auth/logout`) |
+| `refreshSession` | — | Délègue à `AuthSync.refreshSession()` (`POST /auth/refresh`) |
+| `dismissExpiryWarning` | — | Action **locale** : `setState({ showExpiryWarning: false })`, pas de message serveur |
 
 ---
 
-## 6. Variables d'environnement
+## 6. Messages
 
-| Nom | Type | Description |
-|-----|------|-------------|
-| `REACT_APP_VERBOSE` | `"true" \| "false"` | Active le logging du controleur |
-| `REACT_APP_VERBOSE_LVL` | `string (number)` | Niveau de verbosité (≥3 pour `verboseall`) |
+`AuthContext` ne traite **aucun message** directement — c'est `AuthSync` qui s'occupe du pub/sub. Voir `authentication/AuthSync.md` pour le catalogue complet (`login` / `register` / `authenticate` + `_response`).
 
 ---
 
-## 7. Relations avec autres classes
+## 7. Variables d'environnement
 
-| Classe | Relation | Description |
-|--------|----------|-------------|
-| `AuthService` | AuthContext crée et détruit AuthService | Service métier inscrit au controleur |
-| `SocketIO` | AuthContext initialise et déconnecte SocketIO | Singleton Socket.io |
-| `Controleur` | AuthContext crée l'instance (JS) | Bus pub/sub partagé |
-| `useAuth` | Hook d'accès au AuthContext | Expose `AuthContextType` aux composants |
+| Nom | Défaut | Description |
+|-----|--------|-------------|
+| `REACT_APP_BACKEND_API_URL` | `http://localhost:3220` | URL passée à `MessageClientAdapter` |
 
 ---
 
-## 8. Exemples
+## 8. Relations
 
-### Utilisation dans un composant
+| Composant | Relation |
+|-----------|----------|
+| `AuthSync` | Instancié par `AuthProvider` ; reçoit `setState` comme callback |
+| `MessageClientAdapter` | Créé par `AuthProvider`, détruit au cleanup |
+| `useAuth` | Hook qui consomme `AuthContext` (vérifie le provider) |
+| `LoginForm` / `SignupForm` / `AuthToasts` / `Dashboard` / … | Lisent le state + appellent les actions via `useAuth()` |
 
-```typescript
-const { user, isAuthenticated, login, logout } = useAuth()
+---
 
-if (!isAuthenticated) login("dev@visioconf.com", "d3vV1s10C0nf")
-```
-
-### Montage dans App.tsx
+## 9. Exemples
 
 ```tsx
+// App.tsx
 <AuthProvider>
     <ToastProvider>
         <BrowserRouter>...</BrowserRouter>
         <AuthToasts />
     </ToastProvider>
 </AuthProvider>
+
+// Dans un composant
+const { user, isAuthenticated, login, logout } = useAuth()
+
+if (!isAuthenticated) login(email, password) // credentials saisis par l'utilisateur
 ```

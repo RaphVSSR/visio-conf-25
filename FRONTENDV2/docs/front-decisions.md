@@ -1,6 +1,6 @@
 # Décisions Frontend — VisioConf
 
-FAQ structurelle du frontend. Chaque entrée suit : question → doute → solution → pourquoi.
+FAQ structurelle. Chaque entrée : question → doute → solution → pourquoi.
 
 ---
 
@@ -8,134 +8,112 @@ FAQ structurelle du frontend. Chaque entrée suit : question → doute → solut
 
 ## Pourquoi cette arborescence frontend ?
 
-**Point de départ : c'est la View du MVC.** Le frontend est la couche de présentation — il lit et affiche les données fournies par le serveur via le bus pub/sub. Il ne prend aucune décision « supérieure ». Le serveur décide, le frontend réagit.
+**Point de départ : c'est la View du MVC.** Le frontend lit et affiche les données fournies par le serveur via le bus pub/sub. Il ne prend aucune décision « supérieure » — le serveur décide, le frontend réagit.
 
-**Le controleur.js est partagé.** Le même bus pub/sub tourne côté backend et côté frontend. Les services frontend s'inscrivent au controleur exactement comme les services backend — via `inscription()`, `envoie()`, `traitementMessage()`.
-
-**Conséquence sur les dossiers :** La structure reflète une séparation par responsabilité :
-- `controller/` = le bus pub/sub (off-limits) + types TS + classe abstraite
-- `services/` = les services métier inscrits au controleur (AuthService)
-- `contexts/` = les React Context providers (pont entre services et composants)
-- `hooks/` = les hooks d'accès aux contexts
-- `components/` = les composants UI réutilisables
-- `pages/` = les composants page (1 page = 1 route)
-- `design-system/` = les composants UI primitifs (Button, Card, Toast, etc.)
-- `routing/` = les gardes de route (auth, admin)
-- `core/` = le point d'entrée de l'app (App.tsx)
+**Le `controleur.js` est partagé.** Le même bus pub/sub tourne côté backend et frontend (fichier identique). Les services frontend s'inscrivent au controleur exactement comme les services backend.
 
 ```
 src/
 ├── index.tsx                            ← Point d'entrée React
-├── core/
-│   └── App.tsx                          ← Composant racine, routing, providers
-├── controller/                          ← Bus pub/sub (OFF-LIMITS)
+├── Core/                                ← Composant racine
+│   └── App.tsx                          ← Routing + providers
+├── Controller/                          ← Bus pub/sub (OFF-LIMITS)
 │   ├── controleur.js                    ← Bus de messages (OFF-LIMITS)
 │   ├── canalsocketio.js                 ← Pont Socket.io ↔ controleur (OFF-LIMITS)
-│   ├── Controller.service.ts            ← Classe abstraite ControllerService
-│   └── Controller.types.ts              ← Types TS du controleur
-├── services/                            ← Services métier inscrits au controleur
-│   ├── SocketIO.ts                      ← Singleton Socket.io client
-│   └── auth/
-│       ├── AuthService.ts               ← Service d'auth (messages + state)
-│       └── AuthService.types.ts         ← Types auth
+│   ├── controleur.d.ts                  ← Types TS du bus
+│   └── canalsocketio.d.ts               ← Types TS du pont
+├── services/                            ← Services métier + transport
+│   ├── MessageClientAdapter.ts          ← Wrapper Socket.io + auto-inscription au bus
+│   ├── auth/
+│   │   ├── AuthSync.ts                  ← Handler auth (login/register/authenticate + timers)
+│   │   └── AuthSync.types.ts            ← Types AuthState, AuthUser, AuthActions
+│   └── chat/                            ← Services chat
 ├── contexts/                            ← React Context providers
-│   ├── AuthContext.tsx                   ← Provider d'authentification
-│   └── ToastContext.tsx                  ← Provider de notifications toast
+│   ├── AuthContext.tsx                  ← Provider d'authentification (wrap AuthSync)
+│   ├── ToastContext.tsx                 ← Provider de notifications toast
+│   └── call/                            ← Provider visioconf
 ├── hooks/                               ← Custom hooks d'accès aux contexts
-│   └── useAuth.ts                       ← Hook useAuth()
-├── components/                          ← Composants UI réutilisables
-│   ├── LoginForm/
-│   ├── SignupForm/
-│   ├── Dashboard/
-│   ├── AdminTabPanel/
-│   ├── SessionExpiryModal/
-│   ├── AuthToasts/
-│   └── index.ts
-├── pages/                               ← Composants page (1 page = 1 route)
-│   ├── Home/
-│   ├── Login/
-│   ├── Signup/
-│   ├── AdminPanel/
-│   └── index.ts
-├── design-system/                       ← Primitifs UI
-│   ├── components/
-│   │   ├── Button/
-│   │   ├── Card/
-│   │   ├── Toast/
-│   │   ├── SearchBar/
-│   │   ├── LucideIcons/
-│   │   └── index.ts
-│   └── scss/
-│       ├── _colors.scss
-│       └── global.scss
-└── routing/                             ← Gardes de route
-    ├── UserAuth.tsx
-    └── AdminAuth.tsx
+├── components/                          ← Composants applicatifs
+│   ├── LoginForm/, SignupForm/
+│   ├── Dashboard/, AdminTabPanel/
+│   └── AuthToasts/                      ← Toasts d'évènements auth
+├── pages/                               ← Une page = une route
+├── design-system/                       ← Primitifs UI (Button, Card, Toast, …)
+└── routing/                             ← Gardes de route (UserAuth, AdminAuth)
 ```
 
 **Pourquoi chaque dossier existe :**
 
 | Dossier | Raison d'être |
 |---------|---------------|
-| `core/` | Le composant racine `App.tsx` qui monte les providers, le router, et les routes. C'est le seul fichier qui a une vue d'ensemble de l'app. |
-| `controller/` | Le bus pub/sub partagé avec le backend. `controleur.js` et `canalsocketio.js` sont off-limits. Les types TS et la classe abstraite `ControllerService` s'ajoutent par-dessus sans toucher au JS. |
-| `services/` | Les services métier inscrits au controleur. Un service écoute et émet des messages, gère du state, et expose des méthodes publiques. C'est le miroir frontend des services backend. |
-| `contexts/` | Le pont entre les services (logique métier) et les composants React (UI). Un context provider instancie un service et expose son state + actions via React Context. |
-| `hooks/` | Les custom hooks qui encapsulent `useContext()` avec le bon typage et la vérification de provider. |
-| `components/` | Les composants UI qui consomment les contexts et affichent les données. Chaque composant est dans son dossier avec son `.tsx` et `.scss`. |
-| `pages/` | Les composants de niveau page, mappés 1:1 avec les routes. Une page compose des composants et peut avoir sa propre logique d'affichage. |
-| `design-system/` | Les primitifs UI réutilisables partout dans l'app. Indépendants de la logique métier — pas de dépendance aux services ou contexts. |
-| `routing/` | Les gardes de route (route guards). Vérifient l'état d'auth et redirigent si nécessaire. Utilisent `Outlet` de react-router-dom pour le rendu conditionnel. |
+| `Core/` | Composant racine (`App.tsx`) qui monte les providers, le router, les routes. Seul fichier avec une vue d'ensemble. |
+| `Controller/` | Bus pub/sub partagé avec le backend. `controleur.js` et `canalsocketio.js` sont **off-limits**. Les types TS s'ajoutent par-dessus sans toucher au JS. |
+| `services/` | Services métier inscrits au bus. `MessageClientAdapter` est l'adaptateur transport (Socket.io + inscription au controleur). Un service écoute/émet des messages, gère du state, expose des méthodes. |
+| `contexts/` | Pont entre les services et React. Un provider instancie un service et expose son state + actions. Aucune logique métier ici. |
+| `hooks/` | `useContext()` typé + vérification de provider. |
+| `components/` | Composants applicatifs qui consomment les contexts. Spécifiques à VisioConf. |
+| `pages/` | Composants de niveau page, mappés 1:1 avec les routes. |
+| `design-system/` | Primitifs UI (Button, Card, Toast, …) sans dépendance métier — réutilisables ailleurs. |
+| `routing/` | Gardes de route (`UserAuth`, `AdminAuth`). Utilisent `Outlet` de react-router-dom. |
+
+---
+
+## Pourquoi `controleur.js` et `canalsocketio.js` sont intouchables ?
+
+C'est le cœur du pattern pub/sub, **partagé symétriquement** avec le backend (même fichier). Modifier ici casserait la symétrie. Toute adaptation (typage TS, wrappers, services) se fait par-dessus.
 
 ---
 
 ## Pourquoi un design system séparé des composants ?
 
-**Constat :** Les composants comme `Button`, `Card`, `Toast` sont des primitifs UI purs — ils ne dépendent d'aucun context, d'aucun service, d'aucune logique métier. Les composants comme `LoginForm`, `Dashboard` dépendent du context d'auth.
+**Constat :** `Button`, `Card`, `Toast` sont purs — aucune dépendance context/service/métier. `LoginForm`, `Dashboard` dépendent du context d'auth.
 
-**Solution :** Deux niveaux de composants :
-- `design-system/components/` = primitifs (Button, Card, Toast, SearchBar, LucideIcons). Aucune dépendance métier. Peuvent être réutilisés dans n'importe quel projet.
-- `components/` = composants applicatifs qui consomment les contexts et composent les primitifs. Spécifiques à VisioConf.
-
-**Avantage :** Le design system peut évoluer indépendamment de la logique métier. Les primitifs sont testables en isolation.
+**Solution :** Deux niveaux :
+- `design-system/components/` — primitifs réutilisables ailleurs.
+- `components/` — composants applicatifs qui composent les primitifs et consomment les contexts.
 
 ---
 
-## Pourquoi un service AuthService séparé du AuthContext ?
+## Pourquoi un service `AuthSync` séparé du `AuthContext` ?
 
-**Doute initial :** Pourquoi ne pas mettre toute la logique d'auth directement dans le AuthContext ?
+**Doute initial :** Pourquoi pas toute la logique d'auth dans `AuthContext` ?
 
 **Réflexion :**
-- Le AuthContext est un composant React — il suit le lifecycle React (mount, unmount, re-render)
-- Le AuthService est un service inscrit au controleur — il suit le lifecycle du bus pub/sub (inscription, traitementMessage, désinscription)
-- Mélanger les deux rend le code fragile : les callbacks de messages arrivent en dehors du render cycle de React
+- `AuthContext` suit le lifecycle React (mount, unmount, re-render).
+- `AuthSync` suit le lifecycle du transport (handlers attachés au socket, timers, fetch HTTP).
+- Mélanger les deux rend les callbacks de messages fragiles vis-à-vis du render cycle React.
 
-**Solution :** Le AuthService hérite de `ControllerService`, gère toute la logique métier et les messages. Le AuthContext crée l'instance, passe `setState` comme callback, et expose le state + actions au composants.
+**Solution :** `AuthSync` = handler pur (pub/sub + timers + HTTP). `AuthContext` = wrapper React qui crée/détruit l'instance et passe `setState` comme callback.
 
-**Pattern :**
 ```
-AuthContext (React) → crée AuthService (controleur)
-AuthService reçoit un message → appelle setState
+AuthProvider (React) → crée AuthSync(socket, setState)
+AuthSync reçoit un message → appelle setState(prev => …)
 React re-render → les composants voient le nouveau state
 ```
 
+**Note historique :** ce service s'appelait `AuthService.ts`. Renommé `AuthSync` après la refonte cookie (le mot "service" était déjà chargé côté backend, et "Sync" reflète mieux son rôle de synchroniseur état React ↔ serveur).
+
 ---
 
-## Pourquoi cookie de session et pas sessionStorage ?
+## Pourquoi `MessageClientAdapter` et plus de singleton `SocketIO` ?
 
-**Raison :** Session unique par navigateur via cookie HTTP signé (`connect-mongodb-session`). Pas de sessionStorage, pas de logique multi-session, pas de pending-approval. Le cookie est attaché automatiquement aux requêtes HTTP et au handshake socket.io — le frontend n'a aucun token à gérer.
+**Constat :** L'ancien code avait un singleton `SocketIO` global qui initialisait le socket + le bus. Couplage fort, double initialisation difficile, ordre de boot fragile.
 
-**Avantage :** Moins de code, pas de divergence onglet/serveur, expiration centralisée côté serveur. Le frontend consomme `expiresAt` retourné par `login_response`/`authenticate_response` pour piloter le timer d'avertissement local.
+**Solution :** `MessageClientAdapter` est instancié explicitement par celui qui en a besoin (`AuthProvider`), avec une API d'attente prête à l'emploi (`onReady`, `onReconnect`, `on`, `off`, `send`). Plus de singleton — chaque consommateur peut créer le sien si besoin (en pratique, un seul, partagé via `AuthContext.socket`).
+
+---
+
+## Pourquoi cookie de session et pas `sessionStorage` ?
+
+Session unique par navigateur via cookie HTTP signé (`connect-mongodb-session` côté serveur). Pas de `sessionStorage`, pas de logique multi-session, pas d'approbation. Le cookie est attaché automatiquement aux requêtes HTTP **et** au handshake Socket.io — le frontend n'a aucun token applicatif à gérer.
+
+**Avantage :** moins de code, pas de divergence onglet/serveur, expiration centralisée. Le frontend consomme `expiresAt` (renvoyé par les `_response`) pour piloter le timer d'avertissement local.
 
 ---
 
 ## Pourquoi framer-motion partout ?
 
-**Constat :** Les animations d'entrée/sortie et les transitions entre états (loading, authenticated, pending) sont omniprésentes dans l'UI.
-
-**Solution :** `framer-motion` gère toutes les animations. Les composants du design system (`motion.button`, `motion.div`, `motion.article`) héritent des props de framer-motion pour permettre des animations déclaratives.
-
-**Compromis :** Dépendance lourde (~30KB gzip). Acceptable pour une app de visioconférence — l'UX bénéficie fortement des animations fluides.
+Les transitions d'état (loading → authenticated, modales, toasts) sont omniprésentes. `framer-motion` les rend déclaratives. Compromis accepté : ~30KB gzip.
 
 ---
 
@@ -143,26 +121,15 @@ React re-render → les composants voient le nouveau state
 
 ## Pourquoi React Context et pas Redux/Zustand ?
 
-**Réflexion :**
-- Le state global de l'app est limité : auth + toasts. Pas de state complexe, pas de normalisation, pas de relations entre entités côté client
-- Le state des données métier (users, teams, channels) vit côté serveur et arrive via le controleur — pas besoin de le cacher dans un store client
-- Redux ajouterait du boilerplate pour un gain nul. Zustand serait plus léger mais ne résout pas un problème qu'on a
+State global limité (auth + toasts). Le state métier (users, teams, channels) vit côté serveur et arrive via le bus — pas de cache client à normaliser. Redux ajouterait du boilerplate sans gain. Zustand serait plus léger mais résoudrait un problème qu'on n'a pas.
 
-**Solution :** React Context + useState. Un context par domaine (auth, toast). Les services inscrivent des callbacks `setState` pour mettre à jour le context depuis les messages du controleur.
-
----
-
-## Pourquoi le hook s'appelle useAuth et pas useAuthMessages ?
-
-**Historique :** Le fichier s'appelait `useAuthMessages.ts` dans la première itération, quand le hook exposait les messages bruts du controleur. Le hook a évolué pour exposer le context complet (state + actions), et le fichier a été renommé en `useAuth.ts` pour refléter ce changement.
+**Solution :** `useState` + Context. Un context par domaine. Les services injectent un callback `setState` pour mettre à jour le context depuis les messages.
 
 ---
 
 # 3. Routing
 
-## Pourquoi des gardes de route imbriquées ?
-
-**Pattern :** `UserAuth` est la première couche (vérifie l'authentification). `AdminAuth` est imbriquée dedans (vérifie le rôle admin). Les routes protégées sont des `Outlet` de react-router-dom v7.
+## Gardes imbriquées
 
 ```
 Routes
@@ -171,29 +138,23 @@ Routes
 └── UserAuth        (vérifie isAuthenticated)
     ├── /           → redirect /home
     ├── /home       (Home)
-    └── AdminAuth   (vérifie user.roles.includes("admin"))
+    └── AdminAuth   (vérifie roles.includes("admin"))
         └── /admin  (AdminPanel)
 ```
 
-**Pourquoi pas un seul guard :** La logique est séparée — vérifier l'authentification et vérifier les permissions sont deux responsabilités distinctes. Un utilisateur authentifié sans rôle admin doit être redirigé vers `/home`, pas vers `/login`.
+**Pourquoi pas un seul guard :** "authentifié" et "admin" sont deux décisions distinctes — un user authentifié sans rôle admin doit retomber sur `/home`, pas sur `/login`.
 
 ---
 
 # 4. Composants
 
-## Pourquoi du HTML sémantique strict ?
+## HTML sémantique strict
 
-**Règle :** `main`, `nav`, `section`, `article`, `header`, `footer`, `aside`, `dialog`, `fieldset` sont utilisés systématiquement. `div` uniquement pour le layout quand aucun élément sémantique ne convient.
+`main`, `nav`, `section`, `article`, `header`, `footer`, `aside`, `dialog`, `fieldset` utilisés systématiquement. `div` uniquement pour le layout pur. Bénéfice : accessibilité native, lisibilité, SEO implicite.
 
-**Pourquoi :** Accessibilité native (screen readers), SEO implicite, et lisibilité du code. Un `<dialog>` est plus explicite qu'un `<div className="modal">`.
+## Modales avec `<dialog>`
 
----
-
-## Pourquoi les modales utilisent `<dialog>` ?
-
-**Raison :** L'élément HTML `<dialog>` offre un comportement natif (focus trap, accessibilité, `open` attribute). Pas besoin de bibliothèque de modales.
-
-**Limitation actuelle :** Les modales utilisent `<dialog open>` (non-modal). Pour un vrai dialog modal avec backdrop, il faudrait utiliser `.showModal()` via ref.
+Comportement natif (focus trap, attribut `open`, `.showModal()` pour le backdrop). Pas de bibliothèque de modales nécessaire.
 
 ---
 
@@ -201,13 +162,8 @@ Routes
 
 | Sujet | Doute | Piste |
 |-------|-------|-------|
-| ~~useAuthMessages.ts~~ | ~~Nom de fichier trompeur~~ | Renommé en `useAuth.ts` ✓ |
-| ~~sessionStorage~~ | ~~Multi-session par onglet~~ | Migré vers cookie unique (connect-mongodb-session) ✓ |
-| SearchBar dropdown | Fonctionnalité non implémentée | TODO dans le code |
-| Dashboard valeurs | Toutes les valeurs dynamiques commentées | À connecter aux services quand disponibles |
-| AdminPanel | Code ancien commenté, valeurs hardcodées | À migrer vers le pattern ControllerService |
-| dialog vs .showModal() | Les modales sont non-modales (pas de backdrop natif) | Passer à `.showModal()` si backdrop requis |
-| framer-motion poids | ~30KB gzip pour des animations | Acceptable pour une app de visioconf |
-| AdminMenu | Composant entièrement commenté | À supprimer si AdminTabPanel le remplace définitivement |
-| disturb_status drift | canalsocketio écrit "offline" sur disconnect, écrase user-set "dnd" | Compensation app-side dans AuthService.bindSession + socketDisconnect |
-| Video call UI | VideoCallProvider monté mais pas de composants UI dédiés | À construire (VideoCallOverlay, grille de tiles) en consommant `useVideoCall()` |
+| `dialog` non-modal | Modales avec `open` simple, pas de backdrop natif | Passer à `.showModal()` via ref si backdrop requis |
+| framer-motion poids | ~30KB gzip | Acceptable, à mesurer si l'app grossit |
+| AdminPanel | Code partiellement câblé | À migrer vers les services/contextes correspondants |
+| `disturb_status` drift | Backend bascule "offline"→"available" automatiquement, peut écraser un statut user "dnd" | Compensation côté serveur dans `AuthService.socketDisconnect` ; à revoir si le besoin de "dnd" devient explicite |
+| Video call UI | `VideoCallProvider` monté mais composants UI à compléter | Construire `VideoCallOverlay` / grille de tiles en consommant le hook dédié |

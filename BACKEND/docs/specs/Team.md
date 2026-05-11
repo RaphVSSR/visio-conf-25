@@ -87,35 +87,69 @@
 
 ## 5. Catalogue des messages associés
 
-### Client → Serveur (8 messages)
+Pattern consolidé : 3 messages C→S (`team_get`, `team_action`, `team_member`) avec champ `type` discriminant — 3 réponses S→C (`team_get_response`, `team_action_response`, `team_member_response`) avec `type` (opération) + `etat` (`true`/`false`) + `error?` en cas d'échec.
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `teams_list_request` | `{}` | Demande les équipes de l'utilisateur courant |
-| `all_teams_request` | `{}` | Demande toutes les équipes (admin) |
-| `team_create_request` | `{ name: string, description?: string }` | Création d'une nouvelle équipe |
-| `team_update_request` | `{ teamId: string, data: Partial<TeamType> }` | Mise à jour d'une équipe |
-| `team_delete_request` | `{ teamId: string }` | Suppression d'une équipe |
-| `team_leave_request` | `{ teamId: string }` | Quitter une équipe |
-| `team_members_request` | `{ teamId: string }` | Demande la liste des membres d'une équipe |
-| `team_add_member_request` | `{ teamId: string, userId: string }` | Ajouter un membre à une équipe |
-| `team_remove_member_request` | `{ teamId: string, userId: string }` | Retirer un membre d'une équipe |
+Service : `BACKEND/src/models/services/TeamService.ts`. Domaine déclaré dans `ListeMessages.ts` sous la clé `team`.
 
-### Serveur → Client (8 messages)
+### Client → Serveur
 
-| Message | Payload | Description |
-|---------|---------|-------------|
-| `teams_list_response` | `{ teams: Team[] }` | Réponse avec les équipes de l'utilisateur |
-| `all_teams_response` | `{ teams: Team[] }` | Réponse avec toutes les équipes |
-| `team_create_response` | `{ team: Team }` | Confirmation de création |
-| `team_update_response` | `{ team: Team }` | Confirmation de mise à jour |
-| `team_delete_response` | `{ success: boolean }` | Confirmation de suppression |
-| `team_leave_response` | `{ success: boolean }` | Confirmation de départ |
-| `team_members_response` | `{ members: TeamMember[] }` | Réponse avec les membres |
-| `team_add_member_response` | `{ member: TeamMember }` | Confirmation d'ajout d'un membre |
-| `team_remove_member_response` | `{ success: boolean }` | Confirmation de retrait d'un membre |
+| Message | `type` | Payload | Handler | Description |
+|---------|--------|---------|---------|-------------|
+| `team_get` | `list` | `{}` | `getTeamsList` | Équipes dont l'utilisateur courant est membre |
+| `team_get` | `all` | `{}` | `getAllTeams` | Toutes les équipes (admin panel) — inclut `memberCount` |
+| `team_action` | `create` | `{ name, description?, picture?, members: string[] }` | `createTeam` | Crée l'équipe + un membre admin (créateur) + N membres |
+| `team_action` | `update` | `{ teamId, name?, description?, picture? }` | `updateTeam` | Admin/createur uniquement |
+| `team_action` | `delete` | `{ teamId }` | `deleteTeam` | Cascade : channels, posts, responses, members. Admin uniquement |
+| `team_action` | `leave` | `{ teamId }` | `leaveTeam` | Bloqué si dernier admin (`last_admin_cannot_leave`) |
+| `team_member` | `list` | `{ teamId }` | `getTeamMembers` | Membres populés avec `firstname/lastname/email/picture` |
+| `team_member` | `add` | `{ teamId, userId }` | `addTeamMember` | Admin uniquement |
+| `team_member` | `remove` | `{ teamId, userId }` | `removeTeamMember` | Admin uniquement, bloqué si cible admin (`cannot_remove_admin`) |
 
-**Total : 9 client→serveur + 9 serveur→client = 18 messages**
+### Serveur → Client
+
+| Message | `type` | Payload (succès) | Payload (échec) | Diffusion |
+|---------|--------|------------------|-----------------|-----------|
+| `team_get_response` | `list` | `{ etat: true, teams: FormattedTeam[] }` | `{ etat: false, error }` | demandeur |
+| `team_get_response` | `all` | `{ etat: true, teams: FormattedTeam[] }` (avec `memberCount`) | `{ etat: false, error }` | demandeur |
+| `team_action_response` | `create` | `{ etat: true, team: FormattedTeam }` | `{ etat: false, error }` | tous les membres de l'équipe |
+| `team_action_response` | `update` | `{ etat: true, team: FormattedTeam }` | `{ etat: false, error }` | tous les membres |
+| `team_action_response` | `delete` | `{ etat: true, teamId }` | `{ etat: false, error }` | tous les membres au moment de la suppression |
+| `team_action_response` | `leave` | `{ etat: true, teamId, userId }` | `{ etat: false, error }` | membres restants + sockets de l'utilisateur partant |
+| `team_member_response` | `list` | `{ etat: true, teamId, members: FormattedMember[] }` | `{ etat: false, error }` | demandeur |
+| `team_member_response` | `add` | `{ etat: true, teamId, userId }` | `{ etat: false, error }` | tous les membres |
+| `team_member_response` | `remove` | `{ etat: true, teamId, userId }` | `{ etat: false, error }` | membres restants + sockets de la cible |
+
+### Codes d'erreur
+
+`not_authenticated`, `team_not_found`, `not_a_member`, `already_a_member`, `admin_required`, `cannot_remove_admin`, `last_admin_cannot_leave`.
+
+### Formats normalisés
+
+```ts
+type FormattedTeam = {
+    id: string,
+    name: string,
+    description?: string,
+    picture?: string,
+    createdBy: string,
+    createdAt: Date,
+    updatedAt: Date,
+    role?: "admin" | "member",
+    memberCount?: number,
+}
+
+type FormattedMember = {
+    id: string,
+    userId: string,
+    firstname?: string,
+    lastname?: string,
+    picture?: string,
+    role: "admin" | "member",
+    joinedAt: Date,
+}
+```
+
+**Total : 3 messages C→S × 9 dispatches + 3 messages S→C × 9 dispatches**
 
 ---
 
@@ -219,8 +253,8 @@ await member.save();
 
 ```typescript
 // Client
-{ id: socketId, team_create_request: { name: "Projet Web", description: "Mon équipe" } }
+{ id: socketId, team_action: { type: "create", name: "Projet Web", description: "Mon équipe", members: ["u2", "u3"] } }
 
-// Serveur
-{ id: socketId, team_create_response: { team: { name: "Projet Web", members: [...], ... } } }
+// Serveur (broadcast à tous les membres)
+{ id: [s1, s2, s3], team_action_response: { type: "create", etat: true, team: { id, name, role: "admin", ... } } }
 ```

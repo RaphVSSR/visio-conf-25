@@ -1,123 +1,111 @@
-# Référence du Modèle Session — VisioConf
+# SessionManager — VisioConf
 
-**Fichier source** : `BACKEND/src/models/services/authentication/Session.ts`
-**Classe parente** : Aucune (classe statique autonome, n'étend pas Collection)
-**Collection MongoDB** : `Session`
+**Fichier source** : `BACKEND/src/models/services/authentication/SessionManager.ts`
 
 ---
 
-## 1. Schema complet
+## 1. À quoi ça sert
 
-| Champ | Type | Required | Default | Ref | Description | Exemple |
-|-------|------|----------|---------|-----|-------------|---------|
-| `_id` | `ObjectId` | auto | auto | — | Identifiant MongoDB (sert de sessionId) | `ObjectId('s1...')` |
-| `userId` | `ObjectId` | oui | — | `User` | Utilisateur propriétaire de la session | `ObjectId('u1...')` |
-| `socketId` | `String` | non | — | — | ID du socket actuellement lié à cette session | `"xK9_2mZqR..."` |
-| `deviceInfo` | `String` | oui | — | — | Information sur l'appareil (ex: "web") | `"web"` |
-| `createdAt` | `Date` | oui | `Date.now` | — | Date de création de la session | `2026-03-01T10:00:00Z` |
-| `expiresAt` | `Date` | oui | — | — | Date d'expiration de la session. Index TTL: auto-suppression à l'expiration | `2026-03-02T10:00:00Z` |
+Une session VisioConf, ce n'est pas un document Mongo qu'on lit/écrit à la main : c'est un **cookie signé** géré par `connect-mongodb-session`, partagé entre Express et Socket.io. `SessionManager` est le pont fin entre un `socket.io` connecté et cette session cookie. Il :
 
----
+- pose `userId` sur le socket (en mémoire) et sur la session cookie (persistée),
+- fait rejoindre au socket une **room nommée d'après l'userId** → tous les onglets/appareils d'un même user partagent la même room,
+- maintient un `Set` des sockets admin pour des `isAdmin()` en O(1),
+- expose la durée de session (lue depuis `SESSION_DURATION`).
 
-## 2. Propriétés de la classe
-
-| Propriété | Type | Visibilité | Description |
-|-----------|------|------------|-------------|
-| `schema` | `Schema<SessionType>` | `private static` | Schéma Mongoose de la collection |
-| `model` | `Model<SessionType>` | `static` | Modèle Mongoose (singleton via `mongoose.models`) |
+Pas de modèle Mongoose, pas de TTL custom : la durée vient du `cookie.maxAge`.
 
 ---
 
-## 3. Variables et constantes
+## 2. Propriétés
 
-| Nom | Type | Valeur | Description | Exemple |
-|-----|------|--------|-------------|---------|
-| `SESSION_DURATION` | `env` | `process.env.SESSION_DURATION \|\| "24h"` | Durée d'une session. Format: `{number}{s\|m\|h\|d}` | `"24h"`, `"30m"`, `"7d"` |
-| `models` | `object` | `mongoose.models` | Cache des modèles Mongoose enregistrés | — |
+| Nom | Type | Visibilité | Description |
+|-----|------|------------|-------------|
+| `socketServer` | `Server` (socket.io) | `private static` | Référence injectée une fois au boot via `bindToServer()` |
+| `adminSocketIds` | `Set<string>` | `private static` | Sockets dont l'utilisateur a le rôle `admin` |
+
+---
+
+## 3. Variables d'environnement
+
+| Nom | Défaut | Description |
+|-----|--------|-------------|
+| `SESSION_DURATION` | `"24h"` | Durée du cookie/session — format `{nombre}{s\|m\|h\|d}` |
+| `SESSION_SECRET` | `"visioconf-session-secret"` | Secret HMAC du cookie (côté `RestService`) |
+| `MONGO_URI` | `mongodb://localhost:27017/visioconf` | URI utilisée par le cookie store |
 
 ---
 
 ## 4. Méthodes
 
-| Méthode | Paramètres | Retour | Static/Instance | Description |
-|---------|------------|--------|-----------------|-------------|
-| `getSession` | `sessionId: string` | `Promise<SessionType \| null>` | static | Trouve une session par son _id |
-| `getSessionBySocket` | `socketId: string` | `Promise<SessionType \| null>` | static | Trouve une session par son socketId |
-| `getSessions` | `userId: string` | `Promise<SessionType[]>` | static | Trouve toutes les sessions actives (non expirées) d'un utilisateur |
-| `createSession` | `userId: string, socketId: string, deviceInfo: string, expiresAt: Date` | `Promise<SessionType>` | static | Crée une nouvelle session |
-| `deleteSession` | `sessionId: string` | `Promise<void>` | static | Supprime une session par son _id |
-| `clearSocket` | `socketId: string` | `Promise<void>` | static | Dissocie un socket de sa session (unset socketId) |
-| `bindSocket` | `sessionId: string, socketId: string` | `Promise<void>` | static | Associe un socket à une session |
-| `refreshSession` | `sessionId: string, newExpiresAt: Date` | `Promise<SessionType \| null>` | static | Prolonge une session en mettant à jour expiresAt |
-| `getUserSocketIds` | `userId: string` | `Promise<string[]>` | static | Retourne tous les socketId actifs d'un utilisateur |
-| `flushAll` | — | `Promise<void>` | static | **[DEV]** Supprime toutes les sessions |
-| `getSessionDurationMs` | — | `number` | static | Retourne la durée de session en millisecondes (parse `SESSION_DURATION`) |
-| `parseExpiryToMs` | `expiry: string` | `number` | `private static` | Convertit un format `{number}{s\|m\|h\|d}` en millisecondes. Défaut: 24h |
+| Nom | Paramètres | Retour | Description |
+|-----|------------|--------|-------------|
+| `bindToServer` | `socketServer : Server` | `void` | Pose la référence Socket.io. Appelé depuis `index.ts` |
+| `bind` | `socketId : string, userId : string, roles? : string[]` | `void` | Tag socket + cookie, rejoint la room `userId`, gère `adminSocketIds` |
+| `unbind` | `socketId : string` | `void` | Quitte la room, retire des admins. **Ne supprime pas** la session cookie |
+| `getUserId` | `socketId : string` | `string \| null` | Lit `socket.data.userId`, fallback sur `socket.request.session.userId` |
+| `getUserSocketIds` | `userId : string` | `string[]` | Liste les sockets dans la room `userId` (= tous les onglets de ce user) |
+| `isAdmin` | `socketId : string` | `boolean` | Présence dans `adminSocketIds` |
+| `refreshUserRoles` | `userId : string, roles : string[]` | `void` | Resync `adminSocketIds` après changement de rôle |
+| `refreshSession` | `socketId : string` | `void` | Reset `cookie.maxAge` et sauve la session |
+| `hasActiveSessions` | `userId : string` | `boolean` | `true` ssi au moins un socket dans la room — pilote le flip `is_online` |
+| `getSessionDurationMs` | — | `number` | Parse `SESSION_DURATION` → ms (défaut 24h) |
+| `parseExpiryToMs` | `expiry : string` | `number` | `private`. `30m` → `1_800_000` |
 
 ---
 
-## 5. Catalogue des messages associés
+## 5. Messages
 
-La Session n'a pas de messages propres. Elle est utilisée indirectement par `AuthService` pour les messages d'authentification (voir `BACKEND/docs/specs/authentication/AuthService.md`).
+`SessionManager` **ne s'inscrit pas au controleur** et n'émet/reçoit aucun message du bus pub/sub. C'est un utilitaire statique appelé par d'autres composants. Les messages liés à la session sont documentés là où ils sont effectivement traités :
 
----
-
-## 6. Types TypeScript
-
-```typescript
-type SessionType = {
-    _id?: Types.ObjectId,
-    userId: Types.ObjectId,
-    socketId?: string,
-    deviceInfo: string,
-    createdAt: Date,
-    expiresAt: Date,
-}
-```
+| Composant | Lien | Messages concernés |
+|-----------|------|-------------------|
+| `AuthService` | `authentication/AuthService.md` | `login` / `register` / `authenticate` (+ `_response`), `socket_disconnect` (interne) |
+| `AuthRoutes` | (HTTP, pas un message bus) | `POST /auth/refresh`, `POST /auth/logout` |
 
 ---
 
-## 7. Relations avec autres modèles
+## 6. Cookie store (configuré dans `RestService`)
 
-| Modèle | Relation | Description |
-|--------|----------|-------------|
-| `User` | Session.userId → User | Chaque session appartient à un utilisateur |
-| `AuthService` | AuthService utilise Session | Le service d'auth crée, lit, rafraîchit et supprime des sessions |
-| `Database` | Database.flushDb() → Session.flushAll() | Le flush DB inclut les sessions |
+| Réglage | Valeur | Pourquoi |
+|---------|--------|----------|
+| `name` | `"visioconf_session"` | Nom du cookie |
+| `store` | `MongoDBStore({ collection: "sessions" })` | Persistance des sessions, survit aux restarts |
+| `cookie.maxAge` | `SessionManager.getSessionDurationMs()` | Durée alignée sur `SESSION_DURATION` |
+| `cookie.httpOnly` | `true` | Inaccessible au JS (anti-XSS) |
+| `cookie.sameSite` | `"lax"` | Anti-CSRF |
+| `cookie.secure` | `NODE_ENV === "prod"` | HTTPS only en prod |
+
+Middleware monté **deux fois** : `server.use(...)` (HTTP) et `socketServer.engine.use(...)` (handshake WS) → routes Express et sockets partagent le même cookie.
 
 ---
 
-## 8. Index et contraintes
+## 7. Idée clé : la room = l'userId
 
-| Index | Champs | Type | Description |
-|-------|--------|------|-------------|
-| `_id` | `_id` | unique (auto) | Index par défaut MongoDB |
-| `expiresAt` | `expiresAt` | TTL (`expireAfterSeconds: 0`) | Auto-suppression quand `expiresAt` est dépassé |
-| `socketId` | `socketId` | simple | Optimise `getSessionBySocket()` |
-| `userId` | `userId` | simple | Optimise `getSessions()` et `getUserSocketIds()` |
+Socket.io permet de "joindre" un socket à une room par son nom. On choisit `userId` comme nom → un message envoyé à `io.to(userId)` atteint **tous les onglets/appareils** de ce user, sans avoir à maintenir un mapping `userId → socketIds[]`. C'est `getUserSocketIds()` qui lit cette room.
 
-Principe : une session existe = elle est active. Supprimée = terminée. Pas de champ `isActive` ni `token`.
+---
+
+## 8. Relations
+
+| Classe | Relation |
+|--------|----------|
+| `RestService` | configure le cookie store, monte le middleware sur Express + Socket.io engine |
+| `AuthService` | appelle `bind` / `unbind` / `getUserId` / `hasActiveSessions` |
+| `index.ts` | appelle `bindToServer(io)` au boot |
 
 ---
 
 ## 9. Exemples
 
-### Créer et manipuler une session
-
 ```typescript
-const expiresAt = new Date(Date.now() + Session.getSessionDurationMs());
-const session = await Session.createSession(userId, socketId, "web", expiresAt);
-// → { _id: ObjectId("s1..."), userId: ObjectId("u1..."), socketId: "xK9...", deviceInfo: "web", expiresAt: ... }
+SessionManager.bindToServer(io);
 
-await Session.bindSocket(session._id.toString(), "newSocketId");
-await Session.refreshSession(session._id.toString(), new Date(Date.now() + Session.getSessionDurationMs()));
-await Session.deleteSession(session._id.toString());
-```
+SessionManager.bind(socketId, user._id.toString(), user.roles);
 
-### Durée de session (parseExpiryToMs)
+const userId = SessionManager.getUserId(socketId);
 
-```typescript
-Session.getSessionDurationMs(); // SESSION_DURATION="24h" → 86400000
-Session.getSessionDurationMs(); // SESSION_DURATION="30m" → 1800000
-Session.getSessionDurationMs(); // SESSION_DURATION="7d"  → 604800000
+if (!SessionManager.hasActiveSessions(userId)) {
+    await User.model.updateOne({ _id: userId }, { is_online: false });
+}
 ```

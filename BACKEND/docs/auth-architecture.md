@@ -2,36 +2,28 @@
 
 ## Vue d'ensemble
 
-L'authentification fonctionne entièrement via **Socket.io + Controleur.js** (pattern pub/sub). Pas de REST pour l'auth.
+L'auth s'appuie sur **deux canaux qui partagent le même cookie** :
+
+- **Socket.io + Controleur** (pub/sub) → `login`, `register`, `authenticate`,
+- **REST Express** → `POST /auth/refresh`, `POST /auth/logout`.
+
+Le pivot, c'est la session cookie `visioconf_session`, persistée par `connect-mongodb-session` dans la collection Mongo `sessions`. Le même middleware est monté sur Express **et** sur l'engine Socket.io, donc une requête HTTP et un handshake WebSocket lisent **la même** session.
 
 ```
-FRONTENDV2                                              BACKEND
-==========                                              =======
+Frontend                                          Backend
+========                                          =======
 
- LoginForm ──┐                                    ┌── AuthService.ts
- SignupForm ──┤                                    │     s'inscrit via inscription()
-              │                                    │     utilise: Session, User
-              v                                    v
-      AuthContext.tsx                         controleur.js
-        s'inscrit via inscription()                ^         |
-              |         ^                          |         v
-              v         |                    canalsocketio.js
-      controleur.js                            s'inscrit via inscription()
-              ^         |                          ^
-              |         v                          |
-      canalsocketio.js                             |
-        s'inscrit via inscription()                |
-              |         ^                          |
-              +=========|=== Socket.io ============+
-                        |
-  SessionExpiryModal <──┘ (affiche les infos depuis AuthContext)
-```
-
-### Routage symétrique des messages
-
-```
-Envoi :    Service.envoie() → controleur → canalsocketio.traitementMessage() → socket.emit()
-Réception: socket.on() → canalsocketio.envoie() → controleur → Service.traitementMessage()
+LoginForm / SignupForm ─┐                    ┌── AuthService (sockets)
+                        │                    ├── AuthRoutes  (HTTP)
+                        v                    │   POST /refresh
+                  AuthContext ────────┐      │   POST /logout
+                  (socket + fetch)    │      │
+                        │             │      v
+                        │       cookie visioconf_session
+                        │       (connect-mongodb-session)
+                        │             ^
+                        +═════════════┘
+                        Socket.io  +  HTTP Express
 ```
 
 ---
@@ -39,403 +31,165 @@ Réception: socket.on() → canalsocketio.envoie() → controleur → Service.tr
 ## Modèle de confiance
 
 ```
-1. Socket se connecte
-        │
-        v
-2. Client envoie `authenticate` avec sessionId
-        │
-        v
-3. Serveur vérifie la session en DB (existe + non expirée)
-        │
-   ┌────┴────┐
-   │ Valide  │ Invalide
-   v         v
-4. Session.bindSocket()   auth_failure
-   socketId sauvé en DB sur la Session
-        │
-        v
-5. Socket est TRUSTED
-   Tous les messages passent par cette socket
-   Pas de vérification par message
-        │
-        v
-6. Session.getSessionBySocket(socketId) → session → userId
-   Lookup via requête MongoDB (index sur socketId)
-        │
-        v
-7. Socket se déconnecte → Session.clearSocket()
-   Confiance révoquée
+1. Le navigateur ouvre une socket  →  cookie envoyé
+2. AuthService.login (ou register) vérifie credentials
+3. SessionManager.bind(socketId, userId)
+       ├─ socket.data.userId      ← mémoire
+       ├─ socket.request.session.userId ← cookie persisté en Mongo
+       └─ socket.join(userId)     ← room Socket.io
+4. À partir de là :
+   - chaque message lit userId via SessionManager.getUserId(socketId)
+   - le cookie suffit aussi côté HTTP (req.session.userId)
+5. À la déconnexion socket :
+   - SessionManager.unbind(socketId)
+   - is_online repasse à false uniquement si plus aucun socket actif
 ```
 
----
-
-## Responsabilités Frontend / Serveur
-
-| Frontend (lecture + affichage) | Serveur (décision + modification) |
-|-------------------------------|-----------------------------------|
-| Lit `expiresAt` pour la modale | Crée / rafraîchit / invalide les sessions |
-| Affiche le statut de session, les alertes | Gère les records Session en DB |
-| Calcule le timer local à partir des données | Mappe socket → session en DB (Session.bindSocket) |
-| Envoie les décisions utilisateur via messages | Approuve / rejette les demandes multi-session |
-| Stocke le sessionId dans `sessionStorage` (isolé par onglet) | Envoie le sessionId via Socket.io |
+Un message n'est jamais re-vérifié ligne par ligne : la connexion + le cookie **sont** l'ancrage.
 
 ---
 
 ## Cycle de vie d'une session
 
 ```
-          ┌─────────────┐
-          │   CREATED    │ ← login/register réussi
-          └──────┬───────┘
-                 │
-                 v
-          ┌─────────────┐
-          │   ACTIVE     │ ← session en cours, socket mappé
-          └──────┬───────┘
-                 │
-         ┌───────┼───────┐
-         │       │       │
-         v       v       v
-    ┌────────┐ ┌──────┐ ┌───────────┐
-    │WARNING │ │LOGOUT│ │SOCKET     │
-    │(30 min)│ │      │ │DISCONNECT │
-    │ client │ │      │ │           │
-    └───┬────┘ └──┬───┘ └─────┬─────┘
-        │         │           │
-   ┌────┼────┐    │     Session reste
-   │    │    │    │     active en DB
-   v    v    v    v     (reconnexion possible)
- REFRESH IGNORE EXPIRE
-   │       │      │
-   v       v      v
- ACTIVE  EXPIRE  INVALIDATED
+        login / register                  reconnexion              logout
+        ────────────────                  ────────────             ──────
+            │                                  │                     │
+            v                                  v                     v
+    SessionManager.bind         socket reconnect → cookie     POST /auth/logout
+            │                          │                            │
+            v                          v                            v
+    socket.join(userId)        AuthService.authenticate     session.destroy()
+    cookie.userId = userId            │                     clearCookie
+            │                          v                            │
+            v                  SessionManager.bind                 v
+        SOCKET ACTIF                   │                     SOCKET DÉLIÉ
+            │                          v                     COOKIE EFFACÉ
+            v                     SOCKET ACTIF
+       déconnexion socket               │
+            │                           v
+            v                      reconnexion
+   SessionManager.unbind           (boucle)
+   (cookie reste tant que
+    le navigateur ne le supprime
+    pas et que maxAge n'est pas
+    écoulé)
 ```
 
----
-
-## Flux d'approbation multi-session
-
-Déclenché quand un utilisateur tente un **login** ou un **authenticate** et qu'il existe déjà des sockets actifs pour cet utilisateur.
-
-```
-DEVICE 2 (nouveau)        SERVEUR                    DEVICE 1 (existant)
-──────────────────        ───────                    ───────────────────
-login {email, password, deviceInfo}
-        │
-        │ ══════════>     Credentials valides ✓
-                          Sessions actives existent ?
-                          OUI → créer demande en attente
-                                │                           │
-        <══════════ │     login_pending ──────────>   session_pending
-                          { requestId }               { requestId,
-                                                        requesterInfo }
-                                                           │
-                                                     [ACCEPTER / REFUSER]
-                                                           │
-                          <═══════════════════════   session_pending_choice
-                                                     { requestId, accepted }
-                          │
-                    ┌─────┴──────┐
-                ACCEPTÉ       REFUSÉ
-                    │            │
-              Créer session   Refuser login
-                    │            │
-                    │             │
-        <══════════ │    login_failure ──────────> session_pending_rejected
-        login_success     { reason: "rejected" }   { requestId }
-        { user, sessionId,
-          expiresAt }
-                    │
-        session_pending_accepted ──────────>
-        { requestId }
-
-                    ─── TIMEOUT (pas de réponse) ───
-              Auto-rejet après le délai configuré
-              login_failure { reason: "timeout" }
-              + session_pending_rejected → Device 1
-```
-
-**Règles :**
-- **Première réponse gagne** : si plusieurs sessions existent, la première à répondre fait autorité
-- **Auto-rejet au timeout** : si aucune session ne répond dans le délai, le login est refusé
-- **Réponses tardives ignorées** : une fois résolu, les réponses suivantes sont ignorées
+Pas d'état "WARNING" / modale d'expiration : la durée vient de `cookie.maxAge` (`SESSION_DURATION`, défaut 24h). Pour prolonger une session, le client appelle `POST /auth/refresh`.
 
 ---
 
 ## Flux par scénario
 
-### Flow 1 — Login (connexion fraîche)
+### Login
 
 ```
-Client                                          Serveur
-------                                          -------
-login { email, password, deviceInfo }
-    │══════════════════════════════════════>     AuthService.login()
-                                                    ├─ User.getUser(email)
-                                                    ├─ verifyPassword()
-                                                    ├─ Session.getSessions(userId)
-                                                    │
-                                            ┌───────┴───────┐
-                                      Pas de sessions  Sessions existantes
-                                            │               │
-                                      createSession()  Flow 7 (multi-session)
-                                            │
-    <══════════════════════════════════      │
-    login_success { user, expiresAt, sessionId }
-    OU
-    login_failure { reason }
+Client                              Serveur
+{ login: { email, password } }
+    │═════════════════════════════>  AuthService.login()
+                                     ├─ User.getUser(email)
+                                     ├─ verifyPassword (sha256)
+                                     └─ SessionManager.bind(socketId, userId)
+    <═════════════════════════════
+    { login_response: { status: "success", user, expiresAt } }
+                              OU
+    { login_response: { status: "failure", reason: "user_not_found" | "wrong_password" } }
 ```
 
-**Côté frontend :** Sur `login_success`, le sessionId est stocké dans `sessionStorage`, le timer d'expiration démarre, et l'état passe à `isAuthenticated: true`. Sur `login_failure`, `sessionStorage` est vidé.
+### Register
 
-### Flow 2 — Reconnexion (page refresh / reconnexion socket)
+Même flux que login, mais avec création préalable du `User` (rôle `user`, mdp SHA256). Échec si `email_already_exists`.
 
-```
-Client                                          Serveur
-------                                          -------
-authenticate { sessionId }
-    │══════════════════════════════════════>     AuthService.authenticate()
-                                                    ├─ Vérifie sessionId non vide
-                                                    ├─ Session.getSession(sessionId)
-                                                    ├─ Vérifie expiration (expiresAt > now)
-                                                    ├─ User.findById() (charge les données user)
-                                                    ├─ Session.getUserSocketIds(userId)
-                                                    │
-                                            ┌───────┴───────┐
-                                      Pas de sockets     Sockets actifs
-                                            │               │
-                                      bindSocket()     Flow 7 (multi-session)
-                                            │          → crée NOUVELLE session
-                                            │            (l'ancienne est abandonnée)
-    <══════════════════════════════════      │
-    auth_success { user, expiresAt }
-    OU
-    auth_failure { reason: "session_id_required" | "session_no_longer_exists"
-                         | "session_expired" | "user_not_found" }
-```
-
-**Différence clé avec login :** Quand aucun socket n'est actif, `authenticate` réutilise la session existante (`bindSocket`). Mais quand l'approbation multi-session est déclenchée puis acceptée, une **nouvelle** session est créée (même `userId`) — l'ancienne session (du `sessionStorage`) est abandonnée.
-
-**Côté frontend :** `authenticate` est envoyé automatiquement à l'init du `AuthService` si un sessionId existe dans `sessionStorage`, et aussi sur `socket.io.reconnect`. Sur `auth_success`, le timer d'expiration démarre. Sur `auth_failure`, `sessionStorage` est vidé et le state est réinitialisé.
-
-### Flow 3 — Inscription
+### Reconnexion silencieuse
 
 ```
-Client                                          Serveur
-------                                          -------
-register { password, firstname, lastname, email, phone }
-    │══════════════════════════════════════>     AuthService.register()
-                                                    ├─ Vérifier email unique
-                                                    ├─ hashPassword()
-                                                    ├─ Créer User en DB
-                                                    ├─ createSession()
-                                                    │
-    <══════════════════════════════════
-    registration_success { user, expiresAt, sessionId }
-    OU
-    registration_failure { reason }
+Page rechargée → cookie toujours là
+{ authenticate: {} }
+    │═════════════════════════════>  AuthService.authenticate()
+                                     ├─ SessionManager.getUserId(socketId)  ← cookie
+                                     ├─ User.findById()
+                                     └─ SessionManager.bind() (re-tag du nouveau socket)
+    <═════════════════════════════
+    { authenticate_response: { status: "success", user, expiresAt } }
+                                  OU
+    { authenticate_response: { status: "failure", reason: "session_expired" | "user_not_found" } }
 ```
 
-**Côté frontend :** Identique à `login_success` — sessionId stocké, timer démarré, `isAuthenticated: true`.
-
-### Flow 4 — Déconnexion volontaire (logout)
+### Refresh (HTTP)
 
 ```
-Client                                          Serveur
-------                                          -------
-user_disconnect {}
-    │══════════════════════════════════════>     AuthService.user_disconnect()
-                                                    ├─ Session.getSessionBySocket(socketId)
-                                                    ├─ Session.deleteSession()
-                                                    │
-    <══════════════════════════════════
-    user_disconnect_success {}
-    OU (si pas de session trouvée)
-    auth_failure { reason: "not_authenticated" }
+POST /auth/refresh        (cookie envoyé automatiquement)
+    │═════════════════════════════>  AuthRoutes
+                                     ├─ vérifie req.session.userId
+                                     ├─ session.cookie.maxAge = SESSION_DURATION
+                                     ├─ session.save()
+                                     └─ SessionManager.refreshSession(...) pour chaque socket
+    <═════════════════════════════
+    { status: "refreshed", expiresAt }
+                              OU
+    { status: "failure", reason: "not_authenticated" | "session_save_error" }
 ```
 
-**Côté frontend :** `sessionStorage` est vidé **côté client avant la réponse** (dans `logout()`). Sur `user_disconnect_success`, le timer est nettoyé et tout le state est réinitialisé.
-
-### Flow 5 — Avertissement d'expiration
+### Logout (HTTP)
 
 ```
-Client (timer local)                            Serveur
-------                                          -------
-Timer déclenché REACT_APP_SESSION_EXPIRY_WARNING_MS
-avant expiresAt
-SessionExpiryModal s'affiche
-    │
-    ├─ [OUI - Prolonger]
-    │   session_refresh {}
-    │   │══════════════════════════════>     AuthService.session_refresh()
-    │                                           ├─ Session.getSessionBySocket()
-    │                                           ├─ Session.refreshSession()
-    │   <══════════════════════════════
-    │   session_refreshed { expiresAt }
-    │
-    ├─ [NON - Ignorer]
-    │   Modale fermée, session expire naturellement
-    │   MongoDB TTL supprime la session
-    │   (pas de notification proactive)
-    │   → Flow 6 au prochain accès
+POST /auth/logout
+    │═════════════════════════════>  AuthRoutes
+                                     ├─ SessionManager.unbind() pour chaque socket du user
+                                     ├─ req.session.destroy()
+                                     └─ res.clearCookie("visioconf_session")
+    <═════════════════════════════
+    { status: "disconnected" }
 ```
 
-**Côté frontend :** Le timer est géré par `startExpiryTimer()` dans le `AuthService` frontend. Sur `session_refreshed`, un nouveau timer est démarré et `showExpiryWarning` passe à `false`.
-
-### Flow 6 — Retour après expiration offline
+### Déconnexion socket (interne)
 
 ```
-Client                                          Serveur
-------                                          -------
-Utilisateur revient après expiration
-authenticate { sessionId }
-    │══════════════════════════════════════>     AuthService.authenticate()
-                                                    Session expirée ou supprimée
-    <══════════════════════════════════
-    auth_failure { reason: "session_expired" | "session_no_longer_exists" }
+socket.disconnect → CanalSocketIO émet  { socket_disconnect: socketId }
     │
     v
-Page de login affichée
+AuthService.socketDisconnect()
+├─ SessionManager.unbind(socketId)
+├─ hasActiveSessions(userId) ?
+│     ├─ non → User.is_online = false
+│     └─ oui → si disturb_status="offline" → "available"
 ```
 
-**Si `session_refresh` est tenté quand la session n'existe plus :** le serveur répond `session_expired {}` au lieu de `session_refreshed`. Côté frontend, cela déclenche le nettoyage complet (timer, sessionStorage, state).
-
-### Flow 7 — Approbation multi-session
-
-Déclenché par Flow 1 (login) ou Flow 2 (authenticate) quand des sockets actifs existent pour l'utilisateur.
-
-```
-Device 2 (nouveau)         Serveur                Device 1 (existant)
-──────────────────         ───────                ───────────────────
-login / authenticate
-    │═══════════════>     Sessions actives ?
-                          OUI →
-    <═══════════════      login_pending ═════>    session_pending
-    { requestId }         { requestId }           { requestId,
-                                                    deviceInfo,
-                                                    requesterInfo }
-                                                       │
-                                                 [ACCEPTER/REFUSER]
-                                                       │
-                          <═══════════════════    session_pending_choice
-                                                 { requestId, accepted }
-                          │
-                    ┌─────┴──────┐
-                ACCEPTÉ       REFUSÉ/TIMEOUT
-                    │              │
-    <═══════        │              │ ═══════>
-    login_success   │          login_failure
-                    │          { reason }
-              ═══════════════════════════>
-              session_pending_accepted
-```
-
-**Côté frontend (Device 2) :** `login_pending` met `pendingLoginRequestId` dans le state → UI affiche un état d'attente.
-
-**Côté frontend (Device 1) :** `session_pending` ajoute la demande dans `pendingSessionRequests[]` → `SessionPendingModal` s'affiche. L'utilisateur clique accepter/refuser → `session_pending_choice` envoyé. Sur `session_pending_accepted`/`session_pending_rejected`, la demande est retirée du state.
-
-**Règles :**
-- **Première réponse gagne** : si plusieurs sessions existent, la première à répondre fait autorité
-- **Auto-rejet au timeout** : si aucune session ne répond dans le délai (`SESSION_APPROVAL_TIMEOUT_SECONDS`), le login est refusé
-- **Réponses tardives ignorées** : une fois résolu, les réponses suivantes sont ignorées
-- **Résultat identique pour login et authenticate** : dans les deux cas, l'approbation crée une **nouvelle** session
-
-### Flow 8 — Déconnexion socket (perte de connexion)
-
-```
-Client                                          Serveur
-------                                          -------
-[Socket se déconnecte]
-                                                canalsocketio détecte la déconnexion
-                                                    │
-                                                    v
-                                                client_deconnexion (socketId)
-                                                    │══════>  AuthService.client_deconnexion()
-                                                              ├─ Session.clearSocket(socketId)
-                                                              │  ($unset socketId sur le document)
-                                                              └─ Pas de message de retour
-
-[Socket se reconnecte]
-authenticate { sessionId }
-    │══════════════════════════════════════>     → Flow 2
-```
-
-**Pas de suppression de session.** La session reste en DB (reconnexion possible). Seul le `socketId` est dissocié. La session expirera naturellement via le TTL MongoDB si le client ne revient pas.
+La session cookie reste valide → reconnexion possible sans re-login.
 
 ---
 
-## Gestion de la mémoire
+## Mémoire vs persistance
 
-### Mapping socket ↔ session (via MongoDB)
-
-Le mapping socket → utilisateur est géré **entièrement en DB** via le champ `socketId` du modèle `Session` (index MongoDB sur `socketId`).
-
-| Opération | Méthode | Description |
-|-----------|---------|-------------|
-| Associer socket à session | `Session.bindSocket(sessionId, socketId)` | Appelé à l'`authenticate` |
-| Trouver session par socket | `Session.getSessionBySocket(socketId)` | Requête MongoDB |
-| Lister sockets d'un user | `Session.getUserSocketIds(userId)` | Pour le broadcast multi-onglets |
-| Dissocier socket | `Session.clearSocket(socketId)` | Appelé à la déconnexion socket |
-
-### État en mémoire (AuthService)
-
-| Structure | Type | Contenu |
-|-----------|------|---------|
-| `pendingRequests` | `Map<requestId, PendingRequest>` | Demandes d'approbation multi-session en attente |
-
-**Nettoyage :**
-- **Déconnexion socket** : `Session.clearSocket()` retire le `socketId` du document en DB. La Session reste active (reconnexion possible).
-- **Invalidation session** (logout) : `Session.deleteSession()` supprime le document en DB.
-- **Demandes en attente** : nettoyées à la résolution ou au timeout (+ `clearTimeout`).
-
-### Nettoyage des sessions en DB
-- Les sessions ont un champ `expiresAt` avec un index TTL → MongoDB supprime automatiquement les documents expirés.
-- Pas de sweep manuel nécessaire.
-
----
-
-## SessionStorage & Session
-
-**SessionId stocké dans `sessionStorage` côté frontend :**
-```
-clé: process.env.REACT_APP_SESSION_STORAGE_KEY | isolé par onglet | pas de persistance après fermeture
-```
-
-Chaque onglet stocke son propre sessionId dans `sessionStorage`. Le backend gère les sessions en DB et envoie le sessionId via Socket.io. Le frontend utilise `sessionStorage.getItem()` / `setItem()` / `removeItem()` — pas de cookies.
-
-Le sessionId est un ObjectId MongoDB (24 caractères hexadécimaux). Pas de JWT — la session est vérifiée directement en DB à chaque reconnexion.
-
-**Pourquoi `sessionStorage` et pas cookies/localStorage :** Isolation par onglet. Un onglet rejeté par le flux multi-session ne supprime pas le sessionId des autres onglets. L'expiration est gérée côté serveur (TTL MongoDB), pas côté client.
+| Donnée | Où | Durée |
+|--------|----|-------|
+| `userId` rapide pour un socket | `socket.data.userId` (RAM) | Vie du socket |
+| `userId` durable | `req.session.userId` → Mongo `sessions` | `cookie.maxAge` (24h par défaut) |
+| Set des sockets admin | `SessionManager.adminSocketIds` (RAM) | Vie du process |
+| Mapping user → sockets | rooms Socket.io (room = userId) | Vie des sockets |
+| Hash du mot de passe | `User.password` (Mongo) | Permanent |
 
 ---
 
 ## Variables d'environnement
 
-### Backend
-
-| Variable | Type | Exemple | Description |
-|----------|------|---------|-------------|
-| `SESSION_DURATION` | string (zeit/ms) | `24h` | Durée de vie de la session |
-| `SESSION_APPROVAL_TIMEOUT_SECONDS` | int | `60` | Timeout pour l'approbation multi-session |
-
-### Frontend
-
-| Variable | Type | Exemple | Description |
-|----------|------|---------|-------------|
-| `REACT_APP_SESSION_STORAGE_KEY` | string | `"visioconf_session"` | Clé utilisée dans `sessionStorage` pour stocker le sessionId |
-| `REACT_APP_SESSION_EXPIRY_WARNING_MS` | int (ms) | `1800000` | Délai avant expiration pour afficher la modale d'avertissement (30 min) |
+| Variable | Défaut | Rôle |
+|----------|--------|------|
+| `SESSION_DURATION` | `"24h"` | Durée du cookie/session, format `{n}{s\|m\|h\|d}` |
+| `SESSION_SECRET` | `"visioconf-session-secret"` | Secret HMAC du cookie |
+| `MONGO_URI` | `mongodb://localhost:27017/visioconf` | URI utilisée par le store de session |
+| `NODE_ENV` | — | `"prod"` active `cookie.secure` (HTTPS only) |
 
 ---
 
 ## Modèle de sécurité
 
-1. **Mots de passe** : hachés en SHA256 via `js-sha256` avant stockage.
-2. **Sessions** : vérifiées en DB à chaque reconnexion (existence + expiration).
-3. **Pas de vérification par message** : la connexion TCP persistante EST l'ancre de confiance.
-4. **Sessions en DB** : suppression automatique via TTL MongoDB.
-5. **Multi-session** : les nouvelles connexions doivent être approuvées par les sessions existantes.
-6. **SessionId côté client** : stocké dans `sessionStorage` (isolé par onglet), envoyé via Socket.io pour l'authentification.
-7. **Session.userId** : stocké en `ObjectId` avec `ref: "User"` (pas en string).
+1. **Mots de passe** hachés en SHA256 (`js-sha256`) — choix de dev, à migrer vers bcrypt/argon2 avant prod.
+2. **Cookie** `httpOnly` + `sameSite=lax` + `secure` en prod → pas d'accès JS, atténuation CSRF, HTTPS only.
+3. **Pas de re-vérif par message** : socket connecté + cookie valide = appelant identifié.
+4. **Expiration** : `cookie.maxAge` côté client, et le store Mongo nettoie ses entrées à expiration.
+5. **Multi-onglet** : tous les onglets partagent le cookie → tous se trouvent dans la même room `userId`. Pas d'approbation multi-session.
 
 ---
 
@@ -445,35 +199,28 @@ Le sessionId est un ObjectId MongoDB (24 caractères hexadécimaux). Pas de JWT 
 
 | Fichier | Rôle |
 |---------|------|
-| `src/Controller/controleur.js` | Bus de messages (pub/sub) |
-| `src/canalsocketio.js` | Pont Socket.io ↔ controleur |
-| `src/models/services/authentication/AuthService.ts` | Logique auth, handlers de messages |
-| `src/models/services/authentication/Session.ts` | Modèle MongoDB des sessions |
-| `src/ListeMessages.ts` | Catalogue de tous les messages |
-| `src/index.ts` | Initialisation (controleur + services) |
+| `src/Controller/controleur.js` | Bus pub/sub (intouchable) |
+| `src/Controller/canalsocketio.js` | Pont Socket.io ↔ controleur (intouchable) |
+| `src/models/services/authentication/AuthService.ts` | Handlers `login` / `register` / `authenticate` / `socket_disconnect` |
+| `src/models/services/authentication/SessionManager.ts` | Bind socket↔userId, rooms, admins, durée |
+| `src/models/services/RestService.ts` | Configure `connect-mongodb-session`, monte le middleware sur Express + Socket.io |
+| `src/routes/AuthRoutes.ts` | `POST /auth/refresh`, `POST /auth/logout` |
+| `src/models/ListeMessages.ts` | Catalogue auth : `login`/`register`/`authenticate` (+ `_response`) |
+| `src/index.ts` | Boot : DB, RestService, Socket.io, `SessionManager.bindToServer`, services |
 
 ### Frontend
 
 | Fichier | Rôle |
 |---------|------|
-| `src/Controller/controleur.js` | Bus de messages (pub/sub) |
-| `src/Controller/canalsocketio.js` | Pont Socket.io ↔ controleur |
-| `src/Controller/Controller.service.ts` | Classe abstraite ControllerService (côté frontend) |
-| `src/services/auth/AuthService.ts` | Service auth frontend (ControllerService), gère les messages et le state |
-| `src/services/auth/AuthService.types.ts` | Types AuthState, AuthUser, AuthActions |
-| `src/services/SocketIO.ts` | Initialisation Socket.io côté frontend |
-| `src/contexts/AuthContext.tsx` | Provider React, instancie AuthService + expose le state |
-| `src/hooks/useAuth.ts` | Hook pour consommer l'état auth |
-| `src/components/SessionExpiryModal/` | Modales d'expiration et d'approbation |
-| `src/components/LoginForm/` | Formulaire de connexion |
-| `src/components/SignupForm/` | Formulaire d'inscription |
+| `src/contexts/AuthContext.tsx` | Provider + bridge socket, expose le state auth |
+| `src/services/MessageClientAdapter.ts` | Wrapper Socket.io côté client |
+| `src/components/LoginForm/`, `SignupForm/` | Formulaires |
 
 ---
 
-## Problèmes restants
+## À retenir
 
-### 1. Hachage SHA256 des mots de passe
-
-Les mots de passe sont hachés en SHA256 (`js-sha256`). SHA256 est un hash rapide, ce qui le rend vulnérable aux attaques par force brute. Pour la production, `bcrypt` ou `argon2` serait recommandé (hash lent avec salt intégré).
-
-**Note :** ce choix est volontaire pour le développement actuel. À revisiter avant mise en production.
+- **Une seule source de vérité côté navigateur : le cookie.** Pas de `sessionStorage`, pas de JWT.
+- **Trois messages d'auth** (`login` / `register` / `authenticate`), chacun avec son `_response`.
+- **Refresh et logout passent par REST** parce qu'ils manipulent directement la session cookie.
+- **`SessionManager` ne stocke rien côté DB lui-même** — il se contente de wrapper Socket.io et la session cookie d'Express.
