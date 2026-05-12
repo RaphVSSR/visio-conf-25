@@ -18,7 +18,7 @@ export type DiscuType = {
 	messages?: MessageType[]
 }
 
-export type DirectoryUser = {
+export type ChatContact = {
 	id: string
 	firstname: string
 	lastname: string
@@ -30,33 +30,33 @@ export type ChatState = {
 	chats: DiscuType[]
 	hiddenChats: string[]
 	activeChat: DiscuType | null
+	contacts: ChatContact[]
 	isLoading: boolean
+	isLoadingContacts: boolean
 	creatingStatus: string | null
 	deletingStatus: string | null
-	availableUsers: DirectoryUser[]
-	isLoadingUsers: boolean
 }
 
 export const initialChatState: ChatState = {
 	chats: [],
 	hiddenChats: [],
 	activeChat: null,
+	contacts: [],
 	isLoading: false,
+	isLoadingContacts: false,
 	creatingStatus: null,
 	deletingStatus: null,
-	availableUsers: [],
-	isLoadingUsers: false,
 }
 
 export type ChatActions = {
-	loadChats: () => void
+	getChats: (userId: string) => void
 	getChat: (uuid: string) => void
 	createChat: (data: Partial<DiscuType>) => void
 	sendMessageToChat: (chatUuid: string, content: string) => void
 	deleteChat: (uuid: string) => void
 	hideChat: (uuid: string) => void
 	setActiveChat: (chat: DiscuType | null) => void
-	loadUsers: () => void
+	loadContacts: (excludeEmail?: string) => void
 }
 
 export type ChatContextType = ChatState & ChatActions
