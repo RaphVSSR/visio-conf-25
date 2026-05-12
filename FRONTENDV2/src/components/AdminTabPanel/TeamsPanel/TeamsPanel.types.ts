@@ -1,11 +1,6 @@
-export type AdminTeam = {
-	id: string
-	name: string
-	description?: string
-	picture?: string
-	createdBy: string
-	createdAt: string | Date
-	updatedAt?: string | Date
+import type { Team as TeamModel } from "pages/Teams/Teams.types"
+
+export type AdminTeam = TeamModel & {
 	memberCount: number
 }
 

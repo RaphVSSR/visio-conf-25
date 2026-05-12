@@ -24,8 +24,8 @@ export const initialChannelState: ChannelState = {
 	channelError: "",
 }
 
-const sortByCreatedAtAsc = <T extends { createdAt: string }>(arr: T[]): T[] =>
-	[...arr].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+const sortByCreatedAtAsc = <Item extends { createdAt: string }>(items: Item[]): Item[] =>
+	[...items].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())
 
 export class Channel {
 
@@ -142,7 +142,7 @@ export class Channel {
 		this.setState(prev => {
 			const channels: ChannelModel[] = data.etat ? (data.channels || []) : prev.channels
 			const selectedChannel = prev.selectedChannel
-				? channels.find(c => c.id === prev.selectedChannel!.id) ?? null
+				? channels.find(chan => chan.id === prev.selectedChannel!.id) ?? null
 				: prev.selectedChannel
 			return { ...prev, channels, selectedChannel, isLoadingChannels: false }
 		})
@@ -179,7 +179,7 @@ export class Channel {
 					channelError: data.etat ? "" : (data.error || "Erreur lors de la suppression du canal"),
 					channelFormMode: data.etat ? null : prev.channelFormMode,
 					selectedChannel: data.etat ? null : prev.selectedChannel,
-					channels: data.etat ? prev.channels.filter(c => c.id !== data.channelId) : prev.channels,
+					channels: data.etat ? prev.channels.filter(chan => chan.id !== data.channelId) : prev.channels,
 				}))
 				break
 		}
@@ -211,16 +211,16 @@ export class Channel {
 				if (!data.etat) return
 				this.setState(prev => ({
 					...prev,
-					posts: prev.posts.map(p =>
-						p.id === data.postId
-							? { ...p, content: data.content, updatedAt: data.updatedAt }
-							: p
+					posts: prev.posts.map(post =>
+						post.id === data.postId
+							? { ...post, content: data.content, updatedAt: data.updatedAt }
+							: post
 					),
 				}))
 				break
 			case "delete":
 				if (!data.etat) return
-				this.setState(prev => ({ ...prev, posts: prev.posts.filter(p => p.id !== data.postId) }))
+				this.setState(prev => ({ ...prev, posts: prev.posts.filter(post => post.id !== data.postId) }))
 				break
 			case "answer":
 				if (!data.etat || !data.response) return

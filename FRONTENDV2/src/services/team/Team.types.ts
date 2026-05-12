@@ -6,8 +6,8 @@ export type TeamMember = {
 	id?: string,
 	userId: string,
 	role: "admin" | "member",
-	firstname?: string,
-	lastname?: string,
+	firstname: string,
+	lastname: string,
 	picture?: string,
 }
 

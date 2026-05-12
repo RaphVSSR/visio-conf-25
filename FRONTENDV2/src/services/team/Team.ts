@@ -123,7 +123,7 @@ export class Team {
 		this.setState(prev => {
 			const teams: TeamModel[] = data.etat ? (data.teams || []) : prev.teams
 			const selectedTeam = prev.selectedTeam
-				? teams.find(t => t.id === prev.selectedTeam!.id) ?? null
+				? teams.find(team => team.id === prev.selectedTeam!.id) ?? null
 				: prev.selectedTeam
 			return { ...prev, teams, selectedTeam, isLoadingTeams: false }
 		})

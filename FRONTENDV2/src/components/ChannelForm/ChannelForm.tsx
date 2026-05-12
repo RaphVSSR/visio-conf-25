@@ -55,15 +55,15 @@ const ChannelForm: FC<ChannelFormProps> = ({
 	const error = localError || channelState.channelError
 
 	const members: Member[] = teamState.teamMembers
-		.filter(m => m.userId !== user?._id)
-		.map(m => ({
-			id: m.userId,
-			firstname: m.firstname,
-			lastname: m.lastname,
-			picture: m.picture,
+		.filter(memb => memb.userId !== user?._id)
+		.map(memb => ({
+			id: memb.userId,
+			firstname: memb.firstname,
+			lastname: memb.lastname,
+			picture: memb.picture,
 			isSelected: isEditing
-				? channelState.channelMembers.some(cm => cm.userId === m.userId)
-				: selectedMemberIds.includes(m.userId),
+				? channelState.channelMembers.some(chanMemb => chanMemb.userId === memb.userId)
+				: selectedMemberIds.includes(memb.userId),
 		}))
 
 	const handleSubmit = (e: FormEvent) => {
@@ -76,7 +76,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 		setLocalError("")
 
 		const memberIds = !isPublic
-			? (isEditing ? members.filter(m => m.isSelected).map(m => m.id) : selectedMemberIds)
+			? (isEditing ? members.filter(memb => memb.isSelected).map(memb => memb.id) : selectedMemberIds)
 			: []
 
 		if (isEditing && channelToEdit) {
@@ -94,13 +94,13 @@ const ChannelForm: FC<ChannelFormProps> = ({
 
 	const handleMemberToggle = (member: Member) => {
 		setSelectedMemberIds(prev =>
-			prev.includes(member.id) ? prev.filter(id => id !== member.id) : [...prev, member.id]
+			prev.includes(member.id) ? prev.filter(memberId => memberId !== member.id) : [...prev, member.id]
 		)
 	}
 
 	const handleSelectAll = () => {
-		const allIds = members.map(m => m.id)
-		const hasUnselected = members.some(m => !m.isSelected)
+		const allIds = members.map(memb => memb.id)
+		const hasUnselected = members.some(memb => !memb.isSelected)
 		setSelectedMemberIds(hasUnselected ? allIds : [])
 	}
 
@@ -135,7 +135,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 							id="channel-name"
 							type="text"
 							value={name}
-							onChange={(e) => setName(e.target.value)}
+							onChange={(event) => setName(event.target.value)}
 							placeholder="Ex: Marketing, Support, General..."
 							className="channel-form__input"
 							autoFocus
@@ -188,7 +188,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 							isLoading={teamState.isLoadingMembers}
 							searchPlaceholder="Rechercher des membres..."
 							currentUserId={user?._id}
-							selectedMembersTitle={`Membres selectionnes (${members.filter(m => m.isSelected).length})`}
+							selectedMembersTitle={`Membres selectionnes (${members.filter(memb => memb.isSelected).length})`}
 							availableMembersTitle="Ajouter des membres"
 						/>
 					</div>

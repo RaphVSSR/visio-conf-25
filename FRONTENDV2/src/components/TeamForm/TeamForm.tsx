@@ -51,18 +51,18 @@ const TeamForm: FC<TeamFormProps> = ({
 	const successMessage = state.teamSuccess
 
 	const members: Member[] = state.availableUsers
-		.filter(u => u.id !== user?._id)
-		.map(u => ({
-			id: u.id,
-			firstname: u.firstname,
-			lastname: u.lastname,
-			picture: u.picture,
+		.filter(dirUser => dirUser.id !== user?._id)
+		.map(dirUser => ({
+			id: dirUser.id,
+			firstname: dirUser.firstname,
+			lastname: dirUser.lastname,
+			picture: dirUser.picture,
 			isSelected: isEditing
-				? state.teamMembers.some(m => m.userId === u.id)
-				: selectedMemberIds.includes(u.id),
+				? state.teamMembers.some(memb => memb.userId === dirUser.id)
+				: selectedMemberIds.includes(dirUser.id),
 		}))
 
-	const isUserAdmin = state.teamMembers.some(m => m.userId === user?._id && m.role === "admin")
+	const isUserAdmin = state.teamMembers.some(memb => memb.userId === user?._id && memb.role === "admin")
 	const isCreator = teamToEdit?.createdBy === user?._id
 	const canManageMembers = forceAllowManage || isUserAdmin || isCreator || !isEditing
 
@@ -84,8 +84,8 @@ const TeamForm: FC<TeamFormProps> = ({
 
 	const isLastAdmin = (memberUserId: string): boolean => {
 		if (memberUserId !== user?._id) return false
-		const admins = state.teamMembers.filter(m => m.role === "admin")
-		const isAdminUser = state.teamMembers.find(m => m.userId === memberUserId)?.role === "admin"
+		const admins = state.teamMembers.filter(memb => memb.role === "admin")
+		const isAdminUser = state.teamMembers.find(memb => memb.userId === memberUserId)?.role === "admin"
 		return admins.length === 1 && isAdminUser === true
 	}
 
@@ -102,17 +102,17 @@ const TeamForm: FC<TeamFormProps> = ({
 			}
 		} else {
 			setSelectedMemberIds(prev =>
-				prev.includes(member.id) ? prev.filter(id => id !== member.id) : [...prev, member.id]
+				prev.includes(member.id) ? prev.filter(memberId => memberId !== member.id) : [...prev, member.id]
 			)
 		}
 	}
 
 	const handleSelectAll = () => {
 		if (isEditing && teamToEdit) {
-			members.filter(m => !m.isSelected).forEach(m => onAddMember(teamToEdit.id, m.id))
+			members.filter(memb => !memb.isSelected).forEach(memb => onAddMember(teamToEdit.id, memb.id))
 		} else {
-			const allIds = members.map(m => m.id)
-			const hasUnselected = members.some(m => !m.isSelected)
+			const allIds = members.map(memb => memb.id)
+			const hasUnselected = members.some(memb => !memb.isSelected)
 			setSelectedMemberIds(hasUnselected ? allIds : [])
 		}
 	}
@@ -124,8 +124,8 @@ const TeamForm: FC<TeamFormProps> = ({
 		if (file.size > 5 * 1024 * 1024) { setLocalError("L'image ne doit pas depasser 5MB"); return }
 		setLocalError("")
 		const reader = new FileReader()
-		reader.onload = (e) => {
-			const dataUrl = e.target?.result as string
+		reader.onload = (event) => {
+			const dataUrl = event.target?.result as string
 			setPicturePreview(dataUrl)
 			setPicture(dataUrl)
 		}
@@ -139,7 +139,7 @@ const TeamForm: FC<TeamFormProps> = ({
 		if (input) input.value = ""
 	}
 
-	const selectedCount = members.filter(m => m.isSelected).length
+	const selectedCount = members.filter(memb => memb.isSelected).length
 
 	return (
 		<div className="team-form">
@@ -171,7 +171,7 @@ const TeamForm: FC<TeamFormProps> = ({
 						id="team-name"
 						type="text"
 						value={name}
-						onChange={(e) => setName(e.target.value)}
+						onChange={(event) => setName(event.target.value)}
 						placeholder="Ex: Marketing, Developpement, RH..."
 						className="team-form__input"
 						autoFocus
@@ -185,7 +185,7 @@ const TeamForm: FC<TeamFormProps> = ({
 							<textarea
 								id="team-description"
 								value={description}
-								onChange={(e) => setDescription(e.target.value)}
+								onChange={(event) => setDescription(event.target.value)}
 								placeholder="Decrivez brievement cette equipe..."
 								className="team-form__textarea"
 								rows={4}

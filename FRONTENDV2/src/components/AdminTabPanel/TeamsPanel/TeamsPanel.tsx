@@ -56,12 +56,12 @@ export const TeamsPanel: FC<TeamsPanelProps> = ({ onClose }) => {
 			setToast({ message: "Équipe créée", kind: "success" })
 		}
 		if (data.type === "update" && data.team) {
-			setTeams(prev => prev.map(t => t.id === data.team!.id ? { ...t, ...data.team! } : t))
+			setTeams(prev => prev.map(team => team.id === data.team!.id ? { ...team, ...data.team! } : team))
 			setEditingTeam(null)
 			setToast({ message: "Équipe mise à jour", kind: "success" })
 		}
 		if (data.type === "delete" && data.teamId) {
-			setTeams(prev => prev.filter(t => t.id !== data.teamId))
+			setTeams(prev => prev.filter(team => team.id !== data.teamId))
 			setPendingDeleteId(null)
 			setToast({ message: "Équipe supprimée", kind: "success" })
 		}
@@ -87,9 +87,9 @@ export const TeamsPanel: FC<TeamsPanelProps> = ({ onClose }) => {
 	const visibleTeams = useMemo(() => {
 		const needle = searchTerm.trim().toLowerCase()
 		if (!needle) return teams
-		return teams.filter(t =>
-			t.name.toLowerCase().includes(needle)
-			|| (t.description ?? "").toLowerCase().includes(needle)
+		return teams.filter(team =>
+			team.name.toLowerCase().includes(needle)
+			|| (team.description ?? "").toLowerCase().includes(needle)
 		)
 	}, [teams, searchTerm])
 
@@ -126,7 +126,7 @@ export const TeamsPanel: FC<TeamsPanelProps> = ({ onClose }) => {
 					<input
 						type="text"
 						value={searchTerm}
-						onChange={e => setSearchTerm(e.target.value)}
+						onChange={event => setSearchTerm(event.target.value)}
 						placeholder="Rechercher une équipe…"
 					/>
 				</div>
@@ -153,7 +153,7 @@ export const TeamsPanel: FC<TeamsPanelProps> = ({ onClose }) => {
 							<span>{team.memberCount} membre(s)</span>
 							<span>{new Date(team.createdAt).toLocaleDateString("fr-FR")}</span>
 						</div>
-						<div className="itemActions" onClick={e => e.stopPropagation()}>
+						<div className="itemActions" onClick={event => event.stopPropagation()}>
 							{pendingDeleteId === team.id ? (
 								<>
 									<span className="confirmLabel">Supprimer ?</span>

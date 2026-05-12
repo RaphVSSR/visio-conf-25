@@ -30,7 +30,7 @@ const ChannelView: FC<ChannelViewProps> = ({
 	const messagesEndRef = useRef<HTMLDivElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)
 
-	const posts = state.posts.filter(p => p.channelId === selected.id)
+	const posts = state.posts.filter(post => post.channelId === selected.id)
 	const members = state.channelMembers
 	const isLoading = state.isLoadingPosts
 	const isCreator = selected.createdBy === userId
@@ -150,10 +150,10 @@ const ChannelView: FC<ChannelViewProps> = ({
 						className="channel-view__message-input"
 						placeholder="Ecrivez un message..."
 						value={newPostContent}
-						onChange={(e) => setNewPostContent(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && !e.shiftKey) {
-								e.preventDefault()
+						onChange={(event) => setNewPostContent(event.target.value)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter" && !event.shiftKey) {
+								event.preventDefault()
 								handleSubmitPost()
 							}
 						}}
