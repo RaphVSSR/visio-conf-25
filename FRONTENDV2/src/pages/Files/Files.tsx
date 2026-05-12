@@ -1,3 +1,4 @@
+// FIXME: rewire Files as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import React, { FC, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
@@ -21,7 +22,8 @@ import { Card } from "design-system/components";
 import "./Files.tsx.scss";
 
 export const Files: FC = () => {
-  const { socket, user } = useAuth();
+  const { user } = useAuth();
+  const socket: any = null;
   const [files, setFiles] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [currentSpaceId, setCurrentSpaceId] = useState<string | null>(null);

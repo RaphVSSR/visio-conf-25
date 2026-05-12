@@ -1,3 +1,4 @@
+// FIXME: rewire ChannelForm as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import { useState, useEffect, useRef, type FC, type FormEvent } from "react"
 import "./ChannelForm.scss"
 import { useAuth } from "hooks/useAuth"
@@ -26,7 +27,8 @@ const ChannelForm: FC<ChannelFormProps> = ({
 	channelToEdit,
 	team,
 }) => {
-	const { socket, user } = useAuth()
+	const { user } = useAuth()
+	const socket: any = null
 	const [name, setName] = useState("")
 	const [isPublic, setIsPublic] = useState(true)
 	const [isLoading, setIsLoading] = useState(false)

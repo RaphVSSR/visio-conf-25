@@ -1,3 +1,4 @@
+// FIXME: rewire the call feature as its own controleur participant (see services/auth/AuthSync.ts pattern). CallProvider is currently unmounted from the app tree.
 import React, { createContext, useContext, useRef, useState, useCallback } from "react";
 import { useCallBase } from "hooks/call/useCallBase";
 import type { ActiveCallState, CallType, IncomingCallInfo, TargetUser } from "types/Call";

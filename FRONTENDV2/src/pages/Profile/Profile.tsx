@@ -1,3 +1,4 @@
+// FIXME: rewire Profile as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import React, { FC, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
@@ -16,7 +17,8 @@ import { useToast } from "../../contexts/ToastContext";
 import "./Profile.scss";
 
 export const Profile: FC = () => {
-  const { user, login, socket } = useAuth();
+  const { user, login } = useAuth();
+  const socket: any = null;
   const navigate = useNavigate();
   const { addToast } = useToast();
   

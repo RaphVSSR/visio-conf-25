@@ -1,3 +1,4 @@
+// FIXME: rewire TeamForm as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import { useState, useEffect, useCallback, useRef, type FC, type FormEvent, type ChangeEvent } from "react"
 import "./TeamForm.scss"
 import { useAuth } from "hooks/useAuth"
@@ -18,7 +19,8 @@ const TeamForm: FC<TeamFormProps> = ({
 	teamToEdit,
 	forceAllowManage = false,
 }) => {
-	const { socket, user } = useAuth()
+	const { user } = useAuth()
+	const socket: any = null
 	const [name, setName] = useState("")
 	const [description, setDescription] = useState("")
 	const [isLoading, setIsLoading] = useState(false)

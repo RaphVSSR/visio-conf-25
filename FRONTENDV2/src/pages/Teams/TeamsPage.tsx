@@ -1,4 +1,5 @@
 
+// FIXME: rewire TeamsPage as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useAuth } from "hooks/useAuth"
 import { useTeamManager } from "hooks/useTeamManager"
@@ -13,7 +14,8 @@ import {
 import "./TeamsPage.scss"
 
 export const TeamsPage = () => {
-	const { user, socket } = useAuth()
+	const { user } = useAuth()
+	const socket: any = null
 	const [isLoadingTeams, setIsLoadingTeams] = useState(true)
 	const [isLoadingChannels, setIsLoadingChannels] = useState(false)
 

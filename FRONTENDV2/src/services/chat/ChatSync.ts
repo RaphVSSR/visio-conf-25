@@ -1,11 +1,11 @@
-import type MessageClientAdapter from "services/MessageClientAdapter"
+// FIXME: rewire ChatSync as its own controleur participant (see services/auth/AuthSync.ts pattern). MessageClientAdapter is deleted.
 import type { ChatState, DiscuType, MessageType } from "./ChatSync.types"
 
 type StateUpdater = (updater: (prev: ChatState) => ChatState) => void
 
 export class ChatSync {
 
-	private socket: MessageClientAdapter
+	private socket: any
 	private onStateChange: StateUpdater
 
 	// --- Bound handlers (needed for off()) ---
@@ -103,7 +103,7 @@ export class ChatSync {
 		}
 	}
 
-	constructor(socket: MessageClientAdapter, onStateChange: StateUpdater) {
+	constructor(socket: any, onStateChange: StateUpdater) {
 		this.socket = socket
 		this.onStateChange = onStateChange
 

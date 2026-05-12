@@ -1,22 +1,7 @@
-import type MessageClientAdapter from "services/MessageClientAdapter"
-
-export type AuthUser = {
-	_id: string,
-	firstname: string,
-	lastname: string,
-	email: string,
-	phone: string,
-	status: string,
-	job: string,
-	desc: string,
-	picture: string,
-	is_online: boolean,
-	disturb_status: string,
-	roles: string[],
-}
+import type { User } from "types/User"
 
 export type AuthState = {
-	user: AuthUser | null,
+	user: User | null,
 	isAuthenticated: boolean,
 	isLoading: boolean,
 	isRefreshing: boolean,
@@ -33,4 +18,4 @@ export type AuthActions = {
 	dismissExpiryWarning: () => void,
 }
 
-export type AuthContextType = AuthState & AuthActions & { socket: MessageClientAdapter | null }
+export type AuthContextType = AuthState & AuthActions

@@ -1,3 +1,4 @@
+// FIXME: rewire ChannelView as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import { useState, useEffect, useRef, useCallback, type FC } from "react"
 import "./ChannelView.scss"
 import {
@@ -31,7 +32,8 @@ const ChannelView: FC<ChannelViewProps> = ({
 	onEditChannel,
 	onChannelDeleted,
 }) => {
-	const { socket } = useAuth()
+	useAuth()
+	const socket: any = null
 	const [posts, setPosts] = useState<any[]>([])
 	const [members, setMembers] = useState<any[]>([])
 	const [newPostContent, setNewPostContent] = useState("")

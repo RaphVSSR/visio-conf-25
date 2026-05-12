@@ -1,3 +1,4 @@
+// FIXME: rewire RoleManagement as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import { FC, useEffect, useRef, useState, useCallback } from "react";
 import { Pencil, Trash2, Eye, Plus, RefreshCw } from "lucide-react";
 import { useAuth } from "hooks/useAuth";
@@ -18,7 +19,8 @@ export type RoleManagementProps = {
 export const RoleManagement: FC<RoleManagementProps> = ({
   activeAction,
 }) => {
-  const { socket } = useAuth();
+  useAuth();
+  const socket: any = null;
 
   const [roles, setRoles] = useState<RoleData[]>([]);
   const [selectedRole, setSelectedRole] = useState<RoleData | null>(null);

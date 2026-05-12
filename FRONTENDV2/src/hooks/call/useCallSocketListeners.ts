@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import type MessageClientAdapter from "services/MessageClientAdapter";
 import type {
     ActiveCallState,
     IncomingCallInfo,
@@ -8,7 +7,7 @@ import type {
 } from "types/Call";
 
 interface CallSocketListenersOptions {
-    getSocket: () => MessageClientAdapter | null;
+    getSocket: () => any;
     callState: ActiveCallState | null;
 
     sendOfferToRemoteUser: (remoteUserId: string, callId: string) => Promise<void>;

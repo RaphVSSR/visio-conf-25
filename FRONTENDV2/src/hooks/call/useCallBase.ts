@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "hooks/useAuth";
-import type MessageClientAdapter from "services/MessageClientAdapter";
 import type {
     ActiveCallState,
     CallStatus,
@@ -35,13 +34,14 @@ interface CallBaseHookReturn {
 }
 
 export function useCallBase(options: CallBaseHookOptions): CallBaseHookReturn {
-    const { user, socket } = useAuth();
+    const { user } = useAuth();
+    const socket: any = null;
 
     const [callState, setCallState] = useState<ActiveCallState | null>(null);
     const [incomingCall, setIncomingCall] = useState<IncomingCallInfo | null>(null);
     const [callEndedNotice, setCallEndedNotice] = useState<string | null>(null);
 
-    const getSocket = useCallback((): MessageClientAdapter | null => socket, [socket]);
+    const getSocket = useCallback((): any => socket, [socket]);
 
     // --- Peer connections ---
 

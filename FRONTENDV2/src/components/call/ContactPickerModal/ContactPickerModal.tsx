@@ -20,7 +20,8 @@ interface ContactPickerModalProps {
 
 export const ContactPickerModal: FC<ContactPickerModalProps> = ({ isOpen, onClose }) => {
     const { initiateCall } = useCall()
-    const { user, socket } = useAuth()
+    const { user } = useAuth()
+    const socket: any = null
     const [contacts, setContacts] = useState<Contact[]>([])
     const [loading, setLoading] = useState(false)
 

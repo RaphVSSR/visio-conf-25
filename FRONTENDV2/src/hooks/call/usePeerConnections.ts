@@ -1,6 +1,5 @@
 import { useRef, useCallback } from "react";
 import type { MutableRefObject } from "react";
-import type MessageClientAdapter from "services/MessageClientAdapter";
 import type { MediaConstraints, SdpPayload, IceCandidatePayload } from "types/Call";
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -12,7 +11,7 @@ const ICE_SERVERS: RTCConfiguration = {
 
 interface PeerConnectionsOptions {
     currentUserId: string | undefined;
-    getSocket: () => MessageClientAdapter | null;
+    getSocket: () => any;
     mediaConstraints: MediaConstraints;
     onRemoteTrackReceived: (remoteUserId: string, stream: MediaStream) => void;
     onParticipantConnectionChanged: (remoteUserId: string, connected: boolean) => void;

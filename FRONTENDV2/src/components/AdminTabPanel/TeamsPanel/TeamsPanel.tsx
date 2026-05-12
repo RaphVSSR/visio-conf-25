@@ -1,3 +1,4 @@
+// FIXME: rewire TeamsPanel as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useAuth } from "hooks/useAuth"
 import { Pencil, Plus, Search, Trash2, Users, X, Check } from "lucide-react"
@@ -12,7 +13,8 @@ export type TeamsPanelProps = {
 
 export const TeamsPanel: FC<TeamsPanelProps> = ({ onClose }) => {
 
-	const { socket } = useAuth()
+	useAuth()
+	const socket: any = null
 	const [teams, setTeams] = useState<AdminTeam[]>([])
 	const [searchTerm, setSearchTerm] = useState("")
 	const [editingTeam, setEditingTeam] = useState<AdminTeam | null>(null)

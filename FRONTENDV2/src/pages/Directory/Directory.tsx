@@ -1,3 +1,4 @@
+// FIXME: rewire Directory as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import React, { FC, useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -29,7 +30,8 @@ interface DirectoryUser {
 }
 
 export const Directory: FC = () => {
-  const { socket, user: currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
+  const socket: any = null;
   const { initiateCall } = useAudioCall();
   const navigate = useNavigate();
   const [users, setUsers] = useState<DirectoryUser[]>([]);

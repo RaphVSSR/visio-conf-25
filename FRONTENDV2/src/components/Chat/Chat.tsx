@@ -1,3 +1,4 @@
+// FIXME: rewire Chat as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "hooks/useAuth"
 import { ChatSync } from "services/chat/ChatSync"
@@ -15,7 +16,8 @@ const INITIAL_STATE: ChatState = {
 
 export const Chat = () => {
 
-	const { user, socket } = useAuth()
+	const { user } = useAuth()
+	const socket: any = null
 
 	const [state, setState] = useState<ChatState>(() => {
 		const savedHidden = localStorage.getItem("hiddenChats")
