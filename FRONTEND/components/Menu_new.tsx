@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import styles from "./Menu.module.css"
 import { useAppContext } from "@/context/AppContext"
-import ProfilPopUp from "../components/ProfilPopUp"
+import ProfilPopUp from "./ProfilPopUp"
 import { UserRoundCog } from "lucide-react"
 
 export default function Menu({ children }: { children: React.ReactNode }) {

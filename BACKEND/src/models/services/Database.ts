@@ -13,7 +13,7 @@ import ChannelPost from "../ChannelPost.ts"
 import ChannelPostResponse from "../ChannelPostResponse.ts"
 import Permission from "../Permission.ts"
 import Role from "../Role.ts"
-import { sha256 } from "js-sha256"
+import { sha256 } from "js-sha256/index"
 
 export default class Database {
 

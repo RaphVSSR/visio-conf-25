@@ -2,6 +2,7 @@ import React, { Dispatch, FC, SetStateAction, useState } from 'react'
 import "./AdminTabPanel.scss";
 import { Drama, ListChecks, LucideIcon, MessagesSquare, UsersRound, X } from 'lucide-react';
 import { RoleManagement } from 'components/RoleManagement/RoleManagement';
+import { TeamManagement } from 'components/TeamManagement/TeamManagement';
 
 export type AdminTabType = {
 
@@ -153,6 +154,9 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 		<section id="tabContent">
 			{tabSelected === "Rôles" && (
 				<RoleManagement activeAction={subOptionSelected} />
+			)}
+			{tabSelected === "Equipes" && (
+				<TeamManagement activeAction={subOptionSelected} />
 			)}
 		</section>
 	</section>

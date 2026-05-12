@@ -1,7 +1,7 @@
 import mongoose, { type Model, type HydratedDocument, model, Schema, Types } from "mongoose"
 import { type FileType, type FolderType } from "./services/FileSystem.ts";
 import TracedError from "./core/TracedError.ts";
-import { sha256 } from "js-sha256"
+import { sha256 } from "js-sha256/index"
 
 const { models } = mongoose;
 

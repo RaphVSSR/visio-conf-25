@@ -1,6 +1,7 @@
 
 export * from "./AdminTabPanel";
 export * from "./RoleManagement";
+export * from "./TeamManagement";
 export * from "./AuthenticatedLayout";
 export * from "./Dashboard";
 export * from "./LoginForm";

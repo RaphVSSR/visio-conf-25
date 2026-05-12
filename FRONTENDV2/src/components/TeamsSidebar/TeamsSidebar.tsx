@@ -36,6 +36,13 @@ export const TeamsSidebar: FC<TeamsSidebarProps> = ({
 
 	const isMember = (team: Team) => team.role === "admin" || team.role === "member";
 	const isAdmin = (team: Team) => team.role === "admin";
+	const getInitials = (name: string) =>
+		name
+			.split(" ")
+			.filter(Boolean)
+			.slice(0, 2)
+			.map((part) => part[0]?.toUpperCase() ?? "")
+			.join("");
 
 	return (
 		<aside className="teams-sidebar">
@@ -89,8 +96,10 @@ export const TeamsSidebar: FC<TeamsSidebarProps> = ({
 								transition={{ duration: 0.15 }}
 							>
 								<div className="teams-sidebar__item-icon">
-									{isMember(team) ? (
-										<Users size={18} />
+									{team.picture ? (
+										<img src={team.picture} alt={team.name} className="teams-sidebar__item-avatar" />
+									) : isMember(team) ? (
+										getInitials(team.name) || <Users size={18} />
 									) : (
 										<Lock size={18} />
 									)}

@@ -1,4 +1,4 @@
-import { sha256 } from "js-sha256"
+import { sha256 } from "js-sha256/index"
 import User from "../../User.ts"
 import SessionManager from "./SessionManager.ts"
 import { getMessagesByDomain } from "../../ListeMessages.ts"

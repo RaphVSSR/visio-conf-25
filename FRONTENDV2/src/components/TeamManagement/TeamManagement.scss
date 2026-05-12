@@ -1,0 +1,192 @@
+@use "../../design-system/scss/global.scss" as *;
+
+#teamManagement {
+  @extend %flex-col;
+  gap: 20px;
+  width: 100%;
+
+  .tm-toast {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+
+    &--success {
+      background-color: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    &--error {
+      background-color: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+  }
+
+  .tm-section {
+    @extend %flex-col;
+    gap: 16px;
+
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+  }
+
+  .tm-empty {
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  .tm-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 14px;
+
+    thead tr {
+      background-color: #f3f4f6;
+      th {
+        padding: 12px 16px;
+        text-align: left;
+      }
+    }
+
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: middle;
+    }
+
+    &__label {
+      font-weight: 600;
+    }
+
+    &__actions {
+      display: flex;
+      gap: 6px;
+    }
+  }
+
+  .tm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &--icon {
+      padding: 6px;
+      background: transparent;
+      color: #6b7280;
+    }
+
+    &--small {
+      padding: 5px 8px;
+      border-radius: 6px;
+    }
+
+    &--primary {
+      background-color: #63b367;
+      color: white;
+    }
+
+    &--secondary {
+      background-color: #f3f4f6;
+      color: #111827;
+    }
+
+    &--warning {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+
+    &--danger {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+  }
+
+  .tm-form {
+    @extend %flex-col;
+    gap: 14px;
+    max-width: 560px;
+
+    &__label {
+      @extend %flex-col;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    &__input,
+    &__textarea {
+      padding: 10px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    &__textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    &__buttons {
+      display: flex;
+      gap: 10px;
+    }
+  }
+
+  .tm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .tm-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 24px 28px;
+    width: 90%;
+    max-width: 420px;
+
+    h3 {
+      color: #b91c1c;
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    &__actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+  }
+}
