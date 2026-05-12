@@ -1,5 +1,4 @@
 import { type Types } from "mongoose";
-import { getMessagesByDomain } from "../ListeMessages.ts";
 import SessionManager from "./authentication/SessionManager.ts";
 import TeamService from "./TeamService.ts";
 import Channel from "../Channel.ts";
@@ -7,22 +6,26 @@ import ChannelMember, { type ChannelMemberType } from "../ChannelMember.ts";
 import ChannelPost, { type ChannelPostType } from "../ChannelPost.ts";
 import ChannelPostResponse from "../ChannelPostResponse.ts";
 import TeamMember from "../TeamMember.ts";
+import Controleur from "../../Controller/controleur";
+import { Message } from "../ListeMessages.ts";
 
-type MessageHandler = (socketId: string, payload: any) => void;
 type WithId<T> = T & { _id: Types.ObjectId };
 
 export default class ChannelService {
-	controleur: any;
+	controleur: Controleur;
 	nomDInstance: string;
-	private handlers = new Map<string, MessageHandler>();
+
+	msgEmitted: string[] = [
+		"channel_get_response",
+		"channel_action_response",
+		"channel_member_response",
+		"channel_post_response",
+	];
+	msgReceived: string[] = ["channel_get", "channel_action", "channel_member", "channel_post"];
 
 	constructor(controleur: any, name: string) {
 		this.controleur = controleur;
 		this.nomDInstance = name;
-	}
-
-	private registerHandler(messageName: string, handler: MessageHandler) {
-		this.handlers.set(messageName, handler);
 	}
 
 	private send(socketIds: string | string[], messageName: string, payload: unknown) {
@@ -30,20 +33,24 @@ export default class ChannelService {
 		this.controleur.envoie(this, { [messageName]: payload, id: ids });
 	}
 
-	traitementMessage(msg: any) {
-		const action = Object.keys(msg).find((prop) => prop !== "id");
+	traitementMessage(message: Message) {
+		const action = Object.keys(message).find((prop) => prop !== "id");
 		if (!action) return;
-		const handler = this.handlers.get(action);
-		if (handler) handler(msg.id, msg[action]);
+
+		switch (action) {
+			case "channel_get":
+				return this.handleChannelQuery(message.id!, message.channel_get);
+			case "channel_action":
+				return this.handleChannelAction(message.id!, message.channel_action);
+			case "channel_member":
+				return this.handleChannelMember(message.id!, message.channel_member);
+			case "channel_post":
+				return this.handleChannelPost(message.id!, message.channel_post);
+		}
 	}
 
 	register() {
-		this.registerHandler("channel_get", this.handleChannelQuery);
-		this.registerHandler("channel_action", this.handleChannelAction);
-		this.registerHandler("channel_member", this.handleChannelMember);
-		this.registerHandler("channel_post", this.handleChannelPost);
-
-		this.controleur.inscription(this, getMessagesByDomain("channel").received, [...this.handlers.keys()]);
+		this.controleur.inscription(this, this.msgEmitted, this.msgReceived);
 	}
 
 	private resolveUserId(socketId: string): string | null {

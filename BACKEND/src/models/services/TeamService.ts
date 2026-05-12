@@ -1,4 +1,3 @@
-import { getMessagesByDomain } from "../ListeMessages.ts";
 import SessionManager from "./authentication/SessionManager.ts";
 import Team from "../Team.ts";
 import TeamMember from "../TeamMember.ts";
@@ -6,21 +5,19 @@ import Channel from "../Channel.ts";
 import ChannelMember from "../ChannelMember.ts";
 import ChannelPost from "../ChannelPost.ts";
 import ChannelPostResponse from "../ChannelPostResponse.ts";
-
-type MessageHandler = (socketId: string, payload: any) => void;
+import Controleur from "../../Controller/controleur";
+import { Message } from "../ListeMessages.ts";
 
 export default class TeamService {
-	controleur: any;
+	controleur: Controleur;
 	nomDInstance: string;
-	private handlers = new Map<string, MessageHandler>();
+
+	msgEmitted: string[] = ["team_get_response", "team_action_response", "team_member_response"];
+	msgReceived: string[] = ["team_get", "team_action", "team_member"];
 
 	constructor(controleur: any, name: string) {
 		this.controleur = controleur;
 		this.nomDInstance = name;
-	}
-
-	private registerHandler(messageName: string, handler: MessageHandler) {
-		this.handlers.set(messageName, handler);
 	}
 
 	private send(socketIds: string | string[], messageName: string, payload: unknown) {
@@ -28,19 +25,22 @@ export default class TeamService {
 		this.controleur.envoie(this, { [messageName]: payload, id: ids });
 	}
 
-	traitementMessage(msg: any) {
-		const action = Object.keys(msg).find((prop) => prop !== "id");
+	traitementMessage(message: Message) {
+		const action = Object.keys(message).find((prop) => prop !== "id");
 		if (!action) return;
-		const handler = this.handlers.get(action);
-		if (handler) handler(msg.id, msg[action]);
+
+		switch (action) {
+			case "team_get":
+				return this.handleTeamQuery(message.id!, message.team_get);
+			case "team_action":
+				return this.handleTeamAction(message.id!, message.team_action);
+			case "team_member":
+				return this.handleTeamMember(message.id!, message.team_member);
+		}
 	}
 
 	register() {
-		this.registerHandler("team_get", this.handleTeamQuery);
-		this.registerHandler("team_action", this.handleTeamAction);
-		this.registerHandler("team_member", this.handleTeamMember);
-
-		this.controleur.inscription(this, getMessagesByDomain("team").received, [...this.handlers.keys()]);
+		this.controleur.inscription(this, this.msgEmitted, this.msgReceived);
 	}
 
 	private resolveUserId(socketId: string): string | null {
