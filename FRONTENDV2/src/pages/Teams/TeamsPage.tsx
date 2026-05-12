@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useAuth } from "hooks/useAuth"
 import { useTeamManager } from "hooks/useTeamManager"
 import { useChannelManager } from "hooks/useChannelManager"
@@ -16,12 +16,17 @@ export const TeamsPage = () => {
 	const { user, socket } = useAuth()
 	const [isLoadingTeams, setIsLoadingTeams] = useState(true)
 	const [isLoadingChannels, setIsLoadingChannels] = useState(false)
+	const selectedTeamIdRef = useRef<string | null>(null)
 
 	const teamManager = useTeamManager()
 	const channelManager = useChannelManager()
 
 	const { updateTeamsFromResponse } = teamManager
 	const { updateChannelsFromResponse } = channelManager
+
+	useEffect(() => {
+		selectedTeamIdRef.current = teamManager.selectedTeam?.id ?? null
+	}, [teamManager.selectedTeam?.id])
 
 	const handleTeamQueryResponse = useCallback(
 		(data: any) => {
@@ -48,11 +53,11 @@ export const TeamsPage = () => {
 	const handleChannelActionResponse = useCallback(
 		(data: any) => {
 			if (data.type !== "create" && data.type !== "update" && data.type !== "delete") return
-			if (teamManager.selectedTeam && socket) {
-				socket.send("channel_get", { type: "list", teamId: teamManager.selectedTeam.id })
+			if (selectedTeamIdRef.current && socket) {
+				socket.send("channel_get", { type: "list", teamId: selectedTeamIdRef.current })
 			}
 		},
-		[teamManager.selectedTeam, socket]
+		[socket]
 	)
 
 	const handleTeamActionResponse = useCallback(
