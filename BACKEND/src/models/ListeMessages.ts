@@ -17,8 +17,8 @@ const MessageRegistry: Record<string, MessageDomain> = {
 	},
 
 	user: {
-		emitted: ["user_get", "user_update"],
-		received: ["user_get_response", "user_update_response"],
+		emitted: ["edit_user_request"],
+		received: ["edit_user_answer"],
 	},
 
 	team: {

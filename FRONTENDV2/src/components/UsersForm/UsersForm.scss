@@ -1,0 +1,233 @@
+.usersPanel {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+    padding: 24px;
+  }
+  
+  .usersTitle {
+    margin: 0 0 20px;
+    font-size: 1.35rem;
+    color: #1e293b;
+  }
+  
+  .usersForm {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  
+  .formGroup {
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      color: #334155;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+  
+    input,
+    select {
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      font: inherit;
+      color: #0f172a;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+  }
+  
+  .rolesDropdownGroup {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .rolesLabel {
+    color: #334155;
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  
+  .rolesDropdownTrigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #fff;
+    color: #0f172a;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-sizing: border-box;
+  }
+  
+  .rolesDropdownTrigger:hover {
+    background: #f8fafc;
+  }
+  
+  .rolesDropdownTrigger:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+  
+  .rolesDropdownTrigger.open {
+    border-color: #2563eb;
+  }
+  
+  .rolesDropdownValue {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .rolesDropdownArrow {
+    flex-shrink: 0;
+    color: #64748b;
+    font-size: 0.85rem;
+    line-height: 1;
+    transition: transform 0.2s ease;
+  }
+  
+  .rolesDropdownTrigger.open .rolesDropdownArrow {
+    transform: rotate(180deg);
+  }
+  
+  .rolesDropdownMenu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 20;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
+    display: grid;
+    gap: 8px;
+    max-height: 220px;
+    overflow: auto;
+    box-sizing: border-box;
+  }
+  
+  .rolesDropdownOption {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #0f172a;
+    font-weight: 500;
+    transition: background 0.2s ease;
+    user-select: none;
+  }
+  
+  .rolesDropdownOption:hover {
+    background: #f8fafc;
+  }
+  
+  .rolesDropdownOption input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #2563eb;
+    flex-shrink: 0;
+  }
+  
+  .usersActions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .btnPrimary,
+  .btnSecondary,
+  .btnDanger {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  
+  .btnPrimary {
+    background: #1d4ed8;
+    color: white;
+  }
+  
+  .btnPrimary:hover {
+    background: #1e40af;
+  }
+  
+  .btnSecondary {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+  
+  .btnSecondary:hover {
+    background: #cbd5e1;
+  }
+  
+  .btnDanger {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+  
+  .btnDanger:hover {
+    background: #fecaca;
+  }
+  
+  @media (max-width: 900px) {
+    .usersPanel {
+      padding: 18px;
+      border-radius: 14px;
+    }
+  
+    .usersForm {
+      grid-template-columns: 1fr;
+    }
+  
+    .usersActions {
+      grid-column: auto;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .rolesDropdownMenu {
+      position: static;
+      width: 100%;
+      margin-top: 0;
+    }
+  
+    .btnPrimary,
+    .btnSecondary,
+    .btnDanger {
+      width: 100%;
+      text-align: center;
+    }
+  }

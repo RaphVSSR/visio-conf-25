@@ -1,0 +1,30 @@
+@use "../../design-system/scss/global.scss" as *;
+
+#usersPage {
+  width: 100%;
+  min-height: 100vh;
+  padding: 32px;
+  background: #f8fafc;
+
+  .usersContainer {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .usersError {
+    color: #b91c1c;
+    font-weight: 600;
+  }
+
+  .usersLoading {
+    color: #475569;
+  }
+
+  @media (max-width: 900px) {
+    padding: 24px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 16px;
+  }
+}
