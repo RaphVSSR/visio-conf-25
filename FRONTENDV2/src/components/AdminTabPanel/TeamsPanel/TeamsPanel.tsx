@@ -1,4 +1,5 @@
 // FIXME: rewire TeamsPanel as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
+// FIXME: local `ToastState` + setTimeout dismissal must migrate to global useToast (showToast/removeToast) once this is rewired.
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useAuth } from "hooks/useAuth"
 import { Pencil, Plus, Search, Trash2, Users, X, Check } from "lucide-react"

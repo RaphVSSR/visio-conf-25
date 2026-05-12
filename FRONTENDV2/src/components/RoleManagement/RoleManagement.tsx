@@ -1,4 +1,5 @@
 // FIXME: rewire RoleManagement as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
+// FIXME: local `rm-toast` (state `statusMessage`) must migrate to global useToast (showToast/removeToast) once this is rewired.
 import { FC, useEffect, useRef, useState, useCallback } from "react";
 import { Pencil, Trash2, Eye, Plus, RefreshCw } from "lucide-react";
 import { useAuth } from "hooks/useAuth";

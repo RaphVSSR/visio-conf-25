@@ -1,18 +1,19 @@
-import { createContext, FC, PropsWithChildren, useCallback, useContext, useRef, useState } from "react"
+import { createContext, FC, PropsWithChildren, ReactNode, useCallback, useContext, useState } from "react"
 import { AnimatePresence } from "framer-motion"
 import { Toast, type ToastAction, type ToastVariant } from "design-system/components/Toast/Toast"
 
 type ToastItem = {
-	id: string
-	message: string
-	variant: ToastVariant
+	name: string
+	body?: ReactNode
+	message?: string
+	variant?: ToastVariant
 	subtitle?: string
 	actions?: ToastAction[]
 }
 
 type ToastContextType = {
-	addToast: (toast: Omit<ToastItem, "id"> & { duration?: number }) => string
-	removeToast: (id: string) => void
+	showToast: (item: ToastItem) => void
+	removeToast: (name: string) => void
 }
 
 const ToastContext = createContext<ToastContextType | null>(null)
@@ -25,38 +26,33 @@ export function useToast(): ToastContextType {
 
 export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
 
-	const [toasts, setToasts] = useState<ToastItem[]>([])
-	const counterRef = useRef(0)
+	const [items, setItems] = useState<ToastItem[]>([])
 
-	const removeToast = useCallback((id: string) => {
-		setToasts(prev => prev.filter(t => t.id !== id))
+	const removeToast = useCallback((name: string) => {
+		setItems(list => list.filter(item => item.name !== name))
 	}, [])
 
-	const addToast = useCallback((toast: Omit<ToastItem, "id"> & { duration?: number }) => {
-		const id = `toast-${++counterRef.current}`
-		setToasts(prev => [...prev, { ...toast, id }])
-		const duration = toast.duration ?? 5000
-		if (duration > 0) setTimeout(() => removeToast(id), duration)
-		return id
-	}, [removeToast])
+	const showToast = useCallback((item: ToastItem) => {
+		setItems(list => [...list.filter(prev => prev.name !== item.name), item])
+	}, [])
 
 	return (
-		<ToastContext.Provider value={{ addToast, removeToast }}>
+		<ToastContext.Provider value={{ showToast, removeToast }}>
 			{children}
-			<aside className="globalToastContainer" aria-live="polite">
-				<AnimatePresence mode="popLayout">
-					{toasts.map(toast => (
-						<Toast
-							key={toast.id}
-							message={toast.message}
-							variant={toast.variant}
-							subtitle={toast.subtitle}
-							actions={toast.actions}
-							onDismiss={() => removeToast(toast.id)}
-						/>
-					))}
-				</AnimatePresence>
-			</aside>
+			<AnimatePresence mode="popLayout">
+				{items.map(item => (
+					<Toast
+						key={item.name}
+						message={item.message}
+						variant={item.variant}
+						subtitle={item.subtitle}
+						actions={item.actions}
+						onDismiss={() => removeToast(item.name)}
+					>
+						{item.body}
+					</Toast>
+				))}
+			</AnimatePresence>
 		</ToastContext.Provider>
 	)
 }

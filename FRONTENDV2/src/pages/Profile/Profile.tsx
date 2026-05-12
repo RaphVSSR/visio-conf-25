@@ -1,4 +1,5 @@
 // FIXME: rewire Profile as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
+// FIXME: toast usage below was migrated to the new useToast API (showToast/removeToast, body slot). Logic still dead until socket is wired.
 import React, { FC, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
@@ -20,7 +21,7 @@ export const Profile: FC = () => {
   const { user, login } = useAuth();
   const socket: any = null;
   const navigate = useNavigate();
-  const { addToast } = useToast();
+  const { showToast } = useToast();
   
   const [formData, setFormData] = useState({
     firstname: "",
@@ -51,9 +52,9 @@ export const Profile: FC = () => {
       if (msg.type === 'profile') {
         setIsSaving(false);
         if (msg.etat) {
-          addToast({ message: "Profil mis à jour avec succès !", variant: "success" });
+          showToast({ name: "profile-update", variant: "success", message: "Profil mis à jour avec succès !" });
         } else {
-          addToast({ message: msg.error || "Erreur lors de la mise à jour", variant: "danger" });
+          showToast({ name: "profile-update", variant: "danger", message: msg.error || "Erreur lors de la mise à jour" });
         }
       }
     };
@@ -63,7 +64,7 @@ export const Profile: FC = () => {
     return () => {
       socket.off("user_update_response", handleUpdateResponse);
     };
-  }, [socket, addToast]);
+  }, [socket, showToast]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

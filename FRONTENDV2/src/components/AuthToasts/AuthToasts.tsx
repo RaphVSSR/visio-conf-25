@@ -1,8 +1,6 @@
 import { FC, useEffect, useState } from "react"
 import { useAuth } from "hooks/useAuth"
-import { Toast } from "design-system/components/Toast/Toast"
-import { AnimatePresence } from "framer-motion"
-import "./AuthToasts.scss"
+import { useToast } from "contexts/ToastContext"
 
 export const AuthToasts: FC = () => {
 
@@ -10,6 +8,7 @@ export const AuthToasts: FC = () => {
 		showExpiryWarning, expiresAt, isRefreshing, refreshSession, dismissExpiryWarning,
 	} = useAuth()
 
+	const { showToast, removeToast } = useToast()
 	const [timeLeft, setTimeLeft] = useState("")
 
 	useEffect(() => {
@@ -24,28 +23,26 @@ export const AuthToasts: FC = () => {
 		}
 
 		update()
-		const interval = setInterval(update, 1000)
-		return () => clearInterval(interval)
+		const handle = setInterval(update, 1000)
+		return () => clearInterval(handle)
 	}, [showExpiryWarning, expiresAt])
 
-	if (!showExpiryWarning) return null
+	useEffect(() => {
+		if (!showExpiryWarning) {
+			removeToast("session-expiry")
+			return
+		}
+		showToast({
+			name: "session-expiry",
+			variant: "info",
+			message: "Session bientôt expirée",
+			subtitle: `Expire dans ${timeLeft}`,
+			actions: [
+				{ label: isRefreshing ? "Prolongation..." : "Prolonger", onClick: refreshSession, variant: "primary", disabled: isRefreshing },
+				{ label: "Ignorer", onClick: dismissExpiryWarning, variant: "ghost" },
+			],
+		})
+	}, [showExpiryWarning, timeLeft, isRefreshing, refreshSession, dismissExpiryWarning, showToast, removeToast])
 
-	return (
-		<aside className="authToasts" aria-live="assertive">
-			<AnimatePresence mode="popLayout">
-				{showExpiryWarning && (
-					<Toast
-						key="session-expiry"
-						variant="info"
-						message="Session bientôt expirée"
-						subtitle={`Expire dans ${timeLeft}`}
-						actions={[
-							{ label: isRefreshing ? "Prolongation..." : "Prolonger", onClick: refreshSession, variant: "primary", disabled: isRefreshing },
-							{ label: "Ignorer", onClick: dismissExpiryWarning, variant: "ghost" },
-						]}
-					/>
-				)}
-			</AnimatePresence>
-		</aside>
-	)
+	return null
 }
