@@ -11,6 +11,7 @@ export type RolesPanelProps = {
 
 export const RolesPanel: FC<RolesPanelProps> = ({ onClose }) => {
 	const [roleState, setRoleState] = useState<RoleState>(initialRoleState)
+	const [activeTab, setActiveTab] = useState<string>("Lister")
 	const roleRef = useRef<Role | null>(null)
 
 	useEffect(() => {
@@ -35,8 +36,26 @@ export const RolesPanel: FC<RolesPanelProps> = ({ onClose }) => {
 				</button>
 			</header>
 
+			<div className="rolesPanelToolbar">
+				<button 
+					type="button" 
+					className={`rolesPanelTab ${activeTab === "Lister" ? "active" : ""}`}
+					onClick={() => setActiveTab("Lister")}
+				>
+					Lister
+				</button>
+				<button 
+					type="button" 
+					className={`rolesPanelTab ${activeTab === "Créer" ? "active" : ""}`}
+					onClick={() => setActiveTab("Créer")}
+				>
+					Créer
+				</button>
+			</div>
+
 			<div className="rolesPanelContent">
 				<RoleManagement
+					activeAction={activeTab}
 					state={roleState}
 					onLoadRoles={() => roleRef.current?.loadRoles()}
 					onLoadRole={(id) => roleRef.current?.loadRole(id)}
