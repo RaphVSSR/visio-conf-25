@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import mongoose from "mongoose";
-import { getMessagesByDomain } from "../ListeMessages.ts";
 import SessionManager from "./authentication/SessionManager.ts";
 import Discussion from "../Discussion.ts";
 import User from "../User.ts";
@@ -11,6 +10,9 @@ export default class ChatService {
 	controleur: any;
 	nomDInstance: string;
 	private handlers = new Map<string, MessageHandler>();
+
+	msgEmitted: string[] = ["chat_operation_result", "message_operation_result"];
+	msgReceived: string[] = ["chat_operation", "message_operation"];
 
 	constructor(controleur: any, name: string) {
 		this.controleur = controleur;
@@ -41,7 +43,7 @@ export default class ChatService {
 		this.registerHandler("chat_operation", this.handleChatOperation);
 		this.registerHandler("message_operation", this.handleMessageOperation);
 
-		this.controleur.inscription(this, getMessagesByDomain("chat").received, [...this.handlers.keys()]);
+		this.controleur.inscription(this, this.msgEmitted, this.msgReceived);
 	}
 
 	// --- Broadcast helper: resolve all socket IDs for a list of member ObjectIds ---
