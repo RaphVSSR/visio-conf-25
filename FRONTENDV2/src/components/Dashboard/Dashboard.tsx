@@ -85,7 +85,7 @@ export const Dashboard: FC = () => {
 			</ul>
 		</motion.section>
 
-		<ContactPickerModal isOpen={contactPickerOpen} onClose={() => setContactPickerOpen(false)} />
+		{/* <ContactPickerModal isOpen={contactPickerOpen} onClose={() => setContactPickerOpen(false)} /> */}
 
 	</motion.section>
   )
