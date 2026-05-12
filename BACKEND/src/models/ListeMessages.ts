@@ -68,8 +68,8 @@ const MessageRegistry: Record<string, MessageDomain> = {
 		received: ["directory"],
 	},
 	roles: {
-		emitted: ["get_roles", "get_role", "create_role", "update_role", "delete_role"],
-		received: ["roles", "role", "role_creating_status", "role_already_exists", "role_updating_status", "role_deleting_status"]
+		emitted: ["get_roles", "get_role", "get_permissions", "create_role", "update_role", "delete_role"],
+		received: ["roles", "role", "permissions", "role_creating_status", "role_already_exists", "role_updating_status", "role_deleting_status"]
 	},
 }
 

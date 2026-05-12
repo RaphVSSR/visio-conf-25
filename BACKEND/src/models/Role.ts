@@ -79,7 +79,9 @@ export default class Role extends Collection {
 
         for (const role of rolesToInsert) {
 
-            if (!await this.model.findOne({label: role.label})) {
+            const existingRole = await this.model.findOne({ uuid: role.uuid });
+
+            if (!existingRole) {
 
                 const newRole = new Role(role);
                 await newRole.save()
@@ -88,7 +90,12 @@ export default class Role extends Collection {
 
             } else {
 
-                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 Role "${role.label}" already exists`);
+                await this.model.updateOne(
+                    { uuid: role.uuid },
+                    { $set: { permissions: role.permissions, default: role.default } },
+                );
+
+                if (process.env.VERBOSE === "true" && process.env.VERBOSE_LVL === "3") console.log(`💾 Role "${role.label}" synchronized`);
 
             }
         }

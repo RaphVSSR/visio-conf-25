@@ -1,5 +1,6 @@
 import SessionManager from "./authentication/SessionManager.ts"
 import User, { type UserType } from "../User.ts"
+import { socketHasPermission } from "./permissions/PermissionAccess.ts"
 
 type AuthorizedResult = { authorized: true, user: UserType }
 type UnauthorizedResult = { authorized: false, reason: string }
@@ -37,6 +38,15 @@ export default class AccessRoleGuard {
 		if (!user) return { authorized: false, reason: "not_authenticated" }
 
 		if (!user.roles?.includes(roleUuid)) return { authorized: false, reason: "insufficient_role" }
+
+		return { authorized: true, user }
+	}
+	static async requirePermission(socketId: string, permissionUuid: string): Promise<AuthResult> {
+
+		const user = await this.resolveUser(socketId)
+		if (!user) return { authorized: false, reason: "not_authenticated" }
+
+		if (!await socketHasPermission(socketId, permissionUuid)) return { authorized: false, reason: "permission_required" }
 
 		return { authorized: true, user }
 	}

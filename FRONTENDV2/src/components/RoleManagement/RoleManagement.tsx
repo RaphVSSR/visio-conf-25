@@ -1,438 +1,393 @@
-import { FC, useEffect, useRef, useState, useCallback } from "react";
-import { Pencil, Trash2, Eye, Plus, RefreshCw } from "lucide-react";
-import { useAuth } from "hooks/useAuth";
-import "./RoleManagement.scss";
-
-type RoleData = {
-  _id: string;
-  uuid: string;
-  label: string;
-  permissions?: { _id: string; label: string }[];
-  default: boolean;
-};
+import { FC, useCallback, useEffect, useRef, useState } from "react"
+import { Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { useAuth } from "hooks/useAuth"
+import { useToast } from "contexts/ToastContext"
+import { PermissionSync } from "services/permissions/PermissionSync"
+import {
+	initialPermissionState,
+	type PermissionNotice,
+	type PermissionState,
+	type RoleData,
+} from "services/permissions/PermissionSync.types"
+import "./RoleManagement.scss"
 
 export type RoleManagementProps = {
-  activeAction?: string | null;
-};
+	activeAction?: string | null
+}
 
-export const RoleManagement: FC<RoleManagementProps> = ({
-  activeAction,
-}) => {
-  const { socket } = useAuth();
+export const RoleManagement: FC<RoleManagementProps> = ({ activeAction }) => {
 
-  const [roles, setRoles] = useState<RoleData[]>([]);
-  const [selectedRole, setSelectedRole] = useState<RoleData | null>(null);
-  const [editingRole, setEditingRole] = useState<RoleData | null>(null);
-  const [newRoleName, setNewRoleName] = useState("");
-  const [editRoleName, setEditRoleName] = useState("");
-  const [statusMessage, setStatusMessage] = useState<{
-    text: string;
-    type: "success" | "error";
-  } | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+	const { socket } = useAuth()
+	const { showToast } = useToast()
+	const [state, setState] = useState<PermissionState>(initialPermissionState)
+	const [editingRole, setEditingRole] = useState<RoleData | null>(null)
+	const [newRoleName, setNewRoleName] = useState("")
+	const [newRolePermissionIds, setNewRolePermissionIds] = useState<string[]>([])
+	const [editRoleName, setEditRoleName] = useState("")
+	const [editRolePermissionIds, setEditRolePermissionIds] = useState<string[]>([])
+	const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+	const syncRef = useRef<PermissionSync | null>(null)
 
-  const socketRef = useRef(socket);
-  socketRef.current = socket;
+	const showPermissionNotice = useCallback((notice: PermissionNotice) => {
+		showToast({
+			name: notice.name,
+			message: notice.message,
+			subtitle: notice.subtitle,
+			variant: notice.variant,
+		})
 
-  const showStatus = useCallback((text: string, type: "success" | "error") => {
-    setStatusMessage({ text, type });
-  }, []);
+		if (notice.name === "role-created") {
+			setNewRoleName("")
+			setNewRolePermissionIds([])
+		}
 
-  // --- Socket message handlers ---
+		if (notice.name === "role-updated") {
+			setEditingRole(null)
+			setEditRolePermissionIds([])
+		}
 
-  const handleRoles = useCallback((data: any) => {
-    if (data) setRoles(data);
-  }, []);
+		if (notice.name === "role-deleted") {
+			setConfirmDelete(null)
+		}
+	}, [showToast])
 
-  const handleRole = useCallback((data: any) => {
-    if (data) setSelectedRole(data);
-  }, []);
+	useEffect(() => {
+		if (!socket) return
 
-  const handleRoleCreatingStatus = useCallback((data: any) => {
-    if (data?.success) {
-      showStatus("Rôle créé avec succès", "success");
-      setNewRoleName("");
-      socketRef.current?.send("get_roles", true);
-    } else {
-      showStatus(data?.message || "Erreur lors de la création", "error");
-    }
-  }, [showStatus]);
+		const sync = new PermissionSync(socket, setState, showPermissionNotice)
+		syncRef.current = sync
 
-  const handleRoleAlreadyExists = useCallback((data: any) => {
-    showStatus(data?.message || "Ce rôle existe déjà", "error");
-  }, [showStatus]);
+		return () => {
+			sync.destroy()
+			syncRef.current = null
+		}
+	}, [socket, showPermissionNotice])
 
-  const handleRoleUpdatingStatus = useCallback((data: any) => {
-    if (data?.success) {
-      showStatus("Rôle modifié avec succès", "success");
-      setEditingRole(null);
-      socketRef.current?.send("get_roles", true);
-    } else {
-      showStatus(data?.message || "Erreur lors de la modification", "error");
-    }
-  }, [showStatus]);
+	const handleRefresh = () => {
+		syncRef.current?.loadRoles()
+		syncRef.current?.loadPermissions()
+	}
 
-  const handleRoleDeletingStatus = useCallback((data: any) => {
-    if (data?.success) {
-      showStatus("Rôle supprimé", "success");
-      setSelectedRole(null);
-      setConfirmDelete(null);
-      socketRef.current?.send("get_roles", true);
-    } else {
-      showStatus(data?.message || "Erreur lors de la suppression", "error");
-    }
-  }, [showStatus]);
+	const handleGetRole = (role: RoleData) => {
+		syncRef.current?.selectRole(role)
+	}
 
-  // --- Socket lifecycle ---
+	const handleCreateRole = () => {
+		const name = newRoleName.trim()
+		if (!name) return
+		syncRef.current?.createRole(name, newRolePermissionIds)
+	}
 
-  useEffect(() => {
-    if (!socket) return;
+	const handleUpdateRole = () => {
+		const name = editRoleName.trim()
+		if (!editingRole || !name) return
+		syncRef.current?.updateRole(editingRole._id, name, editRolePermissionIds)
+	}
 
-    socket.on("roles", handleRoles);
-    socket.on("role", handleRole);
-    socket.on("role_creating_status", handleRoleCreatingStatus);
-    socket.on("role_already_exists", handleRoleAlreadyExists);
-    socket.on("role_updating_status", handleRoleUpdatingStatus);
-    socket.on("role_deleting_status", handleRoleDeletingStatus);
+	const handleDeleteRole = (roleId: string) => {
+		syncRef.current?.deleteRole(roleId)
+	}
 
-    socket.send("get_roles", true);
+	const startEdit = (role: RoleData) => {
+		setEditingRole(role)
+		setEditRoleName(role.label)
+		setEditRolePermissionIds(role.permissions?.map(permission => permission._id) || [])
+	}
 
-    return () => {
-      socket.off("roles", handleRoles);
-      socket.off("role", handleRole);
-      socket.off("role_creating_status", handleRoleCreatingStatus);
-      socket.off("role_already_exists", handleRoleAlreadyExists);
-      socket.off("role_updating_status", handleRoleUpdatingStatus);
-      socket.off("role_deleting_status", handleRoleDeletingStatus);
-    };
-  }, [socket, handleRoles, handleRole, handleRoleCreatingStatus, handleRoleAlreadyExists, handleRoleUpdatingStatus, handleRoleDeletingStatus]);
+	const togglePermission = (
+		permissionId: string,
+		selectedIds: string[],
+		setSelectedIds: (nextIds: string[]) => void,
+	) => {
+		setSelectedIds(
+			selectedIds.includes(permissionId)
+				? selectedIds.filter(selectedId => selectedId !== permissionId)
+				: [...selectedIds, permissionId],
+		)
+	}
 
-  useEffect(() => {
-    if (!statusMessage) return;
-    const timer = setTimeout(() => setStatusMessage(null), 3000);
-    return () => clearTimeout(timer);
-  }, [statusMessage]);
+	const renderPermissionSelector = (
+		selectedIds: string[],
+		setSelectedIds: (nextIds: string[]) => void,
+	) => (
+		<div className="rm-permissionSelector">
+			<div className="rm-permissionSelector__header">
+				<h4>Permissions du rôle</h4>
+				<span>{selectedIds.length} sélectionnée(s)</span>
+			</div>
 
-  // --- Actions ---
+			{state.isLoadingPermissions ? (
+				<p className="rm-empty">Chargement des permissions...</p>
+			) : state.availablePermissions.length === 0 ? (
+				<p className="rm-empty">Aucune permission disponible.</p>
+			) : (
+				<div className="rm-permissionSelector__grid">
+					{state.availablePermissions.map(permission => {
+						const isChecked = selectedIds.includes(permission._id)
 
-  const handleRefresh = () => {
-    socket?.send("get_roles", true);
-  };
+						return (
+							<label
+								key={permission._id}
+								className={`rm-permissionChoice ${isChecked ? "rm-permissionChoice--checked" : ""}`}
+							>
+								<input
+									type="checkbox"
+									checked={isChecked}
+									onChange={() => togglePermission(permission._id, selectedIds, setSelectedIds)}
+								/>
+								<span>
+									<strong>{permission.label}</strong>
+									<small>{permission.uuid}</small>
+								</span>
+							</label>
+						)
+					})}
+				</div>
+			)}
+		</div>
+	)
 
-  const handleGetRole = (roleId: string) => {
-    setSelectedRole(roles.find((r) => r._id === roleId) || null);
-    socket?.send("get_role", { role_id: roleId });
-  };
+	const renderList = () => (
+		<div className="rm-section">
+			<div className="rm-section__header">
+				<h3>Liste des rôles</h3>
+				<button className="rm-btn rm-btn--icon" onClick={handleRefresh} title="Rafraîchir">
+					<RefreshCw size={16} />
+				</button>
+			</div>
 
-  const handleCreateRole = () => {
-    if (!newRoleName.trim() || !socket) return;
-    socket.send("create_role", { name: newRoleName.trim(), perms: [] });
-  };
+			{state.isLoadingRoles ? (
+				<p className="rm-empty">Chargement des rôles...</p>
+			) : state.roles.length === 0 ? (
+				<p className="rm-empty">Aucun rôle trouvé.</p>
+			) : (
+				<table className="rm-table">
+					<thead>
+						<tr>
+							<th>Nom</th>
+							<th>Identifiant</th>
+							<th>Permissions</th>
+							<th>Par défaut</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{state.roles.map(role => (
+							<tr
+								key={role._id}
+								className={state.selectedRole?._id === role._id ? "rm-table__row--active" : ""}
+							>
+								<td className="rm-table__label">{role.label}</td>
+								<td className="rm-table__uuid">{role.uuid}</td>
+								<td>{role.permissions?.length || 0}</td>
+								<td>{role.default ? "Oui" : "Non"}</td>
+								<td className="rm-table__actions">
+									<button
+										className="rm-btn rm-btn--small rm-btn--info"
+										onClick={() => handleGetRole(role)}
+										title="Voir"
+									>
+										<Eye size={14} />
+									</button>
+									<button
+										className="rm-btn rm-btn--small rm-btn--warning"
+										onClick={() => startEdit(role)}
+										title="Modifier"
+									>
+										<Pencil size={14} />
+									</button>
+									<button
+										className="rm-btn rm-btn--small rm-btn--danger"
+										onClick={() => setConfirmDelete(role._id)}
+										title="Supprimer"
+									>
+										<Trash2 size={14} />
+									</button>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			)}
+		</div>
+	)
 
-  const handleUpdateRole = () => {
-    if (!editingRole || !editRoleName.trim() || !socket) return;
-    socket.send("update_role", {
-      role_id: editingRole._id,
-      name: editRoleName.trim(),
-      perms: editingRole.permissions?.map((p) => p._id) || [],
-    });
-  };
+	const renderCreate = () => (
+		<div className="rm-section">
+			<h3>Créer un rôle</h3>
+			<div className="rm-form">
+				<label className="rm-form__label">
+					Nom du rôle
+					<input
+						type="text"
+						className="rm-form__input"
+						value={newRoleName}
+						onChange={event => setNewRoleName(event.target.value)}
+						placeholder="Ex: Modérateur"
+					/>
+				</label>
 
-  const handleDeleteRole = (roleId: string) => {
-    if (!socket) return;
-    socket.send("delete_role", { role_id: roleId });
-  };
+				{renderPermissionSelector(newRolePermissionIds, setNewRolePermissionIds)}
 
-  const startEdit = (role: RoleData) => {
-    setEditingRole(role);
-    setEditRoleName(role.label);
-  };
+				<button
+					className="rm-btn rm-btn--primary"
+					onClick={handleCreateRole}
+					disabled={!newRoleName.trim()}
+				>
+					<Plus size={16} />
+					Créer
+				</button>
+			</div>
+		</div>
+	)
 
-  // --- Render helpers ---
+	const renderEdit = () => {
+		if (!editingRole) {
+			return (
+				<div className="rm-section">
+					<h3>Modifier un rôle</h3>
+					<p className="rm-empty">
+						Sélectionnez un rôle dans la liste puis cliquez sur l'icône de modification.
+					</p>
+					{renderList()}
+				</div>
+			)
+		}
 
-  const renderList = () => (
-    <div className="rm-section">
-      <div className="rm-section__header">
-        <h3>Liste des rôles</h3>
-        <button
-          className="rm-btn rm-btn--icon"
-          onClick={handleRefresh}
-          title="Rafraîchir"
-        >
-          <RefreshCw size={16} />
-        </button>
-      </div>
+		return (
+			<div className="rm-section">
+				<h3>Modifier : {editingRole.label}</h3>
+				<div className="rm-form rm-form--wide">
+					<label className="rm-form__label">
+						Nom du rôle
+						<input
+							type="text"
+							className="rm-form__input"
+							value={editRoleName}
+							onChange={event => setEditRoleName(event.target.value)}
+						/>
+					</label>
 
-      {roles.length === 0 ? (
-        <p className="rm-empty">Aucun rôle trouvé.</p>
-      ) : (
-        <table className="rm-table">
-          <thead>
-            <tr>
-              <th>Nom</th>
-              <th>Identifiant</th>
-              <th>Par défaut</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roles.map((role) => (
-              <tr
-                key={role._id}
-                className={
-                  selectedRole?._id === role._id ? "rm-table__row--active" : ""
-                }
-              >
-                <td className="rm-table__label">{role.label}</td>
-                <td className="rm-table__uuid">{role.uuid}</td>
-                <td>{role.default ? "Oui" : "Non"}</td>
-                <td className="rm-table__actions">
-                  <button
-                    className="rm-btn rm-btn--small rm-btn--info"
-                    onClick={() => handleGetRole(role._id)}
-                    title="Voir"
-                  >
-                    <Eye size={14} />
-                  </button>
-                  <button
-                    className="rm-btn rm-btn--small rm-btn--warning"
-                    onClick={() => startEdit(role)}
-                    title="Modifier"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    className="rm-btn rm-btn--small rm-btn--danger"
-                    onClick={() => setConfirmDelete(role._id)}
-                    title="Supprimer"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
+					{renderPermissionSelector(editRolePermissionIds, setEditRolePermissionIds)}
 
-  const renderCreate = () => (
-    <div className="rm-section">
-      <h3>Créer un rôle</h3>
-      <div className="rm-form">
-        <label className="rm-form__label">
-          Nom du rôle
-          <input
-            type="text"
-            className="rm-form__input"
-            value={newRoleName}
-            onChange={(e) => setNewRoleName(e.target.value)}
-            placeholder="Ex: Modérateur"
-          />
-        </label>
-        <button
-          className="rm-btn rm-btn--primary"
-          onClick={handleCreateRole}
-          disabled={!newRoleName.trim()}
-        >
-          <Plus size={16} />
-          Créer
-        </button>
-      </div>
-    </div>
-  );
+					<div className="rm-form__buttons">
+						<button className="rm-btn rm-btn--primary" onClick={handleUpdateRole} disabled={!editRoleName.trim()}>
+							Enregistrer
+						</button>
+						<button className="rm-btn rm-btn--secondary" onClick={() => setEditingRole(null)}>
+							Annuler
+						</button>
+					</div>
+				</div>
+			</div>
+		)
+	}
 
-  const renderEdit = () => {
-    if (!editingRole) {
-      return (
-        <div className="rm-section">
-          <h3>Modifier un rôle</h3>
-          <p className="rm-empty">
-            Sélectionnez un rôle dans la liste puis cliquez sur l'icône de
-            modification.
-          </p>
-          {renderList()}
-        </div>
-      );
-    }
+	const renderDelete = () => (
+		<div className="rm-section">
+			<h3>Supprimer un rôle</h3>
+			<p className="rm-empty">
+				Sélectionnez un rôle dans la liste puis cliquez sur l'icône de suppression.
+			</p>
+			{renderList()}
+		</div>
+	)
 
-    return (
-      <div className="rm-section">
-        <h3>Modifier : {editingRole.label}</h3>
-        <div className="rm-form">
-          <label className="rm-form__label">
-            Nom du rôle
-            <input
-              type="text"
-              className="rm-form__input"
-              value={editRoleName}
-              onChange={(e) => setEditRoleName(e.target.value)}
-            />
-          </label>
-          <div className="rm-form__buttons">
-            <button
-              className="rm-btn rm-btn--primary"
-              onClick={handleUpdateRole}
-              disabled={!editRoleName.trim()}
-            >
-              Enregistrer
-            </button>
-            <button
-              className="rm-btn rm-btn--secondary"
-              onClick={() => setEditingRole(null)}
-            >
-              Annuler
-            </button>
-          </div>
-        </div>
-        {editingRole.permissions && editingRole.permissions.length > 0 && (
-          <div className="rm-perms">
-            <h4>Permissions associées</h4>
-            <ul>
-              {editingRole.permissions.map((p) => (
-                <li key={p._id}>{p.label}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    );
-  };
+	const renderDetail = () => {
+		if (!state.selectedRole) {
+			return (
+				<div className="rm-section">
+					<h3>Détails d'un rôle</h3>
+					<p className="rm-empty">Sélectionnez un rôle dans la liste pour voir ses détails.</p>
+					{renderList()}
+				</div>
+			)
+		}
 
-  const renderDelete = () => (
-    <div className="rm-section">
-      <h3>Supprimer un rôle</h3>
-      <p className="rm-empty">
-        Sélectionnez un rôle dans la liste puis cliquez sur l'icône de
-        suppression.
-      </p>
-      {renderList()}
-    </div>
-  );
+		return (
+			<div className="rm-section">
+				<h3>Détails du rôle</h3>
+				<div className="rm-detail">
+					<div className="rm-detail__field">
+						<span className="rm-detail__key">Nom</span>
+						<span className="rm-detail__value">{state.selectedRole.label}</span>
+					</div>
+					<div className="rm-detail__field">
+						<span className="rm-detail__key">Identifiant</span>
+						<span className="rm-detail__value">{state.selectedRole.uuid}</span>
+					</div>
+					<div className="rm-detail__field">
+						<span className="rm-detail__key">Par défaut</span>
+						<span className="rm-detail__value">{state.selectedRole.default ? "Oui" : "Non"}</span>
+					</div>
+					{state.selectedRole.permissions && state.selectedRole.permissions.length > 0 && (
+						<div className="rm-detail__field rm-detail__field--col">
+							<span className="rm-detail__key">
+								Permissions ({state.selectedRole.permissions.length})
+							</span>
+							<ul className="rm-detail__permlist">
+								{state.selectedRole.permissions.map(permission => (
+									<li key={permission._id}>{permission.label}</li>
+								))}
+							</ul>
+						</div>
+					)}
+				</div>
+				<button className="rm-btn rm-btn--secondary" onClick={() => syncRef.current?.clearSelectedRole()}>
+					Fermer
+				</button>
+			</div>
+		)
+	}
 
-  const renderDetail = () => {
-    if (!selectedRole) {
-      return (
-        <div className="rm-section">
-          <h3>Détails d'un rôle</h3>
-          <p className="rm-empty">
-            Sélectionnez un rôle dans la liste pour voir ses détails.
-          </p>
-          {renderList()}
-        </div>
-      );
-    }
+	const renderContent = () => {
+		if (editingRole) return renderEdit()
 
-    return (
-      <div className="rm-section">
-        <h3>Détails du rôle</h3>
-        <div className="rm-detail">
-          <div className="rm-detail__field">
-            <span className="rm-detail__key">Nom</span>
-            <span className="rm-detail__value">{selectedRole.label}</span>
-          </div>
-          <div className="rm-detail__field">
-            <span className="rm-detail__key">Identifiant</span>
-            <span className="rm-detail__value">{selectedRole.uuid}</span>
-          </div>
-          <div className="rm-detail__field">
-            <span className="rm-detail__key">Par défaut</span>
-            <span className="rm-detail__value">
-              {selectedRole.default ? "Oui" : "Non"}
-            </span>
-          </div>
-          {selectedRole.permissions && selectedRole.permissions.length > 0 && (
-            <div className="rm-detail__field rm-detail__field--col">
-              <span className="rm-detail__key">
-                Permissions ({selectedRole.permissions.length})
-              </span>
-              <ul className="rm-detail__permlist">
-                {selectedRole.permissions.map((p) => (
-                  <li key={p._id}>{p.label}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-        <button
-          className="rm-btn rm-btn--secondary"
-          onClick={() => setSelectedRole(null)}
-        >
-          Fermer
-        </button>
-      </div>
-    );
-  };
+		switch (activeAction) {
+			case "Lister":
+				return renderList()
+			case "Créer":
+			case "Creer":
+				return renderCreate()
+			case "Modifier":
+				return renderEdit()
+			case "Supprimer":
+				return renderDelete()
+			case "Dupliquer":
+				return renderList()
+			default:
+				return renderList()
+		}
+	}
 
-  const renderContent = () => {
-    if (editingRole) return renderEdit();
+	return (
+		<div id="roleManagement">
+			{renderContent()}
 
-    switch (activeAction) {
-      case "Lister":
-        return renderList();
-      case "Créer":
-        return renderCreate();
-      case "Modifier":
-        return renderEdit();
-      case "Supprimer":
-        return renderDelete();
-      case "Dupliquer":
-        return renderList();
-      default:
-        return renderList();
-    }
-  };
+			{state.selectedRole && activeAction !== "Modifier" && (
+				<div className="rm-modal-overlay" onClick={() => syncRef.current?.clearSelectedRole()}>
+					<div className="rm-modal" onClick={event => event.stopPropagation()}>
+						{renderDetail()}
+					</div>
+				</div>
+			)}
 
-  return (
-    <div id="roleManagement">
-      {statusMessage && (
-        <div className={`rm-toast rm-toast--${statusMessage.type}`}>
-          {statusMessage.text}
-        </div>
-      )}
-
-      {renderContent()}
-
-      {selectedRole && activeAction !== "Modifier" && (
-        <div className="rm-modal-overlay" onClick={() => setSelectedRole(null)}>
-          <div className="rm-modal" onClick={(e) => e.stopPropagation()}>
-            {renderDetail()}
-          </div>
-        </div>
-      )}
-
-      {confirmDelete && (
-        <div
-          className="rm-modal-overlay"
-          onClick={() => setConfirmDelete(null)}
-        >
-          <div
-            className="rm-modal rm-modal--small"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3>Confirmer la suppression</h3>
-            <p>
-              Voulez-vous vraiment supprimer ce rôle ? Cette action est
-              irréversible.
-            </p>
-            <div className="rm-modal__actions">
-              <button
-                className="rm-btn rm-btn--danger"
-                onClick={() => handleDeleteRole(confirmDelete)}
-              >
-                Supprimer
-              </button>
-              <button
-                className="rm-btn rm-btn--secondary"
-                onClick={() => setConfirmDelete(null)}
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+			{confirmDelete && (
+				<div className="rm-modal-overlay" onClick={() => setConfirmDelete(null)}>
+					<div className="rm-modal rm-modal--small" onClick={event => event.stopPropagation()}>
+						<h3>Confirmer la suppression</h3>
+						<p>Voulez-vous vraiment supprimer ce rôle ? Cette action est irréversible.</p>
+						<div className="rm-modal__actions">
+							<button className="rm-btn rm-btn--danger" onClick={() => handleDeleteRole(confirmDelete)}>
+								Supprimer
+							</button>
+							<button className="rm-btn rm-btn--secondary" onClick={() => setConfirmDelete(null)}>
+								Annuler
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+		</div>
+	)
+}

@@ -1,6 +1,6 @@
 import React, { Dispatch, FC, SetStateAction, useState } from 'react'
 import "./AdminTabPanel.scss";
-import { Drama, ListChecks, LucideIcon, MessagesSquare, UsersRound, X } from 'lucide-react';
+import { Drama, LucideIcon, MessagesSquare, UsersRound, X } from 'lucide-react';
 import { RoleManagement } from 'components/RoleManagement/RoleManagement';
 
 export type AdminTabType = {
@@ -70,21 +70,6 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 				},
                 {
 					label: "Supprimer",
-				},
-            ],
-        },
-        {
-            name : "Permissions",
-            icon : <ListChecks size={40} />,
-            subOption : [
-                {
-					label: "Lister",
-				},
-                {
-					label: "Créer",
-				},
-                {
-					label: "Modifier",
 				},
             ],
         },

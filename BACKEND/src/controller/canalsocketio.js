@@ -1,4 +1,5 @@
 import { ListeMessagesEmis, ListeMessagesRecus } from "../models/ListeMessages.ts"
+import { getControllerMessagePermission, socketHasPermission } from "../models/services/permissions/PermissionAccess.ts"
 import SessionManager from "../models/services/authentication/SessionManager.ts"
 import User from "../models/User.ts"
 
@@ -29,9 +30,19 @@ class CanalSocketIO {
         )
 
         this.socket.on("connection", (socket) => {
-            socket.on("message", (msg) => {
+            socket.on("message", async (msg) => {
                 let message = JSON.parse(msg)
                 message.id = socket.id
+                const requiredPermission = getControllerMessagePermission(message)
+                if (requiredPermission && !(await socketHasPermission(socket.id, requiredPermission))) {
+                    socket.emit("message", JSON.stringify({
+                        permission_denied: {
+                            permission: requiredPermission,
+                            reason: "permission_required",
+                        },
+                    }))
+                    return
+                }
                 if (this.controleur.verboseall || this.verbose)
                     console.log(
                         "INFO (" +

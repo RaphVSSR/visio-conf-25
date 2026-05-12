@@ -1,4 +1,4 @@
-import { Drama, ListChecks, MessagesSquare, PhoneCall, UserRound, UsersRound } from "lucide-react";
+import { Drama, MessagesSquare, PhoneCall, UserRound, UsersRound } from "lucide-react";
 import { FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminPanel.scss"
@@ -21,12 +21,6 @@ export const AdminPanel: FC = () => {
 			icon : <Drama size={60}/>,
 			modifier : "roles",
 			click : () => setTabSelected("Rôles")
-		},
-        {
-			name : "Permissions",
-			icon : <ListChecks size={60}/>,
-			modifier : "permissions",
-			click : () => setTabSelected("Permissions")
 		},
         {
 			name : "Equipes",

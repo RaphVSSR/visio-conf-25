@@ -1,10 +1,11 @@
-import { getMessagesByDomain } from "../ListeMessages.ts"
 import mongoose from "mongoose"
 import Permission from "../Permission.ts"
 import Role from "../Role.ts"
 import AccessRoleGuard from "./AccessRoleGuard.ts"
 
 type MessageHandler = (socketId: string, payload: any) => void
+const ROLE_SERVICE_EMITS = ["roles", "role", "permissions", "role_creating_status", "role_already_exists", "role_updating_status", "role_deleting_status"]
+const ROLE_SERVICE_RECEIVES = ["get_roles", "get_role", "get_permissions", "create_role", "update_role", "delete_role"]
 
 export default class RoleService {
 
@@ -50,11 +51,12 @@ export default class RoleService {
 	register() {
 		this.registerHandler("get_roles", this.handleGetRoles)
 		this.registerHandler("get_role", this.handleGetRole)
+		this.registerHandler("get_permissions", this.handleGetPermissions)
 		this.registerHandler("create_role", this.handleCreateRole)
 		this.registerHandler("update_role", this.handleUpdateRole)
 		this.registerHandler("delete_role", this.handleDeleteRole)
 
-		this.controleur.inscription(this, getMessagesByDomain("roles").received, [...this.handlers.keys()])
+		this.controleur.inscription(this, ROLE_SERVICE_EMITS, ROLE_SERVICE_RECEIVES)
 	}
 
 	private handleGetRoles = async (socketId: string) => {
@@ -78,6 +80,20 @@ export default class RoleService {
 			this.send(socketId, "role", role)
 		} catch (err) {
 			console.error("INFO (" + this.nomDInstance + "): erreur get_role", err)
+		}
+	}
+
+	private handleGetPermissions = async (socketId: string) => {
+		try {
+			const permissions = await Permission.model
+				.find({}, "_id label uuid default")
+				.sort({ label: 1 })
+				.lean()
+
+			this.send(socketId, "permissions", permissions)
+		} catch (err) {
+			console.error("INFO (" + this.nomDInstance + "): erreur get_permissions", err)
+			this.send(socketId, "permissions", [])
 		}
 	}
 

@@ -4,6 +4,7 @@
     "dev": "cross-env NODE_ENV=dev tsx watch src/index.ts",
     "start:dev": "cross-env NODE_ENV=dev tsx src/index.ts",
     "clear-uploads": "cross-env NODE_ENV=dev tsx src/models/clearUploads.ts",
+    "test:permissions": "cross-env NODE_ENV=test tsx --test src/tests/permissions-security.test.ts",
     "build": "cross-env NODE_ENV=prod tsc -b tsconfig.build.json",
     "start": "cross-env NODE_ENV=prod node dist/index.js"
   },

@@ -12,6 +12,7 @@ type ToastItem = {
 
 type ToastContextType = {
 	addToast: (toast: Omit<ToastItem, "id"> & { duration?: number }) => string
+	showToast: (toast: Omit<ToastItem, "id"> & { name?: string, duration?: number }) => string
 	removeToast: (id: string) => void
 }
 
@@ -40,8 +41,16 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
 		return id
 	}, [removeToast])
 
+	const showToast = useCallback((toast: Omit<ToastItem, "id"> & { name?: string, duration?: number }) => {
+		const id = toast.name || `toast-${++counterRef.current}`
+		setToasts(prev => [...prev.filter(item => item.id !== id), { ...toast, id }])
+		const duration = toast.duration ?? 5000
+		if (duration > 0) setTimeout(() => removeToast(id), duration)
+		return id
+	}, [removeToast])
+
 	return (
-		<ToastContext.Provider value={{ addToast, removeToast }}>
+		<ToastContext.Provider value={{ addToast, showToast, removeToast }}>
 			{children}
 			<aside className="globalToastContainer" aria-live="polite">
 				<AnimatePresence mode="popLayout">
