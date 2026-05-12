@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes, BrowserRouter } from 'react-router-dom';
 import { AdminPanel, Home, Login, Signup, TeamsPage, Files, Directory, Profile, ChatPage } from 'pages';
-import { AdminAuth } from 'routing/AdminAuth';
 import { AuthToasts } from 'components/AuthToasts/AuthToasts';
 import { AuthenticatedLayout } from 'components/AuthenticatedLayout/AuthenticatedLayout';
 import { ToastProvider } from 'contexts/ToastContext';
@@ -8,7 +7,7 @@ import { useAuth } from 'hooks/useAuth';
 
 export const App = () => {
 
-	const { isAuthenticated, isLoading } = useAuth();
+	const { isAuthenticated, isLoading, user } = useAuth();
 
 	if (isLoading) return <h1>Chargement du bundle...</h1>;
 
@@ -31,7 +30,7 @@ export const App = () => {
 						<Route path="/annuaire" element={ <Directory /> }/>
 						<Route path="/profile" element={ <Profile /> }/>
 
-						<Route element={ <AdminAuth /> }>
+						<Route element={ !user?.roles?.includes("admin") && <Navigate to="/home" replace /> }>
 							<Route path='/admin' element={ <AdminPanel /> } />
 						</Route>
 

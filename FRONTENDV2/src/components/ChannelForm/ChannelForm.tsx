@@ -1,7 +1,5 @@
-// FIXME: rewire ChannelForm as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
-import { useState, useEffect, useRef, type FC, type FormEvent } from "react"
+import { useEffect, useState, type FC, type FormEvent } from "react"
 import "./ChannelForm.scss"
-import { useAuth } from "hooks/useAuth"
 import {
 	HashIcon,
 	Lock,
@@ -11,211 +9,99 @@ import {
 	AlertCircle,
 	Users,
 } from "lucide-react"
-import type { Team } from "pages/Teams/Teams.types"
+import type { Channel as ChannelModel, Team as TeamModel } from "pages/Teams/Teams.types"
+import type { TeamState } from "services/team/Team.types"
+import type { ChannelState, CreateChannelInput, UpdateChannelInput } from "services/channel/Channel.types"
+import type { User } from "types/User"
 import MemberSelector, { type Member } from "../MemberSelector"
 
 interface ChannelFormProps {
-	onChannelCreated: (channel: any) => void
-	onCancel: () => void
-	channelToEdit?: any
-	team: Team
+	user: User | null
+	teamState: TeamState
+	channelState: ChannelState
+	targetTeam: TeamModel
+	channelToEdit?: ChannelModel | null
+	onLoadTeamMembers: (teamId: string) => void
+	onLoadChannelMembers: (channelId: string) => void
+	onCreate: (data: CreateChannelInput) => void
+	onUpdate: (data: UpdateChannelInput) => void
+	onDelete: (channelId: string) => void
+	onClose: () => void
 }
 
 const ChannelForm: FC<ChannelFormProps> = ({
-	onChannelCreated,
-	onCancel,
-	channelToEdit,
-	team,
+	user, teamState, channelState, targetTeam, channelToEdit,
+	onLoadTeamMembers, onLoadChannelMembers,
+	onCreate, onUpdate, onDelete, onClose,
 }) => {
-	const { user } = useAuth()
-	const socket: any = null
-	const [name, setName] = useState("")
-	const [isPublic, setIsPublic] = useState(true)
-	const [isLoading, setIsLoading] = useState(false)
-	const [error, setError] = useState("")
-	const [members, setMembers] = useState<Member[]>([])
-	const [isEditing, setIsEditing] = useState(false)
-	const [isLoadingMembers, setIsLoadingMembers] = useState(false)
-	const [isDeleting, setIsDeleting] = useState(false)
 
-	const onChannelCreatedRef = useRef(onChannelCreated)
-	const channelToEditRef = useRef(channelToEdit)
-	const userIdRef = useRef(user?._id)
-
-	useEffect(() => { onChannelCreatedRef.current = onChannelCreated }, [onChannelCreated])
-	useEffect(() => { channelToEditRef.current = channelToEdit }, [channelToEdit])
-	useEffect(() => { userIdRef.current = user?._id }, [user?._id])
+	const isEditing = !!channelToEdit
+	const [name, setName] = useState(channelToEdit?.name ?? "")
+	const [isPublic, setIsPublic] = useState(channelToEdit?.isPublic ?? true)
+	const [localError, setLocalError] = useState("")
+	const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([])
 
 	useEffect(() => {
-		if (!socket) return
-
-		const handleChannelActionResponse = (data: any) => {
-			switch (data.type) {
-				case "create":
-					setIsLoading(false)
-					if (data.etat) onChannelCreatedRef.current(data.channel)
-					else setError(data.error || "Erreur lors de la creation du canal")
-					break
-
-				case "update":
-					setIsLoading(false)
-					if (data.etat) onChannelCreatedRef.current(data.channel)
-					else setError(data.error || "Erreur lors de la mise a jour du canal")
-					break
-
-				case "delete":
-					setIsDeleting(false)
-					if (data.etat) {
-						const edit = channelToEditRef.current
-						onChannelCreatedRef.current({
-							...edit,
-							deleted: true,
-							id: edit.id,
-						})
-					} else {
-						setError(data.error || "Erreur lors de la suppression du canal")
-					}
-					break
-			}
-		}
-
-		const handleTeamMemberResponse = (data: any) => {
-			if (data.type !== "list") return
-			setIsLoadingMembers(false)
-			if (data.etat) {
-				const teamMembersData = data.members || []
-				const membersConverted: Member[] = teamMembersData
-					.filter((member: any) => member.userId !== userIdRef.current)
-					.map((member: any) => ({
-						id: member.userId,
-						firstname: member.firstname,
-						lastname: member.lastname,
-						picture: member.picture,
-						isSelected: false,
-					}))
-				setMembers(membersConverted)
-			}
-		}
-
-		const handleChannelMemberResponse = (data: any) => {
-			if (data.type !== "list") return
-			if (data.etat) {
-				const channelMembersData = data.members || []
-				setMembers((prevMembers) =>
-					prevMembers.map((member) => ({
-						...member,
-						isSelected: channelMembersData.some(
-							(channelMember: any) =>
-								channelMember.userId === member.id
-						),
-					}))
-				)
-			}
-		}
-
-		socket.on("channel_action_response", handleChannelActionResponse)
-		socket.on("team_member_response", handleTeamMemberResponse)
-		socket.on("channel_member_response", handleChannelMemberResponse)
-
-		return () => {
-			socket.off("channel_action_response", handleChannelActionResponse)
-			socket.off("team_member_response", handleTeamMemberResponse)
-			socket.off("channel_member_response", handleChannelMemberResponse)
-		}
-	}, [socket])
+		onLoadTeamMembers(targetTeam.id)
+		if (channelToEdit && !channelToEdit.isPublic) onLoadChannelMembers(channelToEdit.id)
+	}, [targetTeam.id, channelToEdit?.id])
 
 	useEffect(() => {
-		if (!socket) return
+		setName(channelToEdit?.name ?? "")
+		setIsPublic(channelToEdit?.isPublic ?? true)
+		setSelectedMemberIds([])
+	}, [channelToEdit?.id])
 
-		setIsLoadingMembers(true)
-		socket.send("team_member", { type: "list", teamId: team.id })
+	const error = localError || channelState.channelError
 
-		if (channelToEdit) {
-			setName(channelToEdit.name)
-			setIsPublic(channelToEdit.isPublic)
-			setIsEditing(true)
-
-			if (!channelToEdit.isPublic) {
-				socket.send("channel_member", { type: "list", channelId: channelToEdit.id })
-			}
-		} else {
-			setName("")
-			setIsPublic(true)
-			setIsEditing(false)
-		}
-	}, [socket, channelToEdit?.id, team.id])
+	const members: Member[] = teamState.teamMembers
+		.filter(m => m.userId !== user?._id)
+		.map(m => ({
+			id: m.userId,
+			firstname: m.firstname,
+			lastname: m.lastname,
+			picture: m.picture,
+			isSelected: isEditing
+				? channelState.channelMembers.some(cm => cm.userId === m.userId)
+				: selectedMemberIds.includes(m.userId),
+		}))
 
 	const handleSubmit = (e: FormEvent) => {
 		e.preventDefault()
-
-		if (!name.trim()) {
-			setError("Le nom du canal est requis")
+		if (!name.trim()) { setLocalError("Le nom du canal est requis"); return }
+		if (!isPublic && !isEditing && selectedMemberIds.length === 0) {
+			setLocalError("Vous devez selectionner au moins un membre pour un canal prive")
 			return
 		}
+		setLocalError("")
 
-		const selectedMemberIds = members
-			.filter((member) => member.isSelected)
-			.map((member) => member.id)
+		const memberIds = !isPublic
+			? (isEditing ? members.filter(m => m.isSelected).map(m => m.id) : selectedMemberIds)
+			: []
 
-		if (!isPublic && selectedMemberIds.length === 0) {
-			setError(
-				"Vous devez selectionner au moins un membre pour un canal prive"
-			)
-			return
-		}
-
-		setIsLoading(true)
-		setError("")
-
-		if (isEditing) {
-			socket?.send("channel_action", {
-				type: "update",
+		if (isEditing && channelToEdit) {
+			onUpdate({
 				channelId: channelToEdit.id,
 				name,
 				isPublic,
-				teamId: team.id,
-				members: !isPublic ? selectedMemberIds : [],
+				teamId: targetTeam.id,
+				members: memberIds,
 			})
 		} else {
-			socket?.send("channel_action", {
-				type: "create",
-				name,
-				isPublic,
-				teamId: team.id,
-				members: !isPublic ? selectedMemberIds : [],
-			})
+			onCreate({ name, isPublic, teamId: targetTeam.id, members: memberIds })
 		}
 	}
 
-	const handleDeleteChannel = () => {
-		if (!socket || !channelToEdit) return
-
-		setIsDeleting(true)
-		setError("")
-
-		socket.send("channel_action", { type: "delete", channelId: channelToEdit.id })
-	}
-
-	const handleCancel = () => {
-		onCancel()
-	}
-
 	const handleMemberToggle = (member: Member) => {
-		setMembers((prevMembers) =>
-			prevMembers.map((m) =>
-				m.id === member.id ? { ...m, isSelected: !m.isSelected } : m
-			)
+		setSelectedMemberIds(prev =>
+			prev.includes(member.id) ? prev.filter(id => id !== member.id) : [...prev, member.id]
 		)
 	}
 
 	const handleSelectAll = () => {
-		const hasUnselected = members.some((member) => !member.isSelected)
-		setMembers((prevMembers) =>
-			prevMembers.map((member) => ({
-				...member,
-				isSelected: hasUnselected,
-			}))
-		)
+		const allIds = members.map(m => m.id)
+		const hasUnselected = members.some(m => !m.isSelected)
+		setSelectedMemberIds(hasUnselected ? allIds : [])
 	}
 
 	return (
@@ -225,16 +111,10 @@ const ChannelForm: FC<ChannelFormProps> = ({
 					<MessageSquare size={24} className="channel-form__icon" />
 					<h2 className="channel-form__title">
 						{isEditing ? "Modifier le canal" : "Creer un nouveau canal"}
-						<span className="channel-form__team-name">
-							Equipe: {team.name}
-						</span>
+						<span className="channel-form__team-name">Equipe: {targetTeam.name}</span>
 					</h2>
 				</div>
-				<button
-					className="channel-form__close-button"
-					onClick={handleCancel}
-					aria-label="Fermer"
-				>
+				<button className="channel-form__close-button" onClick={onClose} aria-label="Fermer">
 					<X size={20} />
 				</button>
 			</div>
@@ -248,9 +128,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 
 			<form onSubmit={handleSubmit} className="channel-form__form">
 				<div className="channel-form__form-group">
-					<label htmlFor="channel-name" className="channel-form__label">
-						Nom du canal
-					</label>
+					<label htmlFor="channel-name" className="channel-form__label">Nom du canal</label>
 					<div className="channel-form__input-wrapper">
 						<MessageSquare size={18} className="channel-form__input-icon" />
 						<input
@@ -270,47 +148,32 @@ const ChannelForm: FC<ChannelFormProps> = ({
 					<div className="channel-form__visibility-options">
 						<button
 							type="button"
-							className={`channel-form__visibility-option ${
-								isPublic ? "channel-form__visibility-option--selected" : ""
-							}`}
+							className={`channel-form__visibility-option ${isPublic ? "channel-form__visibility-option--selected" : ""}`}
 							onClick={() => setIsPublic(true)}
 						>
-							<HashIcon
-								size={18}
-								className="channel-form__visibility-icon"
-							/>
+							<HashIcon size={18} className="channel-form__visibility-icon" />
 							<div className="channel-form__option-content">
-								<span className="channel-form__option-title">
-									Public
-								</span>
+								<span className="channel-form__option-title">Public</span>
 								<span className="channel-form__option-description">
 									Tous les membres de l'equipe peuvent voir et rejoindre ce canal
 								</span>
 							</div>
-							{isPublic && (
-								<Check size={18} className="channel-form__check-icon" />
-							)}
+							{isPublic && <Check size={18} className="channel-form__check-icon" />}
 						</button>
 
 						<button
 							type="button"
-							className={`channel-form__visibility-option ${
-								!isPublic ? "channel-form__visibility-option--selected" : ""
-							}`}
+							className={`channel-form__visibility-option ${!isPublic ? "channel-form__visibility-option--selected" : ""}`}
 							onClick={() => setIsPublic(false)}
 						>
 							<Lock size={18} className="channel-form__visibility-icon" />
 							<div className="channel-form__option-content">
-								<span className="channel-form__option-title">
-									Prive
-								</span>
+								<span className="channel-form__option-title">Prive</span>
 								<span className="channel-form__option-description">
 									Seuls les membres invites peuvent acceder a ce canal
 								</span>
 							</div>
-							{!isPublic && (
-								<Check size={18} className="channel-form__check-icon" />
-							)}
+							{!isPublic && <Check size={18} className="channel-form__check-icon" />}
 						</button>
 					</div>
 				</div>
@@ -322,40 +185,26 @@ const ChannelForm: FC<ChannelFormProps> = ({
 							members={members}
 							onMemberToggle={handleMemberToggle}
 							onSelectAll={handleSelectAll}
-							isLoading={isLoadingMembers}
+							isLoading={teamState.isLoadingMembers}
 							searchPlaceholder="Rechercher des membres..."
 							currentUserId={user?._id}
-							selectedMembersTitle={`Membres selectionnes (${
-								members.filter((m) => m.isSelected).length
-							})`}
+							selectedMembersTitle={`Membres selectionnes (${members.filter(m => m.isSelected).length})`}
 							availableMembersTitle="Ajouter des membres"
 						/>
 					</div>
 				)}
 
 				<div className="channel-form__actions">
-					{isEditing && (
-						<button
-							type="button"
-							className="channel-form__delete-button"
-							onClick={handleDeleteChannel}
-						>
+					{isEditing && channelToEdit && (
+						<button type="button" className="channel-form__delete-button" onClick={() => onDelete(channelToEdit.id)}>
 							Supprimer le canal
 						</button>
 					)}
-					<button
-						type="button"
-						className="channel-form__cancel-button"
-						onClick={handleCancel}
-					>
+					<button type="button" className="channel-form__cancel-button" onClick={onClose}>
 						Annuler
 					</button>
-					<button
-						type="submit"
-						className="channel-form__submit-button"
-						disabled={isLoading}
-					>
-						{isLoading ? (
+					<button type="submit" className="channel-form__submit-button" disabled={channelState.isSubmittingChannel}>
+						{channelState.isSubmittingChannel ? (
 							<>
 								<div className="channel-form__button-spinner"></div>
 								{isEditing ? "Mise a jour..." : "Creation..."}
@@ -363,9 +212,7 @@ const ChannelForm: FC<ChannelFormProps> = ({
 						) : (
 							<>
 								<Users size={18} />
-								{isEditing
-									? "Mettre a jour le canal"
-									: "Creer le canal"}
+								{isEditing ? "Mettre a jour le canal" : "Creer le canal"}
 							</>
 						)}
 					</button>

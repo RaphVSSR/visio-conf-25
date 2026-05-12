@@ -1,10 +1,12 @@
 // FIXME: rewire TeamsPanel as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
 // FIXME: local `ToastState` + setTimeout dismissal must migrate to global useToast (showToast/removeToast) once this is rewired.
-import React, { FC, useCallback, useEffect, useMemo, useState } from "react"
+import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "hooks/useAuth"
 import { Pencil, Plus, Search, Trash2, Users, X, Check } from "lucide-react"
 import { List, ListItem } from "design-system/components"
 import TeamForm from "components/TeamForm/TeamForm"
+import { Team, initialTeamState } from "services/team/Team"
+import type { TeamState } from "services/team/Team.types"
 import "./TeamsPanel.scss"
 import type { AdminTeam, TeamActionResponse, TeamGetAllResponse, ToastState } from "./TeamsPanel.types"
 
@@ -14,8 +16,17 @@ export type TeamsPanelProps = {
 
 export const TeamsPanel: FC<TeamsPanelProps> = ({ onClose }) => {
 
-	useAuth()
+	const { user } = useAuth()
 	const socket: any = null
+	const [teamState, setTeamState] = useState<TeamState>(initialTeamState)
+	const teamRef = useRef<Team | null>(null)
+
+	useEffect(() => {
+		const team = new Team(setTeamState)
+		teamRef.current = team
+		return () => { team.destroy(); teamRef.current = null }
+	}, [])
+
 	const [teams, setTeams] = useState<AdminTeam[]>([])
 	const [searchTerm, setSearchTerm] = useState("")
 	const [editingTeam, setEditingTeam] = useState<AdminTeam | null>(null)
@@ -92,6 +103,7 @@ export const TeamsPanel: FC<TeamsPanelProps> = ({ onClose }) => {
 	const closeForm = () => {
 		setEditingTeam(null)
 		setCreating(false)
+		teamRef.current?.closeForm()
 	}
 
 	const formOpen = creating || !!editingTeam
@@ -170,10 +182,18 @@ export const TeamsPanel: FC<TeamsPanelProps> = ({ onClose }) => {
 			{formOpen && (
 				<aside className="teamsPanelDrawer" role="dialog" aria-modal="true">
 					<TeamForm
+						user={user}
+						state={teamState}
 						teamToEdit={editingTeam ?? undefined}
 						forceAllowManage={true}
-						onCancel={closeForm}
-						onTeamCreated={() => { /* state updates flow through team_action_response */ }}
+						onLoadUsers={() => teamRef.current?.loadUsers()}
+						onLoadMembers={(teamId) => teamRef.current?.loadMembers(teamId)}
+						onCreate={(data) => teamRef.current?.createTeam(data)}
+						onUpdate={(data) => teamRef.current?.updateTeam(data)}
+						onDelete={(teamId) => teamRef.current?.deleteTeam(teamId)}
+						onAddMember={(teamId, userId) => teamRef.current?.addMember(teamId, userId)}
+						onRemoveMember={(teamId, userId) => teamRef.current?.removeMember(teamId, userId)}
+						onClose={closeForm}
 					/>
 				</aside>
 			)}
