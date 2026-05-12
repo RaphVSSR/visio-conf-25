@@ -1,0 +1,63 @@
+@use "../../../design-system/scss/global.scss" as *;
+
+.rolesPanel {
+    background-color: white;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.3s ease-out;
+
+    .rolesPanelHeader {
+        padding: 24px 32px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .rolesPanelTitle {
+            h2 {
+                font-size: 24px;
+                font-weight: 800;
+                color: #111827;
+                margin-bottom: 4px;
+            }
+
+            .rolesPanelCount {
+                font-size: 14px;
+                color: #6b7280;
+                font-weight: 500;
+            }
+        }
+
+        .rolesPanelClose {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.2s;
+
+            &:hover {
+                background-color: #f3f4f6;
+                color: #111827;
+                transform: rotate(90deg);
+            }
+        }
+    }
+
+    .rolesPanelContent {
+        flex: 1;
+        overflow-y: auto;
+        padding: 32px;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}

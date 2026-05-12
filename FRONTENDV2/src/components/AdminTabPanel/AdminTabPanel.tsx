@@ -1,6 +1,7 @@
 import React, { Dispatch, FC, SetStateAction } from "react"
 import "./AdminTabPanel.scss"
 import { TeamsPanel } from "./TeamsPanel"
+import { RolesPanel } from "./RolesPanel/RolesPanel"
 
 export type AdminTabProps = {
 	tabSelected: string
@@ -16,6 +17,7 @@ export const AdminTabPanel: FC<AdminTabProps> = ({
 
 	const panels: Record<string, React.ReactNode> = {
 		Equipes: <TeamsPanel onClose={close} />,
+		"Rôles": <RolesPanel onClose={close} />,
 	}
 
 	const panel = panels[tabSelected]
