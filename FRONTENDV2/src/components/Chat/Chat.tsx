@@ -1,28 +1,20 @@
-// FIXME: rewire Chat as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "hooks/useAuth"
+import { useToast } from "contexts/ToastContext"
 import { ChatSync } from "services/chat/ChatSync"
-import type { ChatState, DiscuType, Contact } from "services/chat/ChatSync.types"
+import { initialChatState } from "services/chat/ChatSync.types"
+import type { ChatState, DiscuType } from "services/chat/ChatSync.types"
 import "./Chat.scss"
-
-const INITIAL_STATE: ChatState = {
-	chats: [],
-	hiddenChats: [],
-	activeChat: null,
-	isLoading: false,
-	creatingStatus: null,
-	deletingStatus: null,
-}
 
 export const Chat = () => {
 
 	const { user } = useAuth()
-	const socket: any = null
+	const { showToast } = useToast()
 
 	const [state, setState] = useState<ChatState>(() => {
 		const savedHidden = localStorage.getItem("hiddenChats")
 		return {
-			...INITIAL_STATE,
+			...initialChatState,
 			hiddenChats: savedHidden ? JSON.parse(savedHidden) : [],
 		}
 	})
@@ -34,43 +26,21 @@ export const Chat = () => {
 	const [newChatName, setNewChatName] = useState("")
 	const [messageText, setMessageText] = useState("")
 	const [selectedUsers, setSelectedUsers] = useState<string[]>([])
-	const [contacts, setContacts] = useState<Contact[]>([])
 
-	// Fix #7 — Single useEffect for hiddenChats persistence (removed duplicate)
+	// Persist hiddenChats
 	useEffect(() => {
 		localStorage.setItem("hiddenChats", JSON.stringify(state.hiddenChats))
 	}, [state.hiddenChats])
 
-	// --- Fetch contacts via contacts:list (prod pattern) ---
-	const handleContactsResponse = useCallback((data: unknown) => {
-		setContacts(Array.isArray(data) ? data as Contact[] : [])
-	}, [])
-
+	// --- ChatSync lifecycle (own controleur, no external socket) ---
 	useEffect(() => {
-		if (!socket || !user) return
-
-		socket.on("contacts:list:response", handleContactsResponse)
-		socket.send("contacts:list", { excludeEmail: user.email })
-
-		return () => {
-			socket.off("contacts:list:response", handleContactsResponse)
-		}
-	}, [socket, user, handleContactsResponse])
-
-	// --- ChatSync lifecycle ---
-	useEffect(() => {
-		if (!socket || !user) return
-
-		const sync = new ChatSync(socket, setState)
+		const sync = new ChatSync(setState)
 		chatSyncRef.current = sync
-
-		sync.getChats(user._id)
-
 		return () => {
 			sync.destroy()
 			chatSyncRef.current = null
 		}
-	}, [socket, user])
+	}, [])
 
 	// --- Handlers ---
 	const handleCreateChat = () => {
@@ -80,7 +50,7 @@ export const Chat = () => {
 		let chatType = "group"
 
 		if (selectedUsers.length === 1 && !chatName) {
-			const partner = contacts.find(u => u.id === selectedUsers[0])
+			const partner = state.availableUsers.find(u => u.id === selectedUsers[0])
 			if (partner) {
 				chatName = `${partner.firstname} ${partner.lastname}`
 				chatType = "unique"
@@ -100,6 +70,11 @@ export const Chat = () => {
 		setIsModalOpen(false)
 	}
 
+	const handleOpenModal = () => {
+		chatSyncRef.current?.loadUsers()
+		setIsModalOpen(true)
+	}
+
 	const handleHideChat = () => {
 		if (!state.activeChat) return
 		if (window.confirm("Voulez-vous vraiment cacher cette discussion de votre vue ? (Elle réapparaîtra au prochain message)")) {
@@ -111,7 +86,6 @@ export const Chat = () => {
 		}
 	}
 
-	// Fix #5 frontend — no longer send sender (server forces session userId)
 	const handleSendMessage = () => {
 		if (!messageText.trim() || !state.activeChat || !chatSyncRef.current || !user) return
 		chatSyncRef.current.sendMessageToChat(state.activeChat.uuid, messageText)
@@ -146,7 +120,7 @@ export const Chat = () => {
 			<div className="chat__sidebar">
 				<div className="chat__sidebar-header">
 					<h2>Messages</h2>
-					<button className="chat__add-btn" onClick={() => setIsModalOpen(true)}>+</button>
+					<button className="chat__add-btn" onClick={handleOpenModal}>+</button>
 				</div>
 
 				<div className="chat__list">
@@ -265,26 +239,31 @@ export const Chat = () => {
 
 						<div className="chat__users-selection">
 							<div className="chat__users-list">
-								{contacts.map(u => (
-									<div key={u.id} className="chat__user-item">
-										<label>
-											<input
-												type="checkbox"
-												checked={selectedUsers.includes(u.id)}
-												onChange={(e) => {
-													if (e.target.checked) {
-														setSelectedUsers([...selectedUsers, u.id])
-													} else {
-														setSelectedUsers(selectedUsers.filter(id => id !== u.id))
-													}
-												}}
-											/>
-											<span className="chat__user-name">{u.firstname} {u.lastname}</span>
-											{u.is_online && <span className="chat__online-badge">● En ligne</span>}
-										</label>
-									</div>
-								))}
-								{contacts.length === 0 && (
+								{state.availableUsers
+									.filter(u => u.id !== user?._id)
+									.map(u => (
+										<div key={u.id} className="chat__user-item">
+											<label>
+												<input
+													type="checkbox"
+													checked={selectedUsers.includes(u.id)}
+													onChange={(e) => {
+														if (e.target.checked) {
+															setSelectedUsers([...selectedUsers, u.id])
+														} else {
+															setSelectedUsers(selectedUsers.filter(id => id !== u.id))
+														}
+													}}
+												/>
+												<span className="chat__user-name">{u.firstname} {u.lastname}</span>
+												{u.is_online && <span className="chat__online-badge">● En ligne</span>}
+											</label>
+										</div>
+									))}
+								{state.isLoadingUsers && (
+									<p className="chat__no-users">Chargement des utilisateurs...</p>
+								)}
+								{!state.isLoadingUsers && state.availableUsers.filter(u => u.id !== user?._id).length === 0 && (
 									<p className="chat__no-users">Aucun autre utilisateur trouvé.</p>
 								)}
 							</div>
