@@ -16,25 +16,6 @@ $rm-text-light: #6b7280;
 	width: 100%;
 	font-family: inherit;
 
-	.rm-toast {
-		padding: 10px 18px;
-		border-radius: 8px;
-		font-size: 14px;
-		font-weight: 600;
-		animation: rmSlideIn 0.3s ease;
-
-		&--success {
-			background-color: #ecfdf5;
-			color: #065f46;
-			border: 1px solid #a7f3d0;
-		}
-		&--error {
-			background-color: #fef2f2;
-			color: #991b1b;
-			border: 1px solid #fecaca;
-		}
-	}
-
 	.rm-section {
 		@extend %flex-col;
 		gap: 16px;

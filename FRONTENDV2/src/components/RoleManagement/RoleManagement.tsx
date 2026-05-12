@@ -1,149 +1,82 @@
-// FIXME: rewire RoleManagement as its own controleur participant (see services/auth/AuthSync.ts pattern). `socket` no longer comes from useAuth.
-// FIXME: local `rm-toast` (state `statusMessage`) must migrate to global useToast (showToast/removeToast) once this is rewired.
-import { FC, useEffect, useRef, useState, useCallback } from "react";
+import { FC, useEffect, useState } from "react";
 import { Pencil, Trash2, Eye, Plus, RefreshCw } from "lucide-react";
-import { useAuth } from "hooks/useAuth";
+import { useToast } from "contexts/ToastContext";
+import type { RoleState, RoleData } from "services/role/Role.types";
 import "./RoleManagement.scss";
-
-type RoleData = {
-  _id: string;
-  uuid: string;
-  label: string;
-  permissions?: { _id: string; label: string }[];
-  default: boolean;
-};
 
 export type RoleManagementProps = {
   activeAction?: string | null;
+  state: RoleState;
+  onLoadRoles: () => void;
+  onLoadRole: (roleId: string) => void;
+  onCreateRole: (name: string, perms?: string[]) => void;
+  onUpdateRole: (roleId: string, name: string, perms?: string[]) => void;
+  onDeleteRole: (roleId: string) => void;
+  onSelectRole: (role: RoleData | null) => void;
+  onClearError: () => void;
 };
 
 export const RoleManagement: FC<RoleManagementProps> = ({
   activeAction,
+  state,
+  onLoadRoles,
+  onLoadRole,
+  onCreateRole,
+  onUpdateRole,
+  onDeleteRole,
+  onSelectRole,
+  onClearError,
 }) => {
-  useAuth();
-  const socket: any = null;
+  const { showToast } = useToast();
 
-  const [roles, setRoles] = useState<RoleData[]>([]);
-  const [selectedRole, setSelectedRole] = useState<RoleData | null>(null);
   const [editingRole, setEditingRole] = useState<RoleData | null>(null);
   const [newRoleName, setNewRoleName] = useState("");
   const [editRoleName, setEditRoleName] = useState("");
-  const [statusMessage, setStatusMessage] = useState<{
-    text: string;
-    type: "success" | "error";
-  } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const socketRef = useRef(socket);
-  socketRef.current = socket;
+  const { roles, selectedRole, isSubmitting, roleError } = state;
 
-  const showStatus = useCallback((text: string, type: "success" | "error") => {
-    setStatusMessage({ text, type });
-  }, []);
-
-  // --- Socket message handlers ---
-
-  const handleRoles = useCallback((data: any) => {
-    if (data) setRoles(data);
-  }, []);
-
-  const handleRole = useCallback((data: any) => {
-    if (data) setSelectedRole(data);
-  }, []);
-
-  const handleRoleCreatingStatus = useCallback((data: any) => {
-    if (data?.success) {
-      showStatus("Rôle créé avec succès", "success");
-      setNewRoleName("");
-      socketRef.current?.send("get_roles", true);
-    } else {
-      showStatus(data?.message || "Erreur lors de la création", "error");
-    }
-  }, [showStatus]);
-
-  const handleRoleAlreadyExists = useCallback((data: any) => {
-    showStatus(data?.message || "Ce rôle existe déjà", "error");
-  }, [showStatus]);
-
-  const handleRoleUpdatingStatus = useCallback((data: any) => {
-    if (data?.success) {
-      showStatus("Rôle modifié avec succès", "success");
-      setEditingRole(null);
-      socketRef.current?.send("get_roles", true);
-    } else {
-      showStatus(data?.message || "Erreur lors de la modification", "error");
-    }
-  }, [showStatus]);
-
-  const handleRoleDeletingStatus = useCallback((data: any) => {
-    if (data?.success) {
-      showStatus("Rôle supprimé", "success");
-      setSelectedRole(null);
-      setConfirmDelete(null);
-      socketRef.current?.send("get_roles", true);
-    } else {
-      showStatus(data?.message || "Erreur lors de la suppression", "error");
-    }
-  }, [showStatus]);
-
-  // --- Socket lifecycle ---
-
+  // --- Toast on error ---
   useEffect(() => {
-    if (!socket) return;
-
-    socket.on("roles", handleRoles);
-    socket.on("role", handleRole);
-    socket.on("role_creating_status", handleRoleCreatingStatus);
-    socket.on("role_already_exists", handleRoleAlreadyExists);
-    socket.on("role_updating_status", handleRoleUpdatingStatus);
-    socket.on("role_deleting_status", handleRoleDeletingStatus);
-
-    socket.send("get_roles", true);
-
-    return () => {
-      socket.off("roles", handleRoles);
-      socket.off("role", handleRole);
-      socket.off("role_creating_status", handleRoleCreatingStatus);
-      socket.off("role_already_exists", handleRoleAlreadyExists);
-      socket.off("role_updating_status", handleRoleUpdatingStatus);
-      socket.off("role_deleting_status", handleRoleDeletingStatus);
-    };
-  }, [socket, handleRoles, handleRole, handleRoleCreatingStatus, handleRoleAlreadyExists, handleRoleUpdatingStatus, handleRoleDeletingStatus]);
-
-  useEffect(() => {
-    if (!statusMessage) return;
-    const timer = setTimeout(() => setStatusMessage(null), 3000);
-    return () => clearTimeout(timer);
-  }, [statusMessage]);
+    if (roleError) {
+      showToast({ name: "role-error", message: roleError, variant: "danger" });
+      onClearError();
+    }
+  }, [roleError, showToast, onClearError]);
 
   // --- Actions ---
 
   const handleRefresh = () => {
-    socket?.send("get_roles", true);
+    onLoadRoles();
   };
 
   const handleGetRole = (roleId: string) => {
-    setSelectedRole(roles.find((r) => r._id === roleId) || null);
-    socket?.send("get_role", { role_id: roleId });
+    onSelectRole(roles.find((r) => r._id === roleId) || null);
+    onLoadRole(roleId);
   };
 
   const handleCreateRole = () => {
-    if (!newRoleName.trim() || !socket) return;
-    socket.send("create_role", { name: newRoleName.trim(), perms: [] });
+    if (!newRoleName.trim()) return;
+    onCreateRole(newRoleName.trim());
+    setNewRoleName("");
+    showToast({ name: "role-create", message: "Création du rôle en cours…", variant: "info" });
   };
 
   const handleUpdateRole = () => {
-    if (!editingRole || !editRoleName.trim() || !socket) return;
-    socket.send("update_role", {
-      role_id: editingRole._id,
-      name: editRoleName.trim(),
-      perms: editingRole.permissions?.map((p) => p._id) || [],
-    });
+    if (!editingRole || !editRoleName.trim()) return;
+    onUpdateRole(
+      editingRole._id,
+      editRoleName.trim(),
+      editingRole.permissions?.map((p) => p._id) || [],
+    );
+    setEditingRole(null);
+    showToast({ name: "role-update", message: "Modification du rôle en cours…", variant: "info" });
   };
 
   const handleDeleteRole = (roleId: string) => {
-    if (!socket) return;
-    socket.send("delete_role", { role_id: roleId });
+    onDeleteRole(roleId);
+    setConfirmDelete(null);
+    showToast({ name: "role-delete", message: "Suppression du rôle en cours…", variant: "info" });
   };
 
   const startEdit = (role: RoleData) => {
@@ -237,7 +170,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
         <button
           className="rm-btn rm-btn--primary"
           onClick={handleCreateRole}
-          disabled={!newRoleName.trim()}
+          disabled={!newRoleName.trim() || isSubmitting}
         >
           <Plus size={16} />
           Créer
@@ -277,7 +210,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
             <button
               className="rm-btn rm-btn--primary"
               onClick={handleUpdateRole}
-              disabled={!editRoleName.trim()}
+              disabled={!editRoleName.trim() || isSubmitting}
             >
               Enregistrer
             </button>
@@ -360,7 +293,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
         </div>
         <button
           className="rm-btn rm-btn--secondary"
-          onClick={() => setSelectedRole(null)}
+          onClick={() => onSelectRole(null)}
         >
           Fermer
         </button>
@@ -389,16 +322,10 @@ export const RoleManagement: FC<RoleManagementProps> = ({
 
   return (
     <div id="roleManagement">
-      {statusMessage && (
-        <div className={`rm-toast rm-toast--${statusMessage.type}`}>
-          {statusMessage.text}
-        </div>
-      )}
-
       {renderContent()}
 
       {selectedRole && activeAction !== "Modifier" && (
-        <div className="rm-modal-overlay" onClick={() => setSelectedRole(null)}>
+        <div className="rm-modal-overlay" onClick={() => onSelectRole(null)}>
           <div className="rm-modal" onClick={(e) => e.stopPropagation()}>
             {renderDetail()}
           </div>
@@ -423,6 +350,7 @@ export const RoleManagement: FC<RoleManagementProps> = ({
               <button
                 className="rm-btn rm-btn--danger"
                 onClick={() => handleDeleteRole(confirmDelete)}
+                disabled={isSubmitting}
               >
                 Supprimer
               </button>

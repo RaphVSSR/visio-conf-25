@@ -1,21 +1,25 @@
-import { getMessagesByDomain } from "../ListeMessages.ts";
 import Role from "../Role.ts";
 import AccessRoleGuard from "./AccessRoleGuard.ts";
-
-type MessageHandler = (socketId: string, payload: any) => void;
+import Controleur from "../../Controller/controleur";
+import { Message } from "../ListeMessages.ts";
 
 export default class RoleService {
-	controleur: any;
+	controleur: Controleur;
 	nomDInstance: string;
-	private handlers = new Map<string, MessageHandler>();
+
+	msgEmitted: string[] = [
+		"roles", "role",
+		"role_creating_status", "role_already_exists",
+		"role_updating_status", "role_deleting_status",
+	];
+	msgReceived: string[] = [
+		"get_roles", "get_role",
+		"create_role", "update_role", "delete_role",
+	];
 
 	constructor(controleur: any, name: string) {
 		this.controleur = controleur;
 		this.nomDInstance = name;
-	}
-
-	private registerHandler(messageName: string, handler: MessageHandler) {
-		this.handlers.set(messageName, handler);
 	}
 
 	private send(socketIds: string | string[], messageName: string, payload: unknown) {
@@ -23,21 +27,21 @@ export default class RoleService {
 		this.controleur.envoie(this, { [messageName]: payload, id: ids });
 	}
 
-	traitementMessage(msg: any) {
-		const action = Object.keys(msg).find((prop) => prop !== "id");
+	traitementMessage(message: Message) {
+		const action = Object.keys(message).find((prop) => prop !== "id");
 		if (!action) return;
-		const handler = this.handlers.get(action);
-		if (handler) handler(msg.id, msg[action]);
+
+		switch (action) {
+			case "get_roles":    return this.handleGetRoles(message.id!);
+			case "get_role":     return this.handleGetRole(message.id!, message.get_role);
+			case "create_role":  return this.handleCreateRole(message.id!, message.create_role);
+			case "update_role":  return this.handleUpdateRole(message.id!, message.update_role);
+			case "delete_role":  return this.handleDeleteRole(message.id!, message.delete_role);
+		}
 	}
 
 	register() {
-		this.registerHandler("get_roles", this.handleGetRoles);
-		this.registerHandler("get_role", this.handleGetRole);
-		this.registerHandler("create_role", this.handleCreateRole);
-		this.registerHandler("update_role", this.handleUpdateRole);
-		this.registerHandler("delete_role", this.handleDeleteRole);
-
-		this.controleur.inscription(this, getMessagesByDomain("roles").received, [...this.handlers.keys()]);
+		this.controleur.inscription(this, this.msgEmitted, this.msgReceived);
 	}
 
 	private handleGetRoles = async (socketId: string) => {
