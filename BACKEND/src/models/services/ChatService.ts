@@ -11,9 +11,6 @@ export default class ChatService {
 	nomDInstance: string;
 	private handlers = new Map<string, MessageHandler>();
 
-	msgEmitted: string[] = ["chat_operation_result", "message_operation_result"];
-	msgReceived: string[] = ["chat_operation", "message_operation"];
-
 	constructor(controleur: any, name: string) {
 		this.controleur = controleur;
 		this.nomDInstance = name;
@@ -39,10 +36,10 @@ export default class ChatService {
 		}
 	}
 
-	register() {
-		this.registerHandler("chat_operation", this.handleChatOperation);
-		this.registerHandler("message_operation", this.handleMessageOperation);
+	msgEmitted: string[] = ["chat_operation_result", "message_operation_result"];
+	msgReceived: string[] = ["chat_operation", "message_operation"];
 
+	register() {
 		this.controleur.inscription(this, this.msgEmitted, this.msgReceived);
 	}
 

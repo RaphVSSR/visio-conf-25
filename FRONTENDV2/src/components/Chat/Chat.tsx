@@ -3,15 +3,14 @@ import { useAuth } from "hooks/useAuth"
 import { useToast } from "contexts/ToastContext"
 import { ChatSync } from "services/chat/ChatSync"
 import { initialChatState } from "services/chat/ChatSync.types"
-import type { ChatState, DiscuType } from "services/chat/ChatSync.types"
+import type { DiscuType } from "services/chat/ChatSync.types"
 import "./Chat.scss"
 
 export const Chat = () => {
-
 	const { user } = useAuth()
 	const { showToast } = useToast()
 
-	const [state, setState] = useState<ChatState>(() => {
+	const [state, setState] = useState(() => {
 		const savedHidden = localStorage.getItem("hiddenChats")
 		return {
 			...initialChatState,
@@ -27,20 +26,27 @@ export const Chat = () => {
 	const [messageText, setMessageText] = useState("")
 	const [selectedUsers, setSelectedUsers] = useState<string[]>([])
 
-	// Persist hiddenChats
+	// Hidden chats persistence
 	useEffect(() => {
 		localStorage.setItem("hiddenChats", JSON.stringify(state.hiddenChats))
 	}, [state.hiddenChats])
 
-	// --- ChatSync lifecycle (own controleur, no external socket) ---
+	// --- ChatSync lifecycle ---
 	useEffect(() => {
 		const sync = new ChatSync(setState)
 		chatSyncRef.current = sync
+
+		// Initial loads
+		if (user) {
+			sync.getChats(user._id)
+			sync.loadContacts(user.email)
+		}
+
 		return () => {
 			sync.destroy()
 			chatSyncRef.current = null
 		}
-	}, [])
+	}, [user])
 
 	// --- Handlers ---
 	const handleCreateChat = () => {
@@ -50,7 +56,7 @@ export const Chat = () => {
 		let chatType = "group"
 
 		if (selectedUsers.length === 1 && !chatName) {
-			const partner = state.availableUsers.find(u => u.id === selectedUsers[0])
+			const partner = state.contacts.find(u => u.id === selectedUsers[0])
 			if (partner) {
 				chatName = `${partner.firstname} ${partner.lastname}`
 				chatType = "unique"
@@ -68,11 +74,12 @@ export const Chat = () => {
 		setNewChatName("")
 		setSelectedUsers([])
 		setIsModalOpen(false)
-	}
-
-	const handleOpenModal = () => {
-		chatSyncRef.current?.loadUsers()
-		setIsModalOpen(true)
+		
+		showToast({
+			name: "chat_create",
+			message: "Discussion créée avec succès",
+			variant: "success"
+		})
 	}
 
 	const handleHideChat = () => {
@@ -87,7 +94,7 @@ export const Chat = () => {
 	}
 
 	const handleSendMessage = () => {
-		if (!messageText.trim() || !state.activeChat || !chatSyncRef.current || !user) return
+		if (!messageText.trim() || !state.activeChat || !chatSyncRef.current) return
 		chatSyncRef.current.sendMessageToChat(state.activeChat.uuid, messageText)
 		setMessageText("")
 	}
@@ -115,12 +122,11 @@ export const Chat = () => {
 
 	return (
 		<div className="chat">
-
 			{/* Sidebar */}
 			<div className="chat__sidebar">
 				<div className="chat__sidebar-header">
 					<h2>Messages</h2>
-					<button className="chat__add-btn" onClick={handleOpenModal}>+</button>
+					<button className="chat__add-btn" onClick={() => setIsModalOpen(true)}>+</button>
 				</div>
 
 				<div className="chat__list">
@@ -147,6 +153,9 @@ export const Chat = () => {
 							</div>
 						</div>
 					))}
+					{!state.isLoading && visibleChats.length === 0 && (
+						<p className="chat__empty-list">Aucune discussion</p>
+					)}
 				</div>
 			</div>
 
@@ -239,31 +248,27 @@ export const Chat = () => {
 
 						<div className="chat__users-selection">
 							<div className="chat__users-list">
-								{state.availableUsers
-									.filter(u => u.id !== user?._id)
-									.map(u => (
-										<div key={u.id} className="chat__user-item">
-											<label>
-												<input
-													type="checkbox"
-													checked={selectedUsers.includes(u.id)}
-													onChange={(e) => {
-														if (e.target.checked) {
-															setSelectedUsers([...selectedUsers, u.id])
-														} else {
-															setSelectedUsers(selectedUsers.filter(id => id !== u.id))
-														}
-													}}
-												/>
-												<span className="chat__user-name">{u.firstname} {u.lastname}</span>
-												{u.is_online && <span className="chat__online-badge">● En ligne</span>}
-											</label>
-										</div>
-									))}
-								{state.isLoadingUsers && (
-									<p className="chat__no-users">Chargement des utilisateurs...</p>
-								)}
-								{!state.isLoadingUsers && state.availableUsers.filter(u => u.id !== user?._id).length === 0 && (
+								{state.contacts.map(u => (
+									<div key={u.id} className="chat__user-item">
+										<label>
+											<input
+												type="checkbox"
+												checked={selectedUsers.includes(u.id)}
+												onChange={(e) => {
+													if (e.target.checked) {
+														setSelectedUsers([...selectedUsers, u.id])
+													} else {
+														setSelectedUsers(selectedUsers.filter(id => id !== u.id))
+													}
+												}}
+											/>
+											<span className="chat__user-name">{u.firstname} {u.lastname}</span>
+											{u.is_online && <span className="chat__online-badge">● En ligne</span>}
+										</label>
+									</div>
+								))}
+								{state.isLoadingContacts && <p className="chat__loading">Chargement des utilisateurs...</p>}
+								{!state.isLoadingContacts && state.contacts.length === 0 && (
 									<p className="chat__no-users">Aucun autre utilisateur trouvé.</p>
 								)}
 							</div>
